@@ -1,0 +1,182 @@
+// Typed wrappers for the ullav-dam-server API at http://localhost:8080.
+// In the browser requests go via the Next.js /api/* rewrite to avoid CORS.
+
+const BASE =
+  typeof window === "undefined"
+    ? (process.env.API_URL ?? "http://localhost:8080")
+    : "/api";
+
+export interface Asset {
+  id: string;
+  name: string;
+  description: string | null;
+  asset_type: string;
+  size: number;
+  storage_key: string;
+  bucket: string;
+  caption: string | null;
+  keywords: string | null;
+  creator: string | null;
+  copyright_notice: string | null;
+  available: boolean;
+  available_until: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssetWithCategories extends Asset {
+  categories: Category[];
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryWithChildren extends Category {
+  sub_categories: Category[];
+}
+
+async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { ...init });
+  if (res.status === 204) return undefined as T;
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return undefined as T;
+  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? data.message ?? `HTTP ${res.status}`);
+  return data as T;
+}
+
+function bearerHeaders(token: string, extra?: Record<string, string>) {
+  return { Authorization: `Bearer ${token}`, ...extra };
+}
+
+// ── Assets ────────────────────────────────────────────────────────────────────
+
+export const listAssets = (token: string): Promise<Asset[]> =>
+  apiRequest("/assets", { headers: bearerHeaders(token) });
+
+export const getAsset = (id: string, token: string): Promise<AssetWithCategories> =>
+  apiRequest(`/assets/${id}`, { headers: bearerHeaders(token) });
+
+export const createAsset = (
+  body: {
+    name: string;
+    description?: string | null;
+    asset_type: string;
+    caption?: string | null;
+    keywords?: string | null;
+    creator?: string | null;
+    copyright_notice?: string | null;
+    available?: boolean;
+    available_until?: string | null;
+  },
+  token: string
+): Promise<Asset> =>
+  apiRequest("/assets", {
+    method: "POST",
+    headers: bearerHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+
+export const updateAsset = (
+  id: string,
+  body: Partial<{
+    name: string;
+    description: string | null;
+    asset_type: string;
+    caption: string | null;
+    keywords: string | null;
+    creator: string | null;
+    copyright_notice: string | null;
+    available: boolean;
+    available_until: string | null;
+  }>,
+  token: string
+): Promise<Asset> =>
+  apiRequest(`/assets/${id}`, {
+    method: "PUT",
+    headers: bearerHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+
+export const deleteAsset = (id: string, token: string): Promise<void> =>
+  apiRequest(`/assets/${id}`, {
+    method: "DELETE",
+    headers: bearerHeaders(token),
+  });
+
+export const uploadFile = (id: string, file: File, token: string): Promise<Asset> => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return apiRequest(`/assets/${id}/upload`, {
+    method: "POST",
+    headers: bearerHeaders(token),
+    body: fd,
+  });
+};
+
+export const thumbnailUrl = (id: string): string => `/api/assets/${id}/thumbnail`;
+export const downloadUrl = (id: string): string => `/api/assets/${id}/download`;
+
+// ── Categories ────────────────────────────────────────────────────────────────
+
+export const listCategories = (token: string): Promise<Category[]> =>
+  apiRequest("/categories", { headers: bearerHeaders(token) });
+
+export const getCategory = (id: string, token: string): Promise<CategoryWithChildren> =>
+  apiRequest(`/categories/${id}`, { headers: bearerHeaders(token) });
+
+export const createCategory = (
+  body: { name: string; description?: string | null; parent_id?: string | null },
+  token: string
+): Promise<Category> =>
+  apiRequest("/categories", {
+    method: "POST",
+    headers: bearerHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+
+export const updateCategory = (
+  id: string,
+  body: Partial<{ name: string; description: string | null; parent_id: string | null }>,
+  token: string
+): Promise<Category> =>
+  apiRequest(`/categories/${id}`, {
+    method: "PUT",
+    headers: bearerHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+
+export const deleteCategory = (id: string, token: string): Promise<void> =>
+  apiRequest(`/categories/${id}`, {
+    method: "DELETE",
+    headers: bearerHeaders(token),
+  });
+
+export const addCategoryToAsset = (
+  assetId: string,
+  categoryId: string,
+  token: string
+): Promise<void> =>
+  apiRequest(`/assets/${assetId}/categories/${categoryId}`, {
+    method: "POST",
+    headers: bearerHeaders(token),
+  });
+
+export const removeCategoryFromAsset = (
+  assetId: string,
+  categoryId: string,
+  token: string
+): Promise<void> =>
+  apiRequest(`/assets/${assetId}/categories/${categoryId}`, {
+    method: "DELETE",
+    headers: bearerHeaders(token),
+  });

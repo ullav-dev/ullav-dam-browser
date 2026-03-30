@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="32" fill="#1d4ed8"/>
+  <!-- Folder body -->
+  <rect x="10" y="22" width="44" height="30" rx="4" fill="#93c5fd"/>
+  <!-- Folder tab -->
+  <path d="M10 22 L10 18 Q10 15 13 15 L26 15 Q29 15 30 18 L31 22 Z" fill="#bfdbfe"/>
+  <!-- Image icon inside folder -->
+  <rect x="16" y="28" width="32" height="18" rx="2" fill="#1e40af"/>
+  <!-- Mountain shape in image -->
+  <path d="M20 42 L28 32 L34 38 L38 34 L44 42 Z" fill="#60a5fa"/>
+  <!-- Sun in image -->
+  <circle cx="38" cy="32" r="3" fill="#fbbf24"/>
+</svg>
