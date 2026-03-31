@@ -10,18 +10,37 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function typeInfo(raw: string): { label: string; cls: string } {
+  const t = raw.toLowerCase();
+  // Handles both full MIME types (e.g. "image/png") and legacy short names
+  if (t.startsWith("image/") || t === "image") {
+    const sub = t.includes("/") ? t.split("/")[1].split("+")[0].toUpperCase() : "IMAGE";
+    return { label: sub, cls: "bg-blue-100 text-blue-700" };
+  }
+  if (t.startsWith("video/") || t === "video")
+    return { label: "VIDEO", cls: "bg-purple-100 text-purple-700" };
+  if (t.startsWith("audio/") || t === "audio")
+    return { label: "AUDIO", cls: "bg-green-100 text-green-700" };
+  if (t === "application/pdf" || t === "pdf")
+    return { label: "PDF", cls: "bg-red-100 text-red-700" };
+  if (t.startsWith("text/") || t.includes("document") || t.includes("word") || t === "document")
+    return { label: "DOC", cls: "bg-amber-100 text-amber-700" };
+  if (t.includes("spreadsheet") || t.includes("excel") || t === "spreadsheet")
+    return { label: "XLS", cls: "bg-amber-100 text-amber-700" };
+  if (t.includes("presentation") || t.includes("powerpoint") || t === "presentation")
+    return { label: "PPT", cls: "bg-orange-100 text-orange-700" };
+  if (t.includes("zip") || t.includes("archive") || t === "archive")
+    return { label: "ZIP", cls: "bg-slate-100 text-slate-600" };
+  // Fall back: show the subtype portion of the MIME (e.g. "octet-stream" → "FILE")
+  const sub = t.includes("/") ? t.split("/")[1].split("+")[0] : t;
+  return { label: sub === "octet-stream" ? "FILE" : sub.toUpperCase(), cls: "bg-slate-100 text-slate-600" };
+}
+
 function AssetTypeBadge({ type }: { type: string }) {
-  const colours: Record<string, string> = {
-    image: "bg-blue-100 text-blue-700",
-    video: "bg-purple-100 text-purple-700",
-    audio: "bg-green-100 text-green-700",
-    document: "bg-amber-100 text-amber-700",
-    pdf: "bg-red-100 text-red-700",
-  };
-  const cls = colours[type.toLowerCase()] ?? "bg-slate-100 text-slate-600";
+  const { label, cls } = typeInfo(type);
   return (
-    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded uppercase ${cls}`}>
-      {type}
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${cls}`}>
+      {label}
     </span>
   );
 }

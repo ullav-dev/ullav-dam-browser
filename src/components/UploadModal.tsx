@@ -7,16 +7,19 @@ import { createAsset, uploadFile } from "@/lib/dam-api";
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
-const ASSET_TYPES = [
-  "image",
-  "video",
-  "audio",
-  "document",
-  "pdf",
-  "spreadsheet",
-  "presentation",
-  "archive",
-  "other",
+// Representative MIME types used when no file is selected or the browser
+// cannot detect the type. The server checks asset_type.starts_with("image/")
+// to decide whether to generate a real thumbnail, so these must be real MIME types.
+const ASSET_TYPE_OPTIONS = [
+  { label: "Image",        value: "image/jpeg" },
+  { label: "Video",        value: "video/mp4" },
+  { label: "Audio",        value: "audio/mpeg" },
+  { label: "PDF",          value: "application/pdf" },
+  { label: "Document",     value: "application/msword" },
+  { label: "Spreadsheet",  value: "application/vnd.ms-excel" },
+  { label: "Presentation", value: "application/vnd.ms-powerpoint" },
+  { label: "Archive",      value: "application/zip" },
+  { label: "Other",        value: "application/octet-stream" },
 ];
 
 interface Props {
@@ -30,7 +33,7 @@ export default function UploadModal({ token, categories, onComplete, onClose }: 
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [name, setName] = useState("");
-  const [assetType, setAssetType] = useState("image");
+  const [assetType, setAssetType] = useState("image/jpeg");
   const [description, setDescription] = useState("");
   const [caption, setCaption] = useState("");
   const [keywords, setKeywords] = useState("");
@@ -45,16 +48,11 @@ export default function UploadModal({ token, categories, onComplete, onClose }: 
   const handleFile = useCallback((f: File) => {
     setFile(f);
     if (!name) {
-      // Auto-populate name from filename (strip extension)
       setName(f.name.replace(/\.[^.]+$/, ""));
     }
-    // Auto-detect type
-    const mime = f.type.split("/")[0];
-    if (mime === "image") setAssetType("image");
-    else if (mime === "video") setAssetType("video");
-    else if (mime === "audio") setAssetType("audio");
-    else if (f.type === "application/pdf") setAssetType("pdf");
-    else setAssetType("document");
+    // Use the full MIME type from the browser so the server can generate a
+    // real thumbnail (it checks asset_type.starts_with("image/")).
+    if (f.type) setAssetType(f.type);
   }, [name]);
 
   function handleDrop(e: React.DragEvent) {
@@ -182,17 +180,27 @@ export default function UploadModal({ token, categories, onComplete, onClose }: 
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-slate-700">Type</label>
-              <select
-                value={assetType}
-                onChange={(e) => setAssetType(e.target.value)}
-                className={inputCls}
-              >
-                {ASSET_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))}
-              </select>
+              {file && file.type ? (
+                // Show the browser-detected MIME type; allow manual override via text
+                <input
+                  value={assetType}
+                  onChange={(e) => setAssetType(e.target.value)}
+                  className={inputCls}
+                  placeholder="MIME type, e.g. image/png"
+                />
+              ) : (
+                <select
+                  value={assetType}
+                  onChange={(e) => setAssetType(e.target.value)}
+                  className={inputCls}
+                >
+                  {ASSET_TYPE_OPTIONS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div className="flex flex-col gap-1">
