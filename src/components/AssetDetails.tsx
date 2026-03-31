@@ -15,13 +15,68 @@ const inputCls =
 
 const labelCls = "text-xs font-medium text-slate-500 uppercase tracking-wide";
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+const LOCKED_KEY = "dam_locked_assets";
+
+function loadLockedIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(LOCKED_KEY);
+    if (raw) return new Set(JSON.parse(raw) as string[]);
+  } catch {}
+  return new Set();
+}
+
+function saveLockedIds(ids: Set<string>) {
+  localStorage.setItem(LOCKED_KEY, JSON.stringify([...ids]));
+}
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+function IconDownload() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  );
+}
+
+function IconLocked() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  );
+}
+
+function IconUnlocked() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+    </svg>
+  );
+}
+
+function IconTrash() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      <line x1="10" y1="11" x2="10" y2="17"/>
+      <line x1="14" y1="11" x2="14" y2="17"/>
+    </svg>
+  );
+}
+
+// ── Field helper ──────────────────────────────────────────────────────────────
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <p className={labelCls}>{label}</p>
@@ -29,6 +84,8 @@ function Field({
     </div>
   );
 }
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
   asset: AssetWithCategories;
@@ -47,6 +104,7 @@ export default function AssetDetails({
   onDeleted,
   onCategoriesChanged,
 }: Props) {
+  // Form state
   const [name, setName] = useState(asset.name);
   const [description, setDescription] = useState(asset.description ?? "");
   const [caption, setCaption] = useState(asset.caption ?? "");
@@ -58,6 +116,7 @@ export default function AssetDetails({
     asset.available_until ? asset.available_until.slice(0, 10) : ""
   );
 
+  // Operation state
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -65,7 +124,11 @@ export default function AssetDetails({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
-  // Reset form when asset changes
+  // Lock state — persisted in localStorage
+  const [lockedIds, setLockedIds] = useState<Set<string>>(() => loadLockedIds());
+  const isLocked = lockedIds.has(asset.id);
+
+  // Reset form when the selected asset changes
   useEffect(() => {
     setName(asset.name);
     setDescription(asset.description ?? "");
@@ -80,6 +143,19 @@ export default function AssetDetails({
     setConfirmDelete(false);
     setCategoryError(null);
   }, [asset.id]);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  function toggleLock() {
+    setLockedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(asset.id)) next.delete(asset.id);
+      else next.add(asset.id);
+      saveLockedIds(next);
+      return next;
+    });
+    setConfirmDelete(false);
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -97,9 +173,7 @@ export default function AssetDetails({
           creator: creator || null,
           copyright_notice: copyrightNotice || null,
           available,
-          available_until: availableUntil
-            ? new Date(availableUntil).toISOString()
-            : null,
+          available_until: availableUntil ? new Date(availableUntil).toISOString() : null,
         },
         token
       );
@@ -134,9 +208,7 @@ export default function AssetDetails({
     try {
       await addCategoryToAsset(asset.id, categoryId, token);
       const cat = categories.find((c) => c.id === categoryId);
-      if (cat) {
-        onCategoriesChanged([...asset.categories, cat]);
-      }
+      if (cat) onCategoriesChanged([...asset.categories, cat]);
     } catch (err) {
       setCategoryError(err instanceof Error ? err.message : "Failed to add category.");
     }
@@ -151,6 +223,8 @@ export default function AssetDetails({
       setCategoryError(err instanceof Error ? err.message : "Failed to remove category.");
     }
   }
+
+  // ── Derived ─────────────────────────────────────────────────────────────────
 
   const assignedIds = new Set(asset.categories.map((c) => c.id));
   const availableCategories = categories.filter((c) => !assignedIds.has(c.id));
@@ -170,13 +244,24 @@ export default function AssetDetails({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+
+      {/* ── Header ── */}
       <div className="p-4 border-b border-slate-200 shrink-0">
-        <h2 className="font-semibold text-slate-800 text-sm truncate" title={asset.name}>
-          {asset.name}
-        </h2>
+        <div className="flex items-start gap-2">
+          <h2 className="flex-1 font-semibold text-slate-800 text-sm truncate" title={asset.name}>
+            {asset.name}
+          </h2>
+          {isLocked && (
+            <span className="shrink-0 inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded">
+              <IconLocked />
+              Locked
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
           <span>{asset.asset_type}</span>
           <span>·</span>
@@ -186,28 +271,18 @@ export default function AssetDetails({
         </div>
       </div>
 
-      {/* Scrollable body */}
+      {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
         {/* Thumbnail preview */}
         <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
           <img
             src={`/api/assets/${asset.id}/thumbnail`}
             alt={asset.name}
             className="max-w-full max-h-full object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = "none";
-            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </div>
-
-        {/* Download */}
-        <a
-          href={downloadUrl(asset.id)}
-          download
-          className="flex items-center justify-center gap-2 w-full border border-slate-300 hover:border-blue-400 hover:text-blue-700 text-slate-600 text-sm font-medium py-2 rounded-lg transition-colors"
-        >
-          ⬇ Download
-        </a>
 
         {/* Edit form */}
         <form onSubmit={handleSave} className="space-y-3">
@@ -335,21 +410,15 @@ export default function AssetDetails({
             <select
               className={`${inputCls} text-xs`}
               value=""
-              onChange={(e) => {
-                if (e.target.value) handleAddCategory(e.target.value);
-              }}
+              onChange={(e) => { if (e.target.value) handleAddCategory(e.target.value); }}
             >
               <option value="">+ Add category…</option>
               {availableCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
           )}
-          {categoryError && (
-            <p className="text-xs text-red-600">{categoryError}</p>
-          )}
+          {categoryError && <p className="text-xs text-red-600">{categoryError}</p>}
         </div>
 
         {/* Metadata */}
@@ -358,40 +427,79 @@ export default function AssetDetails({
           <p>Created: {formatDate(asset.created_at)}</p>
           <p>Updated: {formatDate(asset.updated_at)}</p>
         </div>
+      </div>
 
-        {/* Delete */}
-        <div className="pt-2 border-t border-slate-100">
-          {confirmDelete ? (
-            <div className="space-y-2">
-              <p className="text-xs text-red-600 font-medium">
-                Are you sure? This cannot be undone.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
-                >
-                  {deleting ? "Deleting…" : "Yes, delete"}
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium py-2 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
+      {/* ── Action bar (fixed at bottom) ── */}
+      {confirmDelete ? (
+        <div className="shrink-0 border-t border-red-200 bg-red-50 px-4 py-3 space-y-2">
+          <p className="text-xs text-red-700 font-medium text-center">
+            Delete this asset? This cannot be undone.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium py-2 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
             <button
               onClick={handleDelete}
-              className="w-full border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium py-2 rounded-lg transition-colors"
+              disabled={deleting}
+              className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
             >
-              Delete asset
+              {deleting ? "Deleting…" : "Yes, delete"}
             </button>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="shrink-0 border-t border-slate-200 bg-white px-2 py-2 flex items-stretch">
+
+          {/* Download */}
+          <a
+            href={downloadUrl(asset.id)}
+            download
+            title="Download asset"
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 transition-colors"
+          >
+            <IconDownload />
+            <span className="text-[10px] font-medium">Download</span>
+          </a>
+
+          <div className="w-px bg-slate-200 my-1" />
+
+          {/* Lock / Unlock */}
+          <button
+            onClick={toggleLock}
+            title={isLocked ? "Unlock asset" : "Lock asset"}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors ${
+              isLocked
+                ? "text-amber-600 hover:bg-amber-50"
+                : "text-slate-500 hover:bg-slate-50 hover:text-amber-600"
+            }`}
+          >
+            {isLocked ? <IconLocked /> : <IconUnlocked />}
+            <span className="text-[10px] font-medium">{isLocked ? "Unlock" : "Lock"}</span>
+          </button>
+
+          <div className="w-px bg-slate-200 my-1" />
+
+          {/* Delete */}
+          <button
+            onClick={handleDelete}
+            disabled={isLocked}
+            title={isLocked ? "Unlock the asset before deleting" : "Delete asset"}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors ${
+              isLocked
+                ? "text-slate-300 cursor-not-allowed"
+                : "text-slate-500 hover:bg-red-50 hover:text-red-600"
+            }`}
+          >
+            <IconTrash />
+            <span className="text-[10px] font-medium">Delete</span>
+          </button>
+
+        </div>
+      )}
     </div>
   );
 }
