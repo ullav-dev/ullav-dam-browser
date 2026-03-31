@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
@@ -22,6 +22,25 @@ export default function BrowsePage() {
   const [loadingAssets, setLoadingAssets] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+
+  // Lock state — persisted in localStorage, shared across both grid and details
+  const [lockedIds, setLockedIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem("dam_locked_assets");
+      if (raw) return new Set(JSON.parse(raw) as string[]);
+    } catch {}
+    return new Set();
+  });
+
+  const toggleLock = useCallback((id: string) => {
+    setLockedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      localStorage.setItem("dam_locked_assets", JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   // Track which asset IDs have had their categories loaded
   const loadedAssetIds = useRef(new Set<string>());
@@ -258,6 +277,7 @@ export default function BrowsePage() {
             selectedCategoryId={selectedCategoryId}
             searchQuery={searchQuery}
             selectedAssetId={selectedAsset?.id ?? null}
+            lockedIds={lockedIds}
             onSelect={handleSelectAsset}
           />
         )}
@@ -270,6 +290,8 @@ export default function BrowsePage() {
             asset={selectedAsset}
             categories={categories}
             token={token ?? ""}
+            isLocked={lockedIds.has(selectedAsset.id)}
+            onToggleLock={() => toggleLock(selectedAsset.id)}
             onUpdated={handleAssetUpdated}
             onDeleted={handleAssetDeleted}
             onCategoriesChanged={handleCategoriesChanged}

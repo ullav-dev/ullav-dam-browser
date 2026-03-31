@@ -15,20 +15,6 @@ const inputCls =
 
 const labelCls = "text-xs font-medium text-slate-500 uppercase tracking-wide";
 
-const LOCKED_KEY = "dam_locked_assets";
-
-function loadLockedIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(LOCKED_KEY);
-    if (raw) return new Set(JSON.parse(raw) as string[]);
-  } catch {}
-  return new Set();
-}
-
-function saveLockedIds(ids: Set<string>) {
-  localStorage.setItem(LOCKED_KEY, JSON.stringify([...ids]));
-}
-
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 function IconDownload() {
@@ -91,6 +77,8 @@ interface Props {
   asset: AssetWithCategories;
   categories: Category[];
   token: string;
+  isLocked: boolean;
+  onToggleLock: () => void;
   onUpdated: (asset: Asset) => void;
   onDeleted: (id: string) => void;
   onCategoriesChanged: (cats: Category[]) => void;
@@ -100,6 +88,8 @@ export default function AssetDetails({
   asset,
   categories,
   token,
+  isLocked,
+  onToggleLock,
   onUpdated,
   onDeleted,
   onCategoriesChanged,
@@ -124,10 +114,6 @@ export default function AssetDetails({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
-  // Lock state — persisted in localStorage
-  const [lockedIds, setLockedIds] = useState<Set<string>>(() => loadLockedIds());
-  const isLocked = lockedIds.has(asset.id);
-
   // Reset form when the selected asset changes
   useEffect(() => {
     setName(asset.name);
@@ -147,13 +133,7 @@ export default function AssetDetails({
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   function toggleLock() {
-    setLockedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(asset.id)) next.delete(asset.id);
-      else next.add(asset.id);
-      saveLockedIds(next);
-      return next;
-    });
+    onToggleLock();
     setConfirmDelete(false);
   }
 
@@ -251,23 +231,24 @@ export default function AssetDetails({
 
       {/* ── Header ── */}
       <div className="p-4 border-b border-slate-200 shrink-0">
-        <div className="flex items-start gap-2">
-          <h2 className="flex-1 font-semibold text-slate-800 text-sm truncate" title={asset.name}>
-            {asset.name}
-          </h2>
-          {isLocked && (
-            <span className="shrink-0 inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[10px] font-semibold px-1.5 py-0.5 rounded">
-              <IconLocked />
-              Locked
-            </span>
-          )}
-        </div>
+        <h2 className="font-semibold text-slate-800 text-sm truncate" title={asset.name}>
+          {asset.name}
+        </h2>
         <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
           <span>{asset.asset_type}</span>
           <span>·</span>
           <span>{formatFileSize(asset.size)}</span>
           <span>·</span>
           <span>{formatDate(asset.created_at)}</span>
+          {isLocked && (
+            <>
+              <span>·</span>
+              <span className="inline-flex items-center gap-0.5 text-amber-600 font-medium">
+                <IconLocked />
+                Locked
+              </span>
+            </>
+          )}
         </div>
       </div>
 
@@ -283,6 +264,14 @@ export default function AssetDetails({
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </div>
+
+        {/* Lock status badge — shown beneath the thumbnail */}
+        {isLocked && (
+          <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium px-3 py-2 rounded-lg">
+            <IconLocked />
+            <span>Asset is locked — deletion disabled</span>
+          </div>
+        )}
 
         {/* Edit form */}
         <form onSubmit={handleSave} className="space-y-3">
