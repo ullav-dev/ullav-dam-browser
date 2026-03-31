@@ -82,6 +82,8 @@ interface Props {
   onUpdated: (asset: Asset) => void;
   onDeleted: (id: string) => void;
   onCategoriesChanged: (cats: Category[]) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
 }
 
 export default function AssetDetails({
@@ -93,6 +95,8 @@ export default function AssetDetails({
   onUpdated,
   onDeleted,
   onCategoriesChanged,
+  onDragStart,
+  onDragEnd,
 }: Props) {
   // Form state
   const [name, setName] = useState(asset.name);
@@ -255,12 +259,22 @@ export default function AssetDetails({
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-        {/* Thumbnail preview */}
-        <div className="aspect-video bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center">
+        {/* Thumbnail preview — draggable onto category tree */}
+        <div
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "copy";
+            e.dataTransfer.setData("text/plain", asset.id);
+            onDragStart();
+          }}
+          onDragEnd={onDragEnd}
+          title="Drag onto a category to assign it"
+          className="aspect-video bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing ring-0 hover:ring-2 hover:ring-blue-300 transition-shadow"
+        >
           <img
             src={`/api/assets/${asset.id}/thumbnail`}
             alt={asset.name}
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain pointer-events-none"
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </div>

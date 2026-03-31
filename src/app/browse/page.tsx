@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
@@ -41,6 +41,42 @@ export default function BrowsePage() {
       return next;
     });
   }, []);
+
+  // Drag-and-drop: track which asset is being dragged onto the category tree
+  const [draggingAssetId, setDraggingAssetId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback((assetId: string) => {
+    setDraggingAssetId(assetId);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggingAssetId(null);
+  }, []);
+
+  const handleCategoryDrop = useCallback(
+    async (assetId: string, categoryId: string) => {
+      if (!token) return;
+      try {
+        await api.addCategoryToAsset(assetId, categoryId, token);
+        // Update the assetCategories cache
+        setAssetCategories((prev) => {
+          const next = new Map(prev);
+          next.set(assetId, [...(next.get(assetId) ?? []), categoryId]);
+          return next;
+        });
+        // If this is the selected asset, update its categories in the details panel
+        setSelectedAsset((prev) => {
+          if (!prev || prev.id !== assetId) return prev;
+          const cat = categories.find((c) => c.id === categoryId);
+          if (!cat) return prev;
+          return { ...prev, categories: [...prev.categories, cat] };
+        });
+      } catch {
+        // Server returns a conflict or error — silently ignore (already assigned)
+      }
+    },
+    [token, categories]
+  );
 
   // Track which asset IDs have had their categories loaded
   const loadedAssetIds = useRef(new Set<string>());
@@ -209,6 +245,13 @@ export default function BrowsePage() {
               categories={categories}
               selectedId={selectedCategoryId}
               onSelect={setSelectedCategoryId}
+              draggingAssetId={draggingAssetId}
+              draggingAssetCategoryIds={
+                draggingAssetId
+                  ? (assetCategories.get(draggingAssetId) ?? [])
+                  : []
+              }
+              onCategoryDrop={handleCategoryDrop}
             />
           )}
         </div>
@@ -279,6 +322,8 @@ export default function BrowsePage() {
             selectedAssetId={selectedAsset?.id ?? null}
             lockedIds={lockedIds}
             onSelect={handleSelectAsset}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           />
         )}
       </div>
@@ -295,6 +340,8 @@ export default function BrowsePage() {
             onUpdated={handleAssetUpdated}
             onDeleted={handleAssetDeleted}
             onCategoriesChanged={handleCategoriesChanged}
+            onDragStart={() => handleDragStart(selectedAsset.id)}
+            onDragEnd={handleDragEnd}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm p-8 text-center">

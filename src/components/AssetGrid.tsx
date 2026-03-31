@@ -85,6 +85,8 @@ interface Props {
   selectedAssetId: string | null;
   lockedIds: Set<string>;
   onSelect: (asset: Asset) => void;
+  onDragStart: (assetId: string) => void;
+  onDragEnd: () => void;
 }
 
 export default function AssetGrid({
@@ -95,6 +97,8 @@ export default function AssetGrid({
   selectedAssetId,
   lockedIds,
   onSelect,
+  onDragStart,
+  onDragEnd,
 }: Props) {
   const filtered = assets.filter((asset) => {
     if (searchQuery) {
@@ -129,8 +133,15 @@ export default function AssetGrid({
         {filtered.map((asset) => (
           <div
             key={asset.id}
+            draggable
             onClick={() => onSelect(asset)}
-            className={`cursor-pointer rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = "copy";
+              e.dataTransfer.setData("text/plain", asset.id);
+              onDragStart(asset.id);
+            }}
+            onDragEnd={onDragEnd}
+            className={`cursor-grab active:cursor-grabbing rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
               selectedAssetId === asset.id
                 ? "border-blue-500 ring-2 ring-blue-200 shadow-md"
                 : "border-slate-200 hover:border-blue-300"
