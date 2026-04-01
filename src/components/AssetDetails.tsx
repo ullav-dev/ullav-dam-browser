@@ -487,6 +487,12 @@ export default function AssetDetails({
           <p>ID: {asset.id}</p>
           <p>Created: {formatDate(asset.created_at)}</p>
           <p>Updated: {formatDate(asset.updated_at)}</p>
+          <div className="space-y-0.5">
+            <p className="uppercase tracking-wide font-medium">Download URL</p>
+            <p className="break-all select-all font-mono text-slate-500">
+              {typeof window !== "undefined" ? window.location.origin : ""}{`/api/assets/${asset.id}`}
+            </p>
+          </div>
         </div>
       </div>
 
