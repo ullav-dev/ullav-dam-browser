@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import type { CSSProperties } from "react";
 import type { Asset, PickedAsset } from "./api";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
@@ -132,6 +133,7 @@ export default function PickerGrid({
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [hoverPreview, setHoverPreview] = useState<{ id: string; rect: DOMRect } | null>(null);
 
   useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir]);
 
@@ -219,14 +221,22 @@ export default function PickerGrid({
                 key={asset.id}
                 draggable
                 onClick={() => onSelect(picked)}
+                onMouseEnter={(e) => setHoverPreview({ id: asset.id, rect: e.currentTarget.getBoundingClientRect() })}
+                onMouseLeave={() => setHoverPreview(null)}
                 onDragStart={(e) => {
+                  setHoverPreview(null);
+                  // Use the loaded thumbnail img as the drag ghost
+                  const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
+                  if (img && img.complete && img.naturalWidth > 0) {
+                    e.dataTransfer.setDragImage(img, img.offsetWidth / 2, img.offsetHeight / 2);
+                  }
                   e.dataTransfer.effectAllowed = "copy";
                   e.dataTransfer.setData("application/json", JSON.stringify(picked));
                   e.dataTransfer.setData("text/plain", picked.url);
                   e.dataTransfer.setData("text/uri-list", picked.url);
                   onDragStart?.(picked, e);
                 }}
-                className={`cursor-pointer rounded-xl border overflow-hidden transition-all hover:shadow-md ${
+                className={`cursor-grab active:cursor-grabbing rounded-xl border overflow-hidden transition-all hover:shadow-md ${
                   selectedAssetId === asset.id
                     ? "border-blue-500 ring-2 ring-blue-200 shadow-md"
                     : "border-slate-200 hover:border-blue-300"
@@ -261,6 +271,21 @@ export default function PickerGrid({
           })}
         </div>
       </div>
+
+      {/* Hover preview — fixed to viewport so it escapes overflow:hidden containers */}
+      {hoverPreview && (() => {
+        const PREVIEW = 200;
+        const { rect } = hoverPreview;
+        const fitsRight = rect.right + 8 + PREVIEW <= window.innerWidth;
+        const left = fitsRight ? rect.right + 8 : rect.left - PREVIEW - 8;
+        const top = Math.max(8, Math.min(rect.top, window.innerHeight - PREVIEW - 8));
+        const style: CSSProperties = { position: "fixed", left, top, width: PREVIEW, height: PREVIEW, zIndex: 9999, pointerEvents: "none" };
+        return (
+          <div style={style} className="bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+            <img src={getThumbnailUrl(hoverPreview.id)} className="w-full h-full object-contain" alt="" />
+          </div>
+        );
+      })()}
 
       {/* Pagination bar */}
       {numPages > 1 && (
