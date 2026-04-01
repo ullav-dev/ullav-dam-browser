@@ -118,6 +118,10 @@ export default function AssetDetails({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
+  // Drag-to-remove state for category tags
+  const [draggingCatId, setDraggingCatId] = useState<string | null>(null);
+  const [removeZoneOver, setRemoveZoneOver] = useState(false);
+
   // Reset form when the selected asset changes
   useEffect(() => {
     setName(asset.name);
@@ -132,6 +136,8 @@ export default function AssetDetails({
     setSaveSuccess(false);
     setConfirmDelete(false);
     setCategoryError(null);
+    setDraggingCatId(null);
+    setRemoveZoneOver(false);
   }, [asset.id]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -395,7 +401,20 @@ export default function AssetDetails({
               {asset.categories.map((cat) => (
                 <span
                   key={cat.id}
-                  className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", cat.id);
+                    setDraggingCatId(cat.id);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingCatId(null);
+                    setRemoveZoneOver(false);
+                  }}
+                  className={`inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full cursor-grab active:cursor-grabbing transition-opacity ${
+                    draggingCatId === cat.id ? "opacity-40" : ""
+                  }`}
+                  title="Drag to remove zone below, or click × to remove"
                 >
                   {cat.name}
                   <button
@@ -409,6 +428,37 @@ export default function AssetDetails({
               ))}
             </div>
           )}
+
+          {/* Drag-to-remove drop zone — visible only while dragging a category tag */}
+          {draggingCatId !== null && (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                setRemoveZoneOver(true);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setRemoveZoneOver(false);
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const id = e.dataTransfer.getData("text/plain") || draggingCatId;
+                setDraggingCatId(null);
+                setRemoveZoneOver(false);
+                if (id) handleRemoveCategory(id);
+              }}
+              className={`flex items-center justify-center gap-1.5 border-2 border-dashed rounded-lg py-2 text-xs font-medium transition-colors ${
+                removeZoneOver
+                  ? "border-red-400 bg-red-50 text-red-600"
+                  : "border-slate-300 text-slate-400"
+              }`}
+            >
+              <span>{removeZoneOver ? "Release to remove" : "Drop here to remove category"}</span>
+            </div>
+          )}
+
           {availableCategories.length > 0 && (
             <select
               className={`${inputCls} text-xs`}

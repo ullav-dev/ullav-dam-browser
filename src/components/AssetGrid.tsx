@@ -1,7 +1,46 @@
 "use client";
 
+import { useState, useEffect, useMemo } from "react";
 import type { Asset } from "@/lib/dam-api";
 import { thumbnailUrl } from "@/lib/dam-api";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
+const DEFAULT_PAGE_SIZE = 20;
+
+type SortField = "name" | "asset_type" | "created_at" | "size";
+type SortDir = "asc" | "desc";
+
+const SORT_OPTIONS: { field: SortField; label: string }[] = [
+  { field: "name",       label: "Name" },
+  { field: "asset_type", label: "Type" },
+  { field: "created_at", label: "Date" },
+  { field: "size",       label: "Size" },
+];
+
+function sortAssets(assets: Asset[], field: SortField, dir: SortDir): Asset[] {
+  const mul = dir === "asc" ? 1 : -1;
+  return [...assets].sort((a, b) => {
+    let cmp = 0;
+    if (field === "name") {
+      cmp = a.name.localeCompare(b.name);
+    } else if (field === "asset_type") {
+      cmp = a.asset_type.localeCompare(b.asset_type);
+    } else if (field === "created_at") {
+      cmp = a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+    } else if (field === "size") {
+      cmp = a.size - b.size;
+    }
+    return cmp * mul;
+  });
+}
+
+function totalPages(count: number, size: number) {
+  return Math.max(1, Math.ceil(count / size));
+}
+
+function pageSlice<T>(items: T[], page: number, size: number): T[] {
+  return items.slice((page - 1) * size, page * size);
+}
 
 function formatSize(bytes: number): string {
   if (bytes === 0) return "—";
@@ -100,7 +139,15 @@ export default function AssetGrid({
   onDragStart,
   onDragEnd,
 }: Props) {
-  const filtered = assets.filter((asset) => {
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [page, setPage] = useState(1);
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  // Reset to page 1 when filters or sort changes
+  useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir]);
+
+  const filtered = useMemo(() => assets.filter((asset) => {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matches =
@@ -113,11 +160,26 @@ export default function AssetGrid({
     }
     if (selectedCategoryId) {
       const cats = assetCategories.get(asset.id);
-      if (cats === undefined) return true; // categories not loaded yet — show optimistically
+      if (cats === undefined) return true; // not loaded yet — show optimistically
       return cats.includes(selectedCategoryId);
     }
     return true;
-  });
+  }), [assets, assetCategories, searchQuery, selectedCategoryId]);
+
+  const sorted = useMemo(() => sortAssets(filtered, sortField, sortDir), [filtered, sortField, sortDir]);
+
+  const numPages = totalPages(sorted.length, pageSize);
+  const safePage = Math.min(page, numPages);
+  const paged = pageSlice(sorted, safePage, pageSize);
+
+  function handleSortField(field: SortField) {
+    if (field === sortField) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  }
 
   if (filtered.length === 0) {
     return (
@@ -127,56 +189,149 @@ export default function AssetGrid({
     );
   }
 
+  // Build page number list with ellipsis gaps (same as clann-webapp)
+  const pageNumbers = Array.from({ length: numPages }, (_, i) => i + 1)
+    .filter((n) => n === 1 || n === numPages || Math.abs(n - safePage) <= 1)
+    .reduce<(number | "…")[]>((acc, n, idx, arr) => {
+      if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("…");
+      acc.push(n);
+      return acc;
+    }, []);
+
   return (
-    <div className="flex-1 overflow-y-auto p-4">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-        {filtered.map((asset) => (
-          <div
-            key={asset.id}
-            draggable
-            onClick={() => onSelect(asset)}
-            onDragStart={(e) => {
-              e.dataTransfer.effectAllowed = "copy";
-              e.dataTransfer.setData("text/plain", asset.id);
-              onDragStart(asset.id);
-            }}
-            onDragEnd={onDragEnd}
-            className={`cursor-grab active:cursor-grabbing rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
-              selectedAssetId === asset.id
-                ? "border-blue-500 ring-2 ring-blue-200 shadow-md"
-                : "border-slate-200 hover:border-blue-300"
-            }`}
-          >
-            <div className="aspect-square bg-slate-100 relative overflow-hidden">
-              <ThumbnailImage id={asset.id} name={asset.name} />
-              {!asset.available && (
-                <div className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                  UNAVAILABLE
-                </div>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Sort bar */}
+      <div className="shrink-0 px-4 py-1.5 border-b border-slate-100 bg-white flex items-center gap-1.5">
+        <span className="text-[11px] text-slate-400 mr-1">Sort:</span>
+        {SORT_OPTIONS.map(({ field, label }) => {
+          const active = sortField === field;
+          return (
+            <button
+              key={field}
+              onClick={() => handleSortField(field)}
+              className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
+                active
+                  ? "bg-blue-700 text-white border-blue-700"
+                  : "text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+              }`}
+            >
+              {label}
+              {active && (
+                <span className="ml-0.5">{sortDir === "asc" ? "▲" : "▼"}</span>
               )}
-            </div>
-            <div className="p-2 bg-white">
-              <p className="text-xs font-medium text-slate-700 truncate mb-1" title={asset.name}>
-                {asset.name}
-              </p>
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1 min-w-0">
-                  <AssetTypeBadge type={asset.asset_type} />
-                  {lockedIds.has(asset.id) && (
-                    <span
-                      title="Locked"
-                      className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-600 text-[10px] font-medium px-1 py-0.5 rounded"
-                    >
-                      <IconLock />
-                    </span>
-                  )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Asset grid */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+          {paged.map((asset) => (
+            <div
+              key={asset.id}
+              draggable
+              onClick={() => onSelect(asset)}
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "copy";
+                e.dataTransfer.setData("text/plain", asset.id);
+                onDragStart(asset.id);
+              }}
+              onDragEnd={onDragEnd}
+              className={`cursor-grab active:cursor-grabbing rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
+                selectedAssetId === asset.id
+                  ? "border-blue-500 ring-2 ring-blue-200 shadow-md"
+                  : "border-slate-200 hover:border-blue-300"
+              }`}
+            >
+              <div className="aspect-square bg-slate-100 relative overflow-hidden">
+                <ThumbnailImage id={asset.id} name={asset.name} />
+                {!asset.available && (
+                  <div className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                    UNAVAILABLE
+                  </div>
+                )}
+              </div>
+              <div className="p-2 bg-white">
+                <p className="text-xs font-medium text-slate-700 truncate mb-1" title={asset.name}>
+                  {asset.name}
+                </p>
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex items-center gap-1 min-w-0">
+                    <AssetTypeBadge type={asset.asset_type} />
+                    {lockedIds.has(asset.id) && (
+                      <span
+                        title="Locked"
+                        className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-600 text-[10px] font-medium px-1 py-0.5 rounded"
+                      >
+                        <IconLock />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 shrink-0">{formatSize(asset.size)}</span>
                 </div>
-                <span className="text-[10px] text-slate-400 shrink-0">{formatSize(asset.size)}</span>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {/* Pagination bar */}
+      {numPages > 1 && (
+        <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2 flex items-center justify-between gap-3">
+          {/* Page size selector */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span>Show</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="rounded border border-slate-300 px-1.5 py-0.5 text-xs focus:border-blue-500 focus:outline-none bg-white"
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <span>per page · {sorted.length} total</span>
+          </div>
+
+          {/* Page controls */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              ‹ Prev
+            </button>
+
+            {pageNumbers.map((item, idx) =>
+              item === "…" ? (
+                <span key={`ellipsis-${idx}`} className="px-1.5 text-xs text-slate-400">…</span>
+              ) : (
+                <button
+                  key={item}
+                  onClick={() => setPage(item)}
+                  className={`min-w-[28px] px-2 py-1 rounded text-xs border transition-colors ${
+                    item === safePage
+                      ? "bg-blue-700 text-white border-blue-700 font-medium"
+                      : "text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}
+                >
+                  {item}
+                </button>
+              )
+            )}
+
+            <button
+              onClick={() => setPage((p) => Math.min(numPages, p + 1))}
+              disabled={safePage === numPages}
+              className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Next ›
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

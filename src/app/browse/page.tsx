@@ -8,6 +8,7 @@ import AssetGrid from "@/components/AssetGrid";
 import AssetDetails from "@/components/AssetDetails";
 import UploadModal from "@/components/UploadModal";
 import * as api from "@/lib/dam-api";
+import { createCategory, updateCategory } from "@/lib/dam-api";
 
 export default function BrowsePage() {
   const { user, token, isLoading } = useAuth();
@@ -42,6 +43,44 @@ export default function BrowsePage() {
     });
   }, []);
 
+  // Category creation form
+  const [showCatForm, setShowCatForm] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatParentId, setNewCatParentId] = useState<string>("");
+  const [savingCat, setSavingCat] = useState(false);
+  const [catError, setCatError] = useState<string | null>(null);
+
+  const openCatForm = useCallback((parentId: string | null = null) => {
+    setNewCatName("");
+    setNewCatParentId(parentId ?? "");
+    setCatError(null);
+    setShowCatForm(true);
+  }, []);
+
+  const handleCreateCategory = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!token || !newCatName.trim()) return;
+      setSavingCat(true);
+      setCatError(null);
+      try {
+        const created = await createCategory(
+          { name: newCatName.trim(), parent_id: newCatParentId || null },
+          token
+        );
+        setCategories((prev) => [...prev, created]);
+        setShowCatForm(false);
+        setNewCatName("");
+        setNewCatParentId("");
+      } catch (err) {
+        setCatError(err instanceof Error ? err.message : "Failed to create category.");
+      } finally {
+        setSavingCat(false);
+      }
+    },
+    [token, newCatName, newCatParentId]
+  );
+
   // Drag-and-drop: track which asset is being dragged onto the category tree
   const [draggingAssetId, setDraggingAssetId] = useState<string | null>(null);
 
@@ -52,6 +91,19 @@ export default function BrowsePage() {
   const handleDragEnd = useCallback(() => {
     setDraggingAssetId(null);
   }, []);
+
+  const handleMoveCategory = useCallback(
+    async (id: string, newParentId: string | null) => {
+      if (!token) return;
+      try {
+        const updated = await updateCategory(id, { parent_id: newParentId }, token);
+        setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      } catch {
+        // Non-critical — tree will remain unchanged on failure
+      }
+    },
+    [token]
+  );
 
   const handleCategoryDrop = useCallback(
     async (assetId: string, categoryId: string) => {
@@ -232,11 +284,63 @@ export default function BrowsePage() {
     <div className="flex h-full overflow-hidden">
       {/* Left: Category tree */}
       <aside className="w-56 shrink-0 bg-slate-50 border-r border-slate-200 flex flex-col overflow-hidden">
-        <div className="p-3 border-b border-slate-200 shrink-0">
+        <div className="p-3 border-b border-slate-200 shrink-0 flex items-center justify-between">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Categories
           </p>
+          <button
+            onClick={() => openCatForm(null)}
+            title="New top-level category"
+            className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 text-sm leading-none transition-colors"
+          >
+            +
+          </button>
         </div>
+
+        {/* Inline category creation form */}
+        {showCatForm && (
+          <form
+            onSubmit={handleCreateCategory}
+            className="p-2 border-b border-slate-200 bg-white space-y-2 shrink-0"
+          >
+            <input
+              autoFocus
+              value={newCatName}
+              onChange={(e) => setNewCatName(e.target.value)}
+              placeholder="Category name"
+              required
+              className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+            <select
+              value={newCatParentId}
+              onChange={(e) => setNewCatParentId(e.target.value)}
+              className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            >
+              <option value="">None (top level)</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {catError && <p className="text-xs text-red-600">{catError}</p>}
+            <div className="flex gap-1.5">
+              <button
+                type="submit"
+                disabled={savingCat || !newCatName.trim()}
+                className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-medium py-1 rounded transition-colors"
+              >
+                {savingCat ? "Creating…" : "Create"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCatForm(false)}
+                className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-medium py-1 rounded transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         <div className="flex-1 overflow-y-auto p-2">
           {loadingAssets ? (
             <p className="text-xs text-slate-400 px-2 py-1">Loading…</p>
@@ -252,6 +356,8 @@ export default function BrowsePage() {
                   : []
               }
               onCategoryDrop={handleCategoryDrop}
+              onAddSubcategory={openCatForm}
+              onMoveCategory={handleMoveCategory}
             />
           )}
         </div>
