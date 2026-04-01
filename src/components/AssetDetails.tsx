@@ -122,6 +122,9 @@ export default function AssetDetails({
   const [draggingCatId, setDraggingCatId] = useState<string | null>(null);
   const [removeZoneOver, setRemoveZoneOver] = useState(false);
 
+  // Thumbnail state
+  const [thumbFailed, setThumbFailed] = useState(false);
+
   // Reset form when the selected asset changes
   useEffect(() => {
     setName(asset.name);
@@ -138,6 +141,7 @@ export default function AssetDetails({
     setCategoryError(null);
     setDraggingCatId(null);
     setRemoveZoneOver(false);
+    setThumbFailed(false);
   }, [asset.id]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -277,12 +281,16 @@ export default function AssetDetails({
           title="Drag onto a category to assign it"
           className="aspect-video bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing ring-0 hover:ring-2 hover:ring-blue-300 transition-shadow"
         >
-          <img
-            src={`/api/assets/${asset.id}/thumbnail`}
-            alt={asset.name}
-            className="max-w-full max-h-full object-contain pointer-events-none"
-            onError={(e) => { e.currentTarget.style.display = "none"; }}
-          />
+          {thumbFailed ? (
+            <span className="text-xs text-slate-400 font-medium">No preview available</span>
+          ) : (
+            <img
+              src={`/api/assets/${asset.id}/thumbnail`}
+              alt={asset.name}
+              className="max-w-full max-h-full object-contain pointer-events-none"
+              onError={() => setThumbFailed(true)}
+            />
+          )}
         </div>
 
         {/* Lock status badge — shown beneath the thumbnail */}

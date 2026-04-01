@@ -126,6 +126,29 @@ export const uploadFile = (id: string, file: File, token: string): Promise<Asset
 export const thumbnailUrl = (id: string): string => `/api/assets/${id}/thumbnail`;
 export const downloadUrl = (id: string): string => `/api/assets/${id}/download`;
 
+// ── ZIP import ────────────────────────────────────────────────────────────────
+
+export interface ZipUploadResult {
+  /** All categories created: root + one per directory in the ZIP. */
+  categories: Category[];
+  /** All assets successfully uploaded from the ZIP contents. */
+  assets: Asset[];
+  /** Maps asset_id → [category_id] for every uploaded asset. */
+  asset_category_ids: Record<string, string[]>;
+  /** Per-entry errors (non-fatal; remaining entries were still processed). */
+  errors: string[];
+}
+
+export const uploadZip = (file: File, token: string): Promise<ZipUploadResult> => {
+  const fd = new FormData();
+  fd.append("file", file);
+  return apiRequest("/zip/upload", {
+    method: "POST",
+    headers: bearerHeaders(token),
+    body: fd,
+  });
+};
+
 // ── Categories ────────────────────────────────────────────────────────────────
 
 export const listCategories = (token: string): Promise<Category[]> =>

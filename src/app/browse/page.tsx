@@ -257,20 +257,25 @@ export default function BrowsePage() {
   );
 
   const handleUploadComplete = useCallback(
-    async (asset: api.Asset) => {
-      setAssets((prev) => [asset, ...prev]);
-      if (token) {
+    async (uploaded: api.Asset[]) => {
+      // Prepend all new assets to the list
+      setAssets((prev) => [...uploaded.reverse(), ...prev]);
+      // Select the first uploaded asset and fetch its details
+      const first = uploaded[0];
+      if (first && token) {
         try {
-          const detail = await api.getAsset(asset.id, token);
+          const detail = await api.getAsset(first.id, token);
           setSelectedAsset(detail);
-          loadedAssetIds.current.add(asset.id);
+          for (const asset of uploaded) {
+            loadedAssetIds.current.add(asset.id);
+          }
           setAssetCategories((prev) => {
             const next = new Map(prev);
-            next.set(asset.id, detail.categories.map((c) => c.id));
+            next.set(first.id, detail.categories.map((c) => c.id));
             return next;
           });
         } catch {
-          setSelectedAsset({ ...asset, categories: [] });
+          setSelectedAsset({ ...first, categories: [] });
         }
       }
       setShowUpload(false);
@@ -465,6 +470,16 @@ export default function BrowsePage() {
           categories={categories}
           onComplete={handleUploadComplete}
           onClose={() => setShowUpload(false)}
+          onZipResult={(result) => {
+            setCategories((prev) => [...prev, ...result.categories]);
+            setAssetCategories((prev) => {
+              const next = new Map(prev);
+              for (const [assetId, catIds] of Object.entries(result.asset_category_ids)) {
+                next.set(assetId, catIds);
+              }
+              return next;
+            });
+          }}
         />
       )}
     </div>

@@ -68,6 +68,12 @@ function typeInfo(raw: string): { label: string; cls: string } {
     return { label: "XLS", cls: "bg-amber-100 text-amber-700" };
   if (t.includes("presentation") || t.includes("powerpoint") || t === "presentation")
     return { label: "PPT", cls: "bg-orange-100 text-orange-700" };
+  if (t.includes("iwork-pages") || t.includes("vnd.apple.pages"))
+    return { label: "PAGES", cls: "bg-amber-100 text-amber-700" };
+  if (t.includes("iwork-numbers") || t.includes("vnd.apple.numbers"))
+    return { label: "NUMBERS", cls: "bg-green-100 text-green-700" };
+  if (t.includes("iwork-keynote") || t.includes("vnd.apple.keynote"))
+    return { label: "KEYNOTE", cls: "bg-blue-100 text-blue-700" };
   if (t.includes("zip") || t.includes("archive") || t === "archive")
     return { label: "ZIP", cls: "bg-slate-100 text-slate-600" };
   // Fall back: show the subtype portion of the MIME (e.g. "octet-stream" → "FILE")
@@ -84,25 +90,25 @@ function AssetTypeBadge({ type }: { type: string }) {
   );
 }
 
-function ThumbnailImage({ id, name }: { id: string; name: string }) {
+function ThumbnailImage({ id, name, assetType }: { id: string; name: string; assetType: string }) {
+  const [imgState, setImgState] = useState<"loading" | "ok" | "error">("loading");
+  const { label, cls } = typeInfo(assetType);
+
   return (
-    <img
-      src={thumbnailUrl(id)}
-      alt={name}
-      className="w-full h-full object-cover"
-      onError={(e) => {
-        const target = e.currentTarget;
-        target.style.display = "none";
-        const parent = target.parentElement;
-        if (parent && !parent.querySelector(".fallback-icon")) {
-          const div = document.createElement("div");
-          div.className =
-            "fallback-icon w-full h-full flex items-center justify-center text-4xl text-slate-300 bg-slate-50";
-          div.textContent = "🖼";
-          parent.appendChild(div);
-        }
-      }}
-    />
+    <>
+      <img
+        src={thumbnailUrl(id)}
+        alt={name}
+        className={`w-full h-full object-cover transition-opacity duration-150 ${imgState === "ok" ? "opacity-100" : "opacity-0 absolute inset-0"}`}
+        onLoad={() => setImgState("ok")}
+        onError={() => setImgState("error")}
+      />
+      {imgState === "error" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 gap-1.5">
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${cls}`}>{label}</span>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -245,7 +251,7 @@ export default function AssetGrid({
               }`}
             >
               <div className="aspect-square bg-slate-100 relative overflow-hidden">
-                <ThumbnailImage id={asset.id} name={asset.name} />
+                <ThumbnailImage id={asset.id} name={asset.name} assetType={asset.asset_type} />
                 {!asset.available && (
                   <div className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
                     UNAVAILABLE
