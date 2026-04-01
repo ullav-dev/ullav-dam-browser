@@ -2,12 +2,18 @@
 
 import { useState, useRef, useCallback } from "react";
 import type { Asset, Category, ZipUploadResult } from "@/lib/dam-api";
-import { createAsset, uploadFile, uploadZip } from "@/lib/dam-api";
+import { createAsset, uploadFile, uploadZip, addCategoryToAsset } from "@/lib/dam-api";
 
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
 type FileStatus = "pending" | "uploading" | "done" | "error";
+
+/** How a ZIP file should be handled on upload. */
+type ZipMode =
+  | "zip-only"          // upload the ZIP as a regular asset, ignore contents
+  | "zip-and-contents"  // upload ZIP as asset AND expand contents into category tree
+  | "contents-only";    // expand contents only; do not store the ZIP itself
 
 function isZip(file: File): boolean {
   return (
@@ -18,6 +24,12 @@ function isZip(file: File): boolean {
   );
 }
 
+const ZIP_MODE_OPTIONS: { mode: ZipMode; label: string; title: string }[] = [
+  { mode: "zip-only",         label: "ZIP only",         title: "Upload the ZIP file as an asset; do not expand its contents" },
+  { mode: "zip-and-contents", label: "ZIP + contents",   title: "Upload the ZIP file and expand its contents into a category tree" },
+  { mode: "contents-only",    label: "Contents only",    title: "Expand ZIP contents into a category tree; do not store the ZIP file itself" },
+];
+
 interface FileEntry {
   file: File;
   /** Display name — filename without extension, editable before upload */
@@ -27,8 +39,10 @@ interface FileEntry {
   status: FileStatus;
   error?: string;
   asset?: Asset;
-  /** Populated after a successful ZIP upload. */
+  /** Populated after a successful ZIP upload (modes: zip-and-contents, contents-only). */
   zipResult?: ZipUploadResult;
+  /** Only set for ZIP files. */
+  zipMode?: ZipMode;
 }
 
 function deriveNameAndMime(f: File): { name: string; mimeType: string } {
@@ -89,7 +103,8 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
         .filter((f) => !existingNames.has(f.name))
         .map((f) => {
           const { name, mimeType } = deriveNameAndMime(f);
-          return { file: f, name, mimeType, status: "pending" };
+          return { file: f, name, mimeType, status: "pending",
+                   zipMode: isZip(f) ? "contents-only" as ZipMode : undefined };
         });
       return [...prev, ...newEntries];
     });
@@ -101,6 +116,10 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
 
   function updateName(idx: number, name: string) {
     setEntries((prev) => prev.map((e, i) => (i === idx ? { ...e, name } : e)));
+  }
+
+  function updateZipMode(idx: number, mode: ZipMode) {
+    setEntries((prev) => prev.map((e, i) => (i === idx ? { ...e, zipMode: mode } : e)));
   }
 
   // ── Drag-and-drop ───────────────────────────────────────────────────────────
@@ -130,6 +149,7 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
       const entry = entries[i];
       if (entry.status === "done") {
         if (entry.asset) uploaded.push(entry.asset);
+        if (entry.zipResult) uploaded.push(...entry.zipResult.assets);
         continue;
       }
 
@@ -138,16 +158,54 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
       );
 
       try {
-        if (isZip(entry.file)) {
-          // ── ZIP path: server handles the entire import ──────────────────
+        const zipMode = entry.zipMode ?? "contents-only";
+
+        if (isZip(entry.file) && zipMode !== "zip-only") {
+          // ── ZIP contents processing (contents-only or zip-and-contents) ──
           const result = await uploadZip(entry.file, token);
-          onZipResult?.(result);
-          setEntries((prev) =>
-            prev.map((e, idx) => (idx === i ? { ...e, status: "done", zipResult: result } : e))
-          );
-          uploaded.push(...result.assets);
+
+          if (zipMode === "zip-and-contents") {
+            // Also upload the ZIP file itself as an asset and assign the root category.
+            const rootCat = result.categories[0];
+            const zipMeta = await createAsset(
+              {
+                name: entry.name.trim() || entry.file.name,
+                asset_type: entry.mimeType,
+                description: description || null,
+                caption: caption || null,
+                keywords: keywords || null,
+                creator: creator || null,
+                copyright_notice: copyrightNotice || null,
+              },
+              token
+            );
+            const zipAsset = await uploadFile(zipMeta.id, entry.file, token);
+            if (rootCat) {
+              await addCategoryToAsset(zipAsset.id, rootCat.id, token);
+            }
+            // Augment the result so the parent's assetCategories map is updated for the ZIP asset too.
+            const augmented: ZipUploadResult = {
+              ...result,
+              asset_category_ids: {
+                ...result.asset_category_ids,
+                [zipAsset.id]: rootCat ? [rootCat.id] : [],
+              },
+            };
+            onZipResult?.(augmented);
+            setEntries((prev) =>
+              prev.map((e, idx) => (idx === i ? { ...e, status: "done", zipResult: result, asset: zipAsset } : e))
+            );
+            uploaded.push(zipAsset, ...result.assets);
+          } else {
+            // contents-only
+            onZipResult?.(result);
+            setEntries((prev) =>
+              prev.map((e, idx) => (idx === i ? { ...e, status: "done", zipResult: result } : e))
+            );
+            uploaded.push(...result.assets);
+          }
         } else {
-          // ── Regular file: two-step create + upload ──────────────────────
+          // ── Regular file (or ZIP in zip-only mode): two-step create + upload ──
           const asset = await createAsset(
             {
               name: entry.name.trim() || entry.file.name,
@@ -264,58 +322,83 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Files</p>
               <div className="rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                 {entries.map((entry, idx) => (
-                  <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-white">
-                    <StatusIcon status={entry.status} />
+                  <div key={idx} className="flex flex-col px-3 py-2 bg-white gap-1">
+                    {/* Main row */}
+                    <div className="flex items-center gap-2">
+                      <StatusIcon status={entry.status} />
 
-                    {/* Editable name */}
-                    <input
-                      value={entry.name}
-                      onChange={(e) => updateName(idx, e.target.value)}
-                      disabled={uploading || entry.status === "done"}
-                      className="flex-1 min-w-0 text-xs text-slate-700 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-400 focus:outline-none py-0.5 disabled:hover:border-transparent"
-                      title="Click to rename"
-                    />
+                      {/* Editable name */}
+                      <input
+                        value={entry.name}
+                        onChange={(e) => updateName(idx, e.target.value)}
+                        disabled={uploading || entry.status === "done"}
+                        className="flex-1 min-w-0 text-xs text-slate-700 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-400 focus:outline-none py-0.5 disabled:hover:border-transparent"
+                        title="Click to rename"
+                      />
 
-                    {/* MIME + size */}
-                    <span className="shrink-0 text-[10px] text-slate-400 hidden sm:block">
-                      {entry.mimeType}
-                    </span>
-                    <span className="shrink-0 text-[10px] text-slate-400 w-14 text-right">
-                      {formatSize(entry.file.size)}
-                    </span>
-
-                    {/* Status label / error */}
-                    {entry.status === "uploading" && (
-                      <span className="shrink-0 text-[10px] text-blue-600">
-                        {isZip(entry.file) ? "Processing ZIP…" : "Uploading…"}
+                      {/* MIME + size */}
+                      <span className="shrink-0 text-[10px] text-slate-400 hidden sm:block">
+                        {entry.mimeType}
                       </span>
-                    )}
-                    {entry.status === "done" && entry.zipResult && (
-                      <span className="shrink-0 text-[10px] text-green-600">
-                        {entry.zipResult.assets.length} assets · {entry.zipResult.categories.length} categories
-                        {entry.zipResult.errors.length > 0 && (
-                          <span className="text-amber-500"> · {entry.zipResult.errors.length} errors</span>
-                        )}
+                      <span className="shrink-0 text-[10px] text-slate-400 w-14 text-right">
+                        {formatSize(entry.file.size)}
                       </span>
-                    )}
-                    {entry.status === "done" && !entry.zipResult && (
-                      <span className="shrink-0 text-[10px] text-green-600">Done</span>
-                    )}
-                    {entry.status === "error" && (
-                      <span className="shrink-0 text-[10px] text-red-500 max-w-[120px] truncate" title={entry.error}>
-                        {entry.error}
-                      </span>
-                    )}
 
-                    {/* Remove button */}
-                    {!uploading && entry.status !== "done" && (
-                      <button
-                        onClick={() => removeEntry(idx)}
-                        className="shrink-0 text-slate-300 hover:text-red-400 transition-colors text-base leading-none ml-1"
-                        title="Remove"
-                      >
-                        ×
-                      </button>
+                      {/* Status label / error */}
+                      {entry.status === "uploading" && (
+                        <span className="shrink-0 text-[10px] text-blue-600">
+                          {isZip(entry.file) && entry.zipMode !== "zip-only" ? "Processing ZIP…" : "Uploading…"}
+                        </span>
+                      )}
+                      {entry.status === "done" && entry.zipResult && (
+                        <span className="shrink-0 text-[10px] text-green-600">
+                          {entry.zipMode === "zip-and-contents" && "ZIP + "}
+                          {entry.zipResult.assets.length} assets · {entry.zipResult.categories.length} categories
+                          {entry.zipResult.errors.length > 0 && (
+                            <span className="text-amber-500"> · {entry.zipResult.errors.length} errors</span>
+                          )}
+                        </span>
+                      )}
+                      {entry.status === "done" && !entry.zipResult && (
+                        <span className="shrink-0 text-[10px] text-green-600">Done</span>
+                      )}
+                      {entry.status === "error" && (
+                        <span className="shrink-0 text-[10px] text-red-500 max-w-[120px] truncate" title={entry.error}>
+                          {entry.error}
+                        </span>
+                      )}
+
+                      {/* Remove button */}
+                      {!uploading && entry.status !== "done" && (
+                        <button
+                          onClick={() => removeEntry(idx)}
+                          className="shrink-0 text-slate-300 hover:text-red-400 transition-colors text-base leading-none ml-1"
+                          title="Remove"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+
+                    {/* ZIP mode selector — shown below the main row for pending/error ZIPs */}
+                    {isZip(entry.file) && !uploading && entry.status !== "done" && (
+                      <div className="flex items-center gap-1 ml-5">
+                        {ZIP_MODE_OPTIONS.map(({ mode, label, title }) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            title={title}
+                            onClick={() => updateZipMode(idx, mode)}
+                            className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                              (entry.zipMode ?? "contents-only") === mode
+                                ? "bg-blue-700 text-white border-blue-700"
+                                : "text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -323,8 +406,9 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
             </div>
           )}
 
-          {/* Shared metadata — hidden once all done, and not shown for ZIP-only uploads */}
-          {!allDone && entries.length > 0 && !entries.every((e) => isZip(e.file)) && (
+          {/* Shared metadata — shown whenever at least one file will be stored as an asset
+               (regular files, zip-only ZIPs, and zip-and-contents ZIPs all receive metadata) */}
+          {!allDone && entries.some((e) => !isZip(e.file) || (e.zipMode ?? "contents-only") !== "contents-only") && (
             <div className="space-y-3">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                 Shared metadata {entries.length > 1 && <span className="font-normal normal-case">(applied to all files)</span>}

@@ -7,6 +7,7 @@ import CategoryTree from "@/components/CategoryTree";
 import AssetGrid from "@/components/AssetGrid";
 import AssetDetails from "@/components/AssetDetails";
 import UploadModal from "@/components/UploadModal";
+import ResizeHandle from "@/components/ResizeHandle";
 import * as api from "@/lib/dam-api";
 import { createCategory, updateCategory } from "@/lib/dam-api";
 
@@ -23,6 +24,30 @@ export default function BrowsePage() {
   const [loadingAssets, setLoadingAssets] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+
+  // Panel widths — persisted in localStorage
+  const [leftWidth, setLeftWidth] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem("dam_left_panel_width") ?? "", 10) || 224; } catch { return 224; }
+  });
+  const [rightWidth, setRightWidth] = useState<number>(() => {
+    try { return parseInt(localStorage.getItem("dam_right_panel_width") ?? "", 10) || 288; } catch { return 288; }
+  });
+
+  const handleLeftResize = useCallback((delta: number) => {
+    setLeftWidth((w) => {
+      const next = Math.max(160, Math.min(480, w + delta));
+      localStorage.setItem("dam_left_panel_width", String(next));
+      return next;
+    });
+  }, []);
+
+  const handleRightResize = useCallback((delta: number) => {
+    setRightWidth((w) => {
+      const next = Math.max(200, Math.min(560, w - delta));
+      localStorage.setItem("dam_right_panel_width", String(next));
+      return next;
+    });
+  }, []);
 
   // Lock state — persisted in localStorage, shared across both grid and details
   const [lockedIds, setLockedIds] = useState<Set<string>>(() => {
@@ -288,7 +313,7 @@ export default function BrowsePage() {
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left: Category tree */}
-      <aside className="w-56 shrink-0 bg-slate-50 border-r border-slate-200 flex flex-col overflow-hidden">
+      <aside style={{ width: leftWidth }} className="shrink-0 bg-slate-50 flex flex-col overflow-hidden">
         <div className="p-3 border-b border-slate-200 shrink-0 flex items-center justify-between">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Categories
@@ -367,6 +392,7 @@ export default function BrowsePage() {
           )}
         </div>
       </aside>
+      <ResizeHandle onResize={handleLeftResize} />
 
       {/* Middle: Search + asset grid */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -439,8 +465,10 @@ export default function BrowsePage() {
         )}
       </div>
 
+      <ResizeHandle onResize={handleRightResize} />
+
       {/* Right: Asset details */}
-      <aside className="w-72 shrink-0 bg-white border-l border-slate-200 overflow-hidden flex flex-col">
+      <aside style={{ width: rightWidth }} className="shrink-0 bg-white overflow-hidden flex flex-col">
         {selectedAsset ? (
           <AssetDetails
             asset={selectedAsset}
