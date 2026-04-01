@@ -132,6 +132,105 @@ src/
 | `npm start` | Start production server on port 3002 |
 | `npm run lint` | Run ESLint |
 
+## Embeddable asset picker (`@ullav/dam-picker`)
+
+The `packages/dam-picker` directory contains a read-only asset picker component
+that can be embedded in other Next.js apps (e.g. clann-webapp). It renders a
+two-column layout (category tree + asset grid) and returns the selected asset to
+the host via a callback. Supports both click-to-select and drag-and-drop.
+
+### Integration steps
+
+**1. Install**
+
+Add to the host app's `package.json`:
+
+```json
+"dependencies": {
+  "@ullav/dam-picker": "file:../ullav-dam-browser/packages/dam-picker"
+}
+```
+
+Then run `npm install`.
+
+**2. Transpile** — add to the host's `next.config.ts`:
+
+```typescript
+const nextConfig = {
+  transpilePackages: ["@ullav/dam-picker"],
+};
+```
+
+**3. Tailwind** — add a `@source` directive to the host's global CSS so Tailwind
+scans the picker's source files:
+
+```css
+@import "tailwindcss";
+@source "../../node_modules/@ullav/dam-picker/src";
+```
+
+Adjust the relative path to `node_modules` as needed.
+
+**4. Proxy** — add a rewrite in the host's `proxy.ts` / `middleware.ts` to
+forward `/api/dam/*` to the DAM server on the Docker network (strip the
+`/api/dam` prefix before forwarding):
+
+```
+/api/dam/* → http://ullav-dam-server:8080/*
+```
+
+**5. Use**
+
+```tsx
+import { DamPicker } from "@ullav/dam-picker";
+import type { PickedAsset } from "@ullav/dam-picker";
+
+<DamPicker
+  apiBase="/api/dam"
+  token={session.token}
+  onSelect={(asset: PickedAsset) => {
+    console.log(asset.url, asset.thumbnailUrl);
+  }}
+/>
+```
+
+The component renders inline — wrap it in whatever container or modal you need.
+
+### `PickedAsset` type
+
+```typescript
+interface PickedAsset {
+  id: string;
+  name: string;
+  assetType: string;   // MIME type
+  size: number;        // bytes
+  url: string;         // base asset URL: ${apiBase}/assets/${id}
+  thumbnailUrl: string;
+}
+```
+
+### Drag and drop
+
+When the user drags an asset out of the picker, `dataTransfer` is pre-populated
+with three formats so standard drop targets work without extra configuration:
+
+| Format | Value |
+|---|---|
+| `application/json` | Full `PickedAsset` object (JSON) |
+| `text/plain` | Asset URL |
+| `text/uri-list` | Asset URL |
+
+The optional `onDragStart` prop fires after `dataTransfer` is set:
+
+```tsx
+<DamPicker
+  apiBase="/api/dam"
+  token={session.token}
+  onSelect={handleSelect}
+  onDragStart={(asset, e) => { /* additional drag setup */ }}
+/>
+```
+
 ## Known server requirements
 
 The `ullav-dam-server` must have:
