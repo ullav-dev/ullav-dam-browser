@@ -18,7 +18,7 @@ export default function BrowsePage() {
   const [assets, setAssets] = useState<api.Asset[]>([]);
   const [categories, setCategories] = useState<api.Category[]>([]);
   const [assetCategories, setAssetCategories] = useState<Map<string, string[]>>(new Map());
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<api.AssetWithCategories | null>(null);
   const [loadingAssets, setLoadingAssets] = useState(true);

@@ -125,7 +125,7 @@ function IconLock() {
 interface Props {
   assets: Asset[];
   assetCategories: Map<string, string[]>;
-  selectedCategoryId: string | null;
+  selectedCategoryId: string | null | undefined;
   searchQuery: string;
   selectedAssetId: string | null;
   lockedIds: Set<string>;
@@ -154,6 +154,8 @@ export default function AssetGrid({
   useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir]);
 
   const filtered = useMemo(() => assets.filter((asset) => {
+    // undefined = nothing selected; only show results when a search is active
+    if (selectedCategoryId === undefined && !searchQuery) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matches =
@@ -185,6 +187,14 @@ export default function AssetGrid({
       setSortField(field);
       setSortDir("asc");
     }
+  }
+
+  if (selectedCategoryId === undefined && !searchQuery) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+        Select a category or search to browse assets.
+      </div>
+    );
   }
 
   if (filtered.length === 0) {

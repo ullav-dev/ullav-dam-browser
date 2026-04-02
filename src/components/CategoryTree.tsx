@@ -299,7 +299,7 @@ function TreeNodeItem({
 
 interface Props {
   categories: Category[];
-  selectedId: string | null;
+  selectedId: string | null | undefined;
   onSelect: (id: string | null) => void;
   assetCounts?: Map<string, number>;
   // Asset-assign drag-and-drop
@@ -406,7 +406,7 @@ export default function CategoryTree({
               : "bg-amber-50 ring-1 ring-amber-300 text-amber-700"
             : selectedId === null
             ? "bg-blue-100 text-blue-800 font-medium"
-            : "text-slate-700 hover:bg-slate-100"
+            : "text-slate-700 hover:bg-slate-100"  // undefined = nothing selected — no highlight
         } ${isAssetDragging ? "pointer-events-none opacity-40" : ""}`}
         onClick={() => !isCatMoving && onSelect(null)}
         onDragOver={isCatMoving ? handleRootDragOver : undefined}
