@@ -196,6 +196,7 @@ export default function PickerGrid({
           const active = sortField === field;
           return (
             <button
+              type="button"
               key={field}
               onClick={() => handleSortField(field)}
               className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
@@ -306,6 +307,7 @@ export default function PickerGrid({
 
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage === 1}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -318,6 +320,7 @@ export default function PickerGrid({
                 <span key={`ellipsis-${idx}`} className="px-1.5 text-xs text-slate-400">…</span>
               ) : (
                 <button
+                  type="button"
                   key={item}
                   onClick={() => setPage(item)}
                   className={`min-w-[28px] px-2 py-1 rounded text-xs border transition-colors ${
@@ -332,6 +335,7 @@ export default function PickerGrid({
             )}
 
             <button
+              type="button"
               onClick={() => setPage((p) => Math.min(numPages, p + 1))}
               disabled={safePage === numPages}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"

@@ -56,6 +56,7 @@ function TreeNodeItem({
       >
         {hasChildren ? (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               setExpanded(!expanded);
