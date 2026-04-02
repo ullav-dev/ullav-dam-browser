@@ -163,7 +163,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
 
         if (isZip(entry.file) && zipMode !== "zip-only") {
           // ── ZIP contents processing (contents-only or zip-and-contents) ──
-          const result = await uploadZip(entry.file, token);
+          const result = await uploadZip(entry.file, token, creator);
 
           if (zipMode === "zip-and-contents") {
             // Also upload the ZIP file itself as an asset and assign the root category.

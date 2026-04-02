@@ -139,9 +139,10 @@ export interface ZipUploadResult {
   errors: string[];
 }
 
-export const uploadZip = (file: File, token: string): Promise<ZipUploadResult> => {
+export const uploadZip = (file: File, token: string, creator?: string): Promise<ZipUploadResult> => {
   const fd = new FormData();
   fd.append("file", file);
+  if (creator) fd.append("creator", creator);
   return apiRequest("/zip/upload", {
     method: "POST",
     headers: bearerHeaders(token),
