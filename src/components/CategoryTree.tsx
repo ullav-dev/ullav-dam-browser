@@ -86,7 +86,7 @@ function TreeNodeItem({
   onAddSubcategory?: (parentId: string) => void;
   depth?: number;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [hovered, setHovered] = useState(false);
 
   const hasChildren = node.children.length > 0;
