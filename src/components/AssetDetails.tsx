@@ -342,8 +342,8 @@ export default function AssetDetails({
           <Field label="Creator">
             <input
               value={creator}
-              onChange={(e) => setCreator(e.target.value)}
-              className={inputCls}
+              readOnly
+              className={`${inputCls} bg-slate-50 text-slate-500 cursor-default`}
             />
           </Field>
 

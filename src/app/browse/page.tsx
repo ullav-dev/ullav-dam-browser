@@ -495,6 +495,7 @@ export default function BrowsePage() {
       {showUpload && (
         <UploadModal
           token={token ?? ""}
+          username={user?.username ?? ""}
           categories={categories}
           onComplete={handleUploadComplete}
           onClose={() => setShowUpload(false)}

@@ -69,6 +69,7 @@ function StatusIcon({ status }: { status: FileStatus }) {
 
 interface Props {
   token: string;
+  username: string;
   categories: Category[];
   onComplete: (assets: Asset[]) => void;
   onClose: () => void;
@@ -77,7 +78,7 @@ interface Props {
   onZipResult?: (result: ZipUploadResult) => void;
 }
 
-export default function UploadModal({ token, categories, onComplete, onClose, onZipResult }: Props) {
+export default function UploadModal({ token, username, categories, onComplete, onClose, onZipResult }: Props) {
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [dragging, setDragging] = useState(false);
 
@@ -85,7 +86,7 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
   const [description, setDescription] = useState("");
   const [caption, setCaption] = useState("");
   const [keywords, setKeywords] = useState("");
-  const [creator, setCreator] = useState("");
+  const [creator] = useState(username);
   const [copyrightNotice, setCopyrightNotice] = useState("");
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
@@ -447,7 +448,7 @@ export default function UploadModal({ token, categories, onComplete, onClose, on
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-slate-700">Creator</label>
-                  <input value={creator} onChange={(e) => setCreator(e.target.value)} className={inputCls} />
+                  <input value={creator} readOnly className={`${inputCls} bg-slate-50 text-slate-500 cursor-default`} />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-slate-700">Copyright</label>
