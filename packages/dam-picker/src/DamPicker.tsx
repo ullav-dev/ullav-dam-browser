@@ -22,9 +22,11 @@ export interface DamPickerProps {
    * text/plain, and text/uri-list before this fires.
    */
   onDragStart?: (asset: PickedAsset, e: React.DragEvent) => void;
+  /** Optional predicate to restrict which assets are shown, e.g. `a => a.asset_type.startsWith("image/")` */
+  filter?: (asset: Asset) => boolean;
 }
 
-export default function DamPicker({ apiBase, token, onSelect, onDragStart }: DamPickerProps) {
+export default function DamPicker({ apiBase, token, onSelect, onDragStart, filter }: DamPickerProps) {
   const client = useMemo(() => createDamClient(apiBase, token), [apiBase, token]);
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -36,6 +38,7 @@ export default function DamPicker({ apiBase, token, onSelect, onDragStart }: Dam
   const [error, setError] = useState<string | null>(null);
 
   const loadedAssetIds = useRef(new Set<string>());
+  const visibleAssets = useMemo(() => (filter ? assets.filter(filter) : assets), [assets, filter]);
 
   const [categories, setCategories] = useState<Category[]>([]);
 
@@ -154,7 +157,7 @@ export default function DamPicker({ apiBase, token, onSelect, onDragStart }: Dam
         </div>
 
         <PickerGrid
-          assets={assets}
+          assets={visibleAssets}
           assetCategories={assetCategories}
           selectedCategoryId={selectedCategoryId}
           searchQuery={searchQuery}
