@@ -176,7 +176,7 @@ export default function AssetGrid({
       return cats.includes(selectedCategoryId);
     }
     return true;
-  }), [assets, assetCategories, searchQuery, selectedCategoryId]);
+  }), [assets, assetCategories, searchQuery, selectedCategoryId, myAssetsOnly, username]);
 
   const sorted = useMemo(() => sortAssets(filtered, sortField, sortDir), [filtered, sortField, sortDir]);
 
