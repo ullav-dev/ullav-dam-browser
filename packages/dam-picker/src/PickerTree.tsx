@@ -39,7 +39,7 @@ function TreeNodeItem({
   onSelect: (id: string | null) => void;
   depth?: number;
 }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const hasChildren = node.children.length > 0;
   const isSelected = selectedId === node.id;
 
@@ -90,7 +90,7 @@ function TreeNodeItem({
 
 interface Props {
   categories: Category[];
-  selectedId: string | null;
+  selectedId: string | null | undefined;
   onSelect: (id: string | null) => void;
 }
 
@@ -103,7 +103,7 @@ export default function PickerTree({ categories, selectedId, onSelect }: Props) 
         className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors ${
           selectedId === null
             ? "bg-blue-100 text-blue-800 font-medium"
-            : "text-slate-700 hover:bg-slate-100"
+            : "text-slate-700 hover:bg-slate-100"  // undefined = nothing selected — no highlight
         }`}
         onClick={() => onSelect(null)}
       >

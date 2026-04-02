@@ -109,7 +109,7 @@ function ThumbnailImage({
 interface Props {
   assets: Asset[];
   assetCategories: Map<string, string[]>;
-  selectedCategoryId: string | null;
+  selectedCategoryId: string | null | undefined;
   searchQuery: string;
   selectedAssetId: string | null;
   getThumbnailUrl: (id: string) => string;
@@ -138,6 +138,7 @@ export default function PickerGrid({
   useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir]);
 
   const filtered = useMemo(() => assets.filter((asset) => {
+    if (selectedCategoryId === undefined && !searchQuery) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matches =
@@ -169,6 +170,14 @@ export default function PickerGrid({
       setSortField(field);
       setSortDir("asc");
     }
+  }
+
+  if (selectedCategoryId === undefined && !searchQuery) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+        Select a category or search to browse assets.
+      </div>
+    );
   }
 
   if (filtered.length === 0) {
