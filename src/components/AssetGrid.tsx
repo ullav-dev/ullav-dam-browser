@@ -129,6 +129,7 @@ interface Props {
   searchQuery: string;
   selectedAssetId: string | null;
   lockedIds: Set<string>;
+  username?: string;
   onSelect: (asset: Asset) => void;
   onDragStart: (assetId: string) => void;
   onDragEnd: () => void;
@@ -141,6 +142,7 @@ export default function AssetGrid({
   searchQuery,
   selectedAssetId,
   lockedIds,
+  username,
   onSelect,
   onDragStart,
   onDragEnd,
@@ -149,13 +151,15 @@ export default function AssetGrid({
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [myAssetsOnly, setMyAssetsOnly] = useState(false);
 
   // Reset to page 1 when filters or sort changes
-  useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir]);
+  useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir, myAssetsOnly]);
 
   const filtered = useMemo(() => assets.filter((asset) => {
     // undefined = nothing selected; only show results when a search is active
     if (selectedCategoryId === undefined && !searchQuery) return false;
+    if (myAssetsOnly && username && asset.creator !== username) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matches =
@@ -238,6 +242,21 @@ export default function AssetGrid({
             </button>
           );
         })}
+        {username && (
+          <>
+            <span className="w-px h-3 bg-slate-200 mx-0.5" />
+            <button
+              onClick={() => setMyAssetsOnly((v) => !v)}
+              className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
+                myAssetsOnly
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "text-slate-500 border-slate-200 hover:border-emerald-400 hover:text-emerald-600"
+              }`}
+            >
+              My Assets
+            </button>
+          </>
+        )}
       </div>
 
       {/* Asset grid */}

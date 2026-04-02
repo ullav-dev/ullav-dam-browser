@@ -458,6 +458,7 @@ export default function BrowsePage() {
             searchQuery={searchQuery}
             selectedAssetId={selectedAsset?.id ?? null}
             lockedIds={lockedIds}
+            username={user?.username}
             onSelect={handleSelectAsset}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
