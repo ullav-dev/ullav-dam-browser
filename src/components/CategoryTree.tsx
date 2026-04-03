@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { Category } from "@/lib/dam-api";
+import { useTranslations } from "next-intl";
 
 interface TreeNode extends Category {
   children: TreeNode[];
@@ -79,13 +80,14 @@ function TreeNodeItem({
   depth = 0,
 }: {
   node: TreeNode;
-  selectedId: string | null;
+  selectedId: string | null | undefined;
   onSelect: (id: string | null) => void;
   assetDrag: AssetDragCtx;
   catMove: CatMoveCtx;
   onAddSubcategory?: (parentId: string) => void;
   depth?: number;
 }) {
+  const t = useTranslations("categoryTree");
   const [expanded, setExpanded] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -244,8 +246,8 @@ function TreeNodeItem({
         {isAssetDragOver && (
           <span className="shrink-0 text-[10px] font-semibold ml-1">
             {canAssetDrop
-              ? <span className="text-green-700">+ Add</span>
-              : <span className="text-amber-600">✓ Already added</span>}
+              ? <span className="text-green-700">{t("dropAdd")}</span>
+              : <span className="text-amber-600">{t("dropAlreadyAdded")}</span>}
           </span>
         )}
 
@@ -253,10 +255,10 @@ function TreeNodeItem({
         {isCatMoveOver && (
           <span className="shrink-0 text-[10px] font-semibold ml-1">
             {canCatDrop
-              ? <span className="text-green-700">Move here</span>
+              ? <span className="text-green-700">{t("dropMoveHere")}</span>
               : isCurrentParent
-              ? <span className="text-amber-600">Already here</span>
-              : <span className="text-red-400">Cannot move</span>}
+              ? <span className="text-amber-600">{t("dropAlreadyHere")}</span>
+              : <span className="text-red-400">{t("dropCannotMove")}</span>}
           </span>
         )}
 
@@ -267,7 +269,7 @@ function TreeNodeItem({
               e.stopPropagation();
               onAddSubcategory(node.id);
             }}
-            title={`Add sub-category under "${node.name}"`}
+            title={t("addSubcategoryTitle", { name: node.name })}
             className="shrink-0 w-4 h-4 flex items-center justify-center rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 text-xs leading-none transition-colors"
           >
             +
@@ -323,6 +325,7 @@ export default function CategoryTree({
   onAddSubcategory,
   onMoveCategory,
 }: Props) {
+  const t = useTranslations("categoryTree");
   const tree = buildTree(categories);
 
   // Asset-assign drag state
@@ -414,7 +417,7 @@ export default function CategoryTree({
         onDrop={isCatMoving ? handleRootDrop : undefined}
       >
         <span className="w-4 shrink-0 text-center text-xs text-slate-400">◉</span>
-        <span className="flex-1">All Assets</span>
+        <span className="flex-1">{t("allAssets")}</span>
         {assetCounts !== undefined && (
           <span className="text-xs text-slate-400">
             {assetCounts.get("__all__") ?? 0}
@@ -423,8 +426,8 @@ export default function CategoryTree({
         {isRootOver && (
           <span className="shrink-0 text-[10px] font-semibold">
             {canDropOnRoot
-              ? <span className="text-green-700">Make top-level</span>
-              : <span className="text-amber-600">Already top-level</span>}
+              ? <span className="text-green-700">{t("dropMakeTopLevel")}</span>
+              : <span className="text-amber-600">{t("dropAlreadyTopLevel")}</span>}
           </span>
         )}
       </div>

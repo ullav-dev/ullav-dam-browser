@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import type { Asset } from "@/lib/dam-api";
 import { thumbnailUrl } from "@/lib/dam-api";
+import { useTranslations } from "next-intl";
+import ImageEditorModal from "@/components/ImageEditorModal";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
 const DEFAULT_PAGE_SIZE = 20;
@@ -10,12 +12,6 @@ const DEFAULT_PAGE_SIZE = 20;
 type SortField = "name" | "asset_type" | "created_at" | "size";
 type SortDir = "asc" | "desc";
 
-const SORT_OPTIONS: { field: SortField; label: string }[] = [
-  { field: "name",       label: "Name" },
-  { field: "asset_type", label: "Type" },
-  { field: "created_at", label: "Date" },
-  { field: "size",       label: "Size" },
-];
 
 function sortAssets(assets: Asset[], field: SortField, dir: SortDir): Asset[] {
   const mul = dir === "asc" ? 1 : -1;
@@ -90,14 +86,19 @@ function AssetTypeBadge({ type }: { type: string }) {
   );
 }
 
-function ThumbnailImage({ id, name, assetType }: { id: string; name: string; assetType: string }) {
+function ThumbnailImage({ id, name, assetType, updatedAt }: { id: string; name: string; assetType: string; updatedAt: string }) {
   const [imgState, setImgState] = useState<"loading" | "ok" | "error">("loading");
   const { label, cls } = typeInfo(assetType);
+  const src = `${thumbnailUrl(id)}?v=${encodeURIComponent(updatedAt)}`;
+
+  useEffect(() => {
+    setImgState("loading");
+  }, [updatedAt]);
 
   return (
     <>
       <img
-        src={thumbnailUrl(id)}
+        src={src}
         alt={name}
         className={`w-full h-full object-cover transition-opacity duration-150 ${imgState === "ok" ? "opacity-100" : "opacity-0 absolute inset-0"}`}
         onLoad={() => setImgState("ok")}
@@ -122,6 +123,16 @@ function IconLock() {
   );
 }
 
+function IconEditImage() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  );
+}
+
 interface Props {
   assets: Asset[];
   assetCategories: Map<string, string[]>;
@@ -130,9 +141,12 @@ interface Props {
   selectedAssetId: string | null;
   lockedIds: Set<string>;
   username?: string;
+  token?: string;
   onSelect: (asset: Asset) => void;
   onDragStart: (assetId: string) => void;
   onDragEnd: () => void;
+  onAssetCreated?: (asset: Asset, categoryIds: string[]) => void;
+  onAssetUpdated?: (asset: Asset) => void;
 }
 
 export default function AssetGrid({
@@ -143,15 +157,27 @@ export default function AssetGrid({
   selectedAssetId,
   lockedIds,
   username,
+  token,
   onSelect,
   onDragStart,
   onDragEnd,
+  onAssetCreated,
+  onAssetUpdated,
 }: Props) {
+  const t = useTranslations("assetGrid");
+  const [editingAsset, setEditingAsset] = useState<{ asset: Asset; categoryIds: string[] } | null>(null);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [myAssetsOnly, setMyAssetsOnly] = useState(false);
+
+  const SORT_OPTIONS: { field: SortField; label: string }[] = [
+    { field: "name",       label: t("sortName") },
+    { field: "asset_type", label: t("sortType") },
+    { field: "created_at", label: t("sortDate") },
+    { field: "size",       label: t("sortSize") },
+  ];
 
   // Reset to page 1 when filters or sort changes
   useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir, myAssetsOnly]);
@@ -159,6 +185,8 @@ export default function AssetGrid({
   const filtered = useMemo(() => assets.filter((asset) => {
     // undefined = nothing selected; only show results when a search is active
     if (selectedCategoryId === undefined && !searchQuery) return false;
+    // Hide private assets owned by other users
+    if (asset.is_private && asset.creator !== username) return false;
     if (myAssetsOnly && username && asset.creator !== username) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -196,7 +224,7 @@ export default function AssetGrid({
   if (selectedCategoryId === undefined && !searchQuery) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-        Select a category or search to browse assets.
+        {t("emptyPrompt")}
       </div>
     );
   }
@@ -204,7 +232,7 @@ export default function AssetGrid({
   if (filtered.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-        {searchQuery || selectedCategoryId ? "No assets match the current filter." : "No assets yet."}
+        {searchQuery || selectedCategoryId ? t("noResults") : t("noAssets")}
       </div>
     );
   }
@@ -222,7 +250,7 @@ export default function AssetGrid({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sort bar */}
       <div className="shrink-0 px-4 py-1.5 border-b border-slate-100 bg-white flex items-center gap-1.5">
-        <span className="text-[11px] text-slate-400 mr-1">Sort:</span>
+        <span className="text-[11px] text-slate-400 mr-1">{t("sortLabel")}</span>
         {SORT_OPTIONS.map(({ field, label }) => {
           const active = sortField === field;
           return (
@@ -253,7 +281,7 @@ export default function AssetGrid({
                   : "text-slate-500 border-slate-200 hover:border-emerald-400 hover:text-emerald-600"
               }`}
             >
-              My Assets
+              {t("myAssets")}
             </button>
           </>
         )}
@@ -280,11 +308,24 @@ export default function AssetGrid({
               }`}
             >
               <div className="aspect-square bg-slate-100 relative overflow-hidden">
-                <ThumbnailImage id={asset.id} name={asset.name} assetType={asset.asset_type} />
+                <ThumbnailImage id={asset.id} name={asset.name} assetType={asset.asset_type} updatedAt={asset.updated_at} />
                 {!asset.available && (
                   <div className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                    UNAVAILABLE
+                    {t("unavailable")}
                   </div>
+                )}
+                {asset.asset_type.startsWith("image/") && token && onAssetCreated && onAssetUpdated && (
+                  <button
+                    type="button"
+                    title={t("editImage")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingAsset({ asset, categoryIds: assetCategories.get(asset.id) ?? [] });
+                    }}
+                    className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 bg-white/90 hover:bg-white text-blue-700 rounded-lg p-1 shadow transition-opacity"
+                  >
+                    <IconEditImage />
+                  </button>
                 )}
               </div>
               <div className="p-2 bg-white">
@@ -311,12 +352,31 @@ export default function AssetGrid({
         </div>
       </div>
 
+      {/* Image editor modal */}
+      {editingAsset && token && username && onAssetCreated && onAssetUpdated && (
+        <ImageEditorModal
+          asset={editingAsset.asset}
+          assetCategoryIds={editingAsset.categoryIds}
+          token={token}
+          username={username}
+          onClose={() => setEditingAsset(null)}
+          onAssetCreated={(newAsset, catIds) => {
+            onAssetCreated(newAsset, catIds);
+            setEditingAsset(null);
+          }}
+          onAssetUpdated={(updated) => {
+            onAssetUpdated(updated);
+            setEditingAsset(null);
+          }}
+        />
+      )}
+
       {/* Pagination bar */}
       {numPages > 1 && (
         <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2 flex items-center justify-between gap-3">
           {/* Page size selector */}
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span>Show</span>
+            <span>{t("paginationShow")}</span>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
@@ -326,7 +386,7 @@ export default function AssetGrid({
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
-            <span>per page · {sorted.length} total</span>
+            <span>{t("paginationPerPage", { count: sorted.length })}</span>
           </div>
 
           {/* Page controls */}
@@ -336,7 +396,7 @@ export default function AssetGrid({
               disabled={safePage === 1}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              ‹ Prev
+              {t("paginationPrev")}
             </button>
 
             {pageNumbers.map((item, idx) =>
@@ -362,7 +422,7 @@ export default function AssetGrid({
               disabled={safePage === numPages}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              Next ›
+              {t("paginationNext")}
             </button>
           </div>
         </div>

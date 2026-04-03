@@ -20,6 +20,10 @@ export interface Asset {
   copyright_notice: string | null;
   available: boolean;
   available_until: string | null;
+  is_private: boolean;
+  public_read: boolean;
+  public_download: boolean;
+  public_write: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -98,6 +102,10 @@ export const updateAsset = (
     copyright_notice: string | null;
     available: boolean;
     available_until: string | null;
+    is_private: boolean;
+    public_read: boolean;
+    public_download: boolean;
+    public_write: boolean;
   }>,
   token: string
 ): Promise<Asset> =>

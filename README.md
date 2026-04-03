@@ -11,14 +11,21 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Thumbnails for all formats** — images, PDFs, Office documents (via LibreOffice), Apple iWork files (Pages, Numbers, Keynote)
 - **Sorting** by name, type, date created, or file size (ascending/descending)
 - **Pagination** — configurable page size (10/20/30/50), smart ellipsis page controls
-- **Rich metadata editor** — caption, keywords, creator, copyright, availability window
+- **My Assets filter** — toggle to show only assets uploaded by the logged-in user
+- **Rich metadata editor** — caption, keywords, copyright, availability window; asset base URL shown as a read-only field
+- **Creator auto-set** — creator field is populated from the logged-in username at upload time and is read-only
 - **Category management** — create top-level and sub-categories inline; drag to reparent categories in the hierarchy
 - **Category assignment** — drag an asset onto a category node to assign; drag-to-remove or click × to unassign
-- **Asset actions** — Download, Lock/Unlock, Delete (delete disabled when locked)
+- **Asset actions** — Download, Replace file, Lock/Unlock, Delete (delete disabled when locked)
+- **File replacement** — replace the underlying file of an existing asset while keeping its metadata and category assignments; thumbnail updates automatically
+- **Privacy controls** — assets can be private (owner-only) or public; the grid only shows other users' assets when `is_private` is false
 - **Multi-file upload** with shared metadata and category pre-selection
-- **ZIP import** with three modes: upload ZIP only, upload ZIP and expand contents, or expand contents only
+- **ZIP import** with three modes: upload ZIP only, upload ZIP and expand contents, or expand contents only; creator attributed to uploading user on all extracted assets
 - **Authentication** via `ullav-user-management` (login, register, email confirmation, password reset)
 - Terms of Service and Disclaimer modals at registration
+- **Localised UI** — English (`en`), German (`de`), Irish (`ga`); language switcher in the nav bar
+- **Help pages** — in-app 7-section guide available in all three locales (`/[locale]/help`)
+- **Empty initial state** — no category selected and no assets shown on first load
 
 ## Prerequisites
 
@@ -98,29 +105,40 @@ Uploading a `.zip` file shows a mode selector in the upload list:
 When contents are expanded the server creates a root category named
 `<filename>-<YYYYMMDD-HHMMSS>`, then recursively mirrors the ZIP's directory
 structure as sub-categories, uploading each file as an asset linked to its
-directory's category.
+directory's category. The logged-in user's username is sent as a `creator`
+multipart field and stored on every extracted asset.
 
 ## Project structure
 
 ```
 src/
-├── proxy.ts                  # API proxy (Next.js 16)
+├── proxy.ts                  # API proxy + next-intl middleware (Next.js 16)
+├── i18n/routing.ts           # next-intl locale config (en, de, ga)
 ├── app/
-│   ├── layout.tsx            # Root layout with AuthProvider
-│   ├── page.tsx              # Landing page
-│   ├── login/                # Sign in / register / password reset
-│   ├── browse/               # Main DAM browser (protected)
-│   └── auth/                 # Email confirm / password reset callbacks
+│   ├── layout.tsx            # Root layout (returns children — no html/body)
+│   ├── page.tsx              # Redirects / → /en
+│   └── [locale]/
+│       ├── layout.tsx        # Locale layout (<html lang={locale}><body>)
+│       ├── page.tsx          # Landing page
+│       ├── login/            # Sign in / register / password reset
+│       ├── browse/           # Main DAM browser (protected)
+│       ├── help/             # Help pages (7 sections, localised)
+│       └── auth/             # Email confirm / password reset callbacks
 ├── contexts/AuthContext.tsx  # JWT session (localStorage: dam_auth)
 ├── lib/
 │   ├── auth-api.ts           # ullav-user-management client
 │   └── dam-api.ts            # ullav-dam-server client (all endpoints)
-└── components/
-    ├── CategoryTree.tsx      # Hierarchical tree with drag-to-assign and drag-to-move
-    ├── AssetGrid.tsx         # Thumbnail grid with filter / sort / paginate
-    ├── AssetDetails.tsx      # Metadata editor, category tags, action bar
-    ├── UploadModal.tsx       # Multi-file upload with ZIP mode selector
-    └── ResizeHandle.tsx      # Draggable vertical panel divider
+├── components/
+│   ├── CategoryTree.tsx      # Hierarchical tree with drag-to-assign and drag-to-move
+│   ├── AssetGrid.tsx         # Thumbnail grid with filter / sort / paginate
+│   ├── AssetDetails.tsx      # Metadata editor, category tags, action bar (incl. Replace)
+│   ├── UploadModal.tsx       # Multi-file upload with ZIP mode selector
+│   ├── LocaleSwitcher.tsx    # Language switcher (far right in Nav)
+│   └── ResizeHandle.tsx      # Draggable vertical panel divider
+└── messages/
+    ├── en.json               # English translations
+    ├── de.json               # German translations
+    └── ga.json               # Irish translations
 ```
 
 ## Scripts
@@ -196,6 +214,16 @@ import type { PickedAsset } from "@ullav/dam-picker";
 
 The component renders inline — wrap it in whatever container or modal you need.
 
+### Props
+
+| Prop | Type | Notes |
+|---|---|---|
+| `apiBase` | `string` | API prefix (e.g. `/api/dam`) |
+| `token` | `string` | Bearer token |
+| `onSelect` | `(asset: PickedAsset) => void` | Fired on click |
+| `onDragStart?` | `(asset: PickedAsset, e: DragEvent) => void` | Fired after dataTransfer is set |
+| `filter?` | `(asset: Asset) => boolean` | Client-side predicate — e.g. images only, or creator === username |
+
 ### `PickedAsset` type
 
 ```typescript
@@ -209,10 +237,17 @@ interface PickedAsset {
 }
 ```
 
+### Initial state
+
+Category tree starts collapsed (only top-level nodes visible) and no category is selected — the asset grid shows an empty prompt until the user picks a category or searches.
+
+### Hover preview
+
+Hovering a thumbnail shows a 200 px preview using `position: fixed` so it escapes any `overflow: hidden` containers. The preview flips left or right based on available viewport space.
+
 ### Drag and drop
 
-When the user drags an asset out of the picker, `dataTransfer` is pre-populated
-with three formats so standard drop targets work without extra configuration:
+The drag ghost is the asset's already-loaded `<img>` element (no blank ghost). `dataTransfer` is pre-populated with three formats:
 
 | Format | Value |
 |---|---|
@@ -228,6 +263,7 @@ The optional `onDragStart` prop fires after `dataTransfer` is set:
   token={session.token}
   onSelect={handleSelect}
   onDragStart={(asset, e) => { /* additional drag setup */ }}
+  filter={(asset) => asset.asset_type.startsWith("image/")}
 />
 ```
 
@@ -239,3 +275,4 @@ The `ullav-dam-server` must have:
 - **Full MIME types** for `asset_type` (e.g. `image/jpeg`, not `image`) — required for thumbnail generation
 - **PDFium library** at `PDFIUM_LIB_PATH` — required for PDF thumbnails
 - **LibreOffice** at `SOFFICE_PATH` — required for Office document thumbnails (docx, xlsx, pptx, etc.)
+- **Thumbnail cache invalidation** on file replacement — `upload_asset` handler must call `state.thumbnail_cache.write().await.remove(&id)` after a successful file upload so the next thumbnail request regenerates from the new file

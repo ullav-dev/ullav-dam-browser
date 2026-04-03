@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import type { AssetWithCategories, Category, Asset } from "@/lib/dam-api";
 import {
   updateAsset,
   deleteAsset,
   addCategoryToAsset,
   removeCategoryFromAsset,
+  uploadFile,
   downloadUrl,
 } from "@/lib/dam-api";
 
@@ -60,6 +62,17 @@ function IconTrash() {
   );
 }
 
+function IconReplace() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  );
+}
+
 // ── Field helper ──────────────────────────────────────────────────────────────
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -98,6 +111,7 @@ export default function AssetDetails({
   onDragStart,
   onDragEnd,
 }: Props) {
+  const t = useTranslations("assetDetails");
   // Form state
   const [name, setName] = useState(asset.name);
   const [description, setDescription] = useState(asset.description ?? "");
@@ -109,12 +123,18 @@ export default function AssetDetails({
   const [availableUntil, setAvailableUntil] = useState(
     asset.available_until ? asset.available_until.slice(0, 10) : ""
   );
+  const [isPrivate, setIsPrivate] = useState(asset.is_private);
+  const [publicRead, setPublicRead] = useState(asset.public_read);
+  const [publicDownload, setPublicDownload] = useState(asset.public_download);
+  const [publicWrite, setPublicWrite] = useState(asset.public_write);
 
   // Operation state
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [replacing, setReplacing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [replaceSuccess, setReplaceSuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
@@ -124,6 +144,9 @@ export default function AssetDetails({
 
   // Thumbnail state
   const [thumbFailed, setThumbFailed] = useState(false);
+
+  // Replace file input ref
+  const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset form when the selected asset changes
   useEffect(() => {
@@ -135,14 +158,24 @@ export default function AssetDetails({
     setCopyrightNotice(asset.copyright_notice ?? "");
     setAvailable(asset.available);
     setAvailableUntil(asset.available_until ? asset.available_until.slice(0, 10) : "");
+    setIsPrivate(asset.is_private);
+    setPublicRead(asset.public_read);
+    setPublicDownload(asset.public_download);
+    setPublicWrite(asset.public_write);
     setSaveError(null);
     setSaveSuccess(false);
+    setReplaceSuccess(false);
     setConfirmDelete(false);
     setCategoryError(null);
     setDraggingCatId(null);
     setRemoveZoneOver(false);
     setThumbFailed(false);
   }, [asset.id]);
+
+  // Reset thumb error state when the file is replaced (updated_at changes without id change)
+  useEffect(() => {
+    setThumbFailed(false);
+  }, [asset.updated_at]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -168,6 +201,10 @@ export default function AssetDetails({
           copyright_notice: copyrightNotice || null,
           available,
           available_until: availableUntil ? new Date(availableUntil).toISOString() : null,
+          is_private: isPrivate,
+          public_read: publicRead,
+          public_download: publicDownload,
+          public_write: publicWrite,
         },
         token
       );
@@ -175,7 +212,7 @@ export default function AssetDetails({
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Save failed.");
+      setSaveError(err instanceof Error ? err.message : t("errorSave"));
     } finally {
       setSaving(false);
     }
@@ -191,9 +228,26 @@ export default function AssetDetails({
       await deleteAsset(asset.id, token);
       onDeleted(asset.id);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Delete failed.");
+      setSaveError(err instanceof Error ? err.message : t("errorDelete"));
       setDeleting(false);
       setConfirmDelete(false);
+    }
+  }
+
+  async function handleReplaceFile(file: File) {
+    setReplacing(true);
+    setSaveError(null);
+    setReplaceSuccess(false);
+    try {
+      const updated = await uploadFile(asset.id, file, token);
+      onUpdated(updated);
+      setReplaceSuccess(true);
+      setTimeout(() => setReplaceSuccess(false), 3000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : t("errorReplace"));
+    } finally {
+      setReplacing(false);
+      if (replaceFileInputRef.current) replaceFileInputRef.current.value = "";
     }
   }
 
@@ -204,7 +258,7 @@ export default function AssetDetails({
       const cat = categories.find((c) => c.id === categoryId);
       if (cat) onCategoriesChanged([...asset.categories, cat]);
     } catch (err) {
-      setCategoryError(err instanceof Error ? err.message : "Failed to add category.");
+      setCategoryError(err instanceof Error ? err.message : t("errorAddCategory"));
     }
   }
 
@@ -214,7 +268,7 @@ export default function AssetDetails({
       await removeCategoryFromAsset(asset.id, categoryId, token);
       onCategoriesChanged(asset.categories.filter((c) => c.id !== categoryId));
     } catch (err) {
-      setCategoryError(err instanceof Error ? err.message : "Failed to remove category.");
+      setCategoryError(err instanceof Error ? err.message : t("errorRemoveCategory"));
     }
   }
 
@@ -259,7 +313,7 @@ export default function AssetDetails({
               <span>·</span>
               <span className="inline-flex items-center gap-0.5 text-amber-600 font-medium">
                 <IconLocked />
-                Locked
+                {t("locked")}
               </span>
             </>
           )}
@@ -278,14 +332,14 @@ export default function AssetDetails({
             onDragStart();
           }}
           onDragEnd={onDragEnd}
-          title="Drag onto a category to assign it"
+          title={t("dragToAssign")}
           className="aspect-video bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing ring-0 hover:ring-2 hover:ring-blue-300 transition-shadow"
         >
           {thumbFailed ? (
-            <span className="text-xs text-slate-400 font-medium">No preview available</span>
+            <span className="text-xs text-slate-400 font-medium">{t("noPreview")}</span>
           ) : (
             <img
-              src={`/api/assets/${asset.id}/thumbnail`}
+              src={`/api/assets/${asset.id}/thumbnail?v=${encodeURIComponent(asset.updated_at)}`}
               alt={asset.name}
               className="max-w-full max-h-full object-contain pointer-events-none"
               onError={() => setThumbFailed(true)}
@@ -297,13 +351,13 @@ export default function AssetDetails({
         {isLocked && (
           <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium px-3 py-2 rounded-lg">
             <IconLocked />
-            <span>Asset is locked — deletion disabled</span>
+            <span>{t("lockedBanner")}</span>
           </div>
         )}
 
         {/* Edit form */}
         <form onSubmit={handleSave} className="space-y-3">
-          <Field label="Name">
+          <Field label={t("fieldName")}>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -312,7 +366,7 @@ export default function AssetDetails({
             />
           </Field>
 
-          <Field label="Description">
+          <Field label={t("fieldDescription")}>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -321,7 +375,7 @@ export default function AssetDetails({
             />
           </Field>
 
-          <Field label="Caption">
+          <Field label={t("fieldCaption")}>
             <textarea
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
@@ -330,16 +384,15 @@ export default function AssetDetails({
             />
           </Field>
 
-          <Field label="Keywords">
+          <Field label={t("fieldKeywords")}>
             <input
               value={keywords}
               onChange={(e) => setKeywords(e.target.value)}
-              placeholder="comma-separated"
               className={inputCls}
             />
           </Field>
 
-          <Field label="Creator">
+          <Field label={t("fieldCreator")}>
             <input
               value={creator}
               readOnly
@@ -347,7 +400,7 @@ export default function AssetDetails({
             />
           </Field>
 
-          <Field label="Copyright">
+          <Field label={t("fieldCopyright")}>
             <input
               value={copyrightNotice}
               onChange={(e) => setCopyrightNotice(e.target.value)}
@@ -364,12 +417,12 @@ export default function AssetDetails({
               className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="available" className="text-sm text-slate-700 font-medium">
-              Available
+              {t("fieldAvailable")}
             </label>
           </div>
 
           {available && (
-            <Field label="Available until">
+            <Field label={t("fieldAvailableUntil")}>
               <input
                 type="date"
                 value={availableUntil}
@@ -379,6 +432,79 @@ export default function AssetDetails({
             </Field>
           )}
 
+          {/* Visibility */}
+          <div className="space-y-2 pt-1 border-t border-slate-100">
+            <p className={labelCls}>{t("fieldVisibility")}</p>
+            <div className="flex items-center gap-2">
+              <input
+                id="is_private"
+                type="checkbox"
+                checked={isPrivate}
+                onChange={(e) => {
+                  const priv = e.target.checked;
+                  setIsPrivate(priv);
+                  if (priv) {
+                    setPublicRead(false);
+                    setPublicDownload(false);
+                    setPublicWrite(false);
+                  } else {
+                    setPublicRead(true);
+                  }
+                }}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="is_private" className="text-sm text-slate-700 font-medium">
+                {t("fieldPrivate")}
+              </label>
+              <span className="text-xs text-slate-400">{t("fieldPrivateHint")}</span>
+            </div>
+
+            {!isPrivate && (
+              <div className="ml-6 space-y-1.5 border-l-2 border-slate-100 pl-3">
+                <p className="text-xs text-slate-500 font-medium">{t("fieldPublicAccess")}</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="public_read"
+                    type="checkbox"
+                    checked={publicRead}
+                    onChange={(e) => setPublicRead(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="public_read" className="text-sm text-slate-700">
+                    {t("fieldPublicRead")}
+                  </label>
+                  <span className="text-xs text-slate-400">{t("fieldPublicReadHint")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="public_download"
+                    type="checkbox"
+                    checked={publicDownload}
+                    onChange={(e) => setPublicDownload(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="public_download" className="text-sm text-slate-700">
+                    {t("fieldPublicDownload")}
+                  </label>
+                  <span className="text-xs text-slate-400">{t("fieldPublicDownloadHint")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="public_write"
+                    type="checkbox"
+                    checked={publicWrite}
+                    onChange={(e) => setPublicWrite(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="public_write" className="text-sm text-slate-700">
+                    {t("fieldPublicWrite")}
+                  </label>
+                  <span className="text-xs text-slate-400">{t("fieldPublicWriteHint")}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           {saveError && (
             <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               {saveError}
@@ -386,7 +512,12 @@ export default function AssetDetails({
           )}
           {saveSuccess && (
             <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-              Saved successfully.
+              {t("savedSuccess")}
+            </div>
+          )}
+          {replaceSuccess && (
+            <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              {t("replaceSuccess")}
             </div>
           )}
 
@@ -395,15 +526,15 @@ export default function AssetDetails({
             disabled={saving}
             className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? t("saving") : t("saveChanges")}
           </button>
         </form>
 
         {/* Categories */}
         <div className="space-y-2 pt-2 border-t border-slate-100">
-          <p className={labelCls}>Categories</p>
+          <p className={labelCls}>{t("categoriesLabel")}</p>
           {asset.categories.length === 0 ? (
-            <p className="text-xs text-slate-400">No categories assigned.</p>
+            <p className="text-xs text-slate-400">{t("noCategoriesAssigned")}</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {asset.categories.map((cat) => (
@@ -422,13 +553,13 @@ export default function AssetDetails({
                   className={`inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full cursor-grab active:cursor-grabbing transition-opacity ${
                     draggingCatId === cat.id ? "opacity-40" : ""
                   }`}
-                  title="Drag to remove zone below, or click × to remove"
+                  title={t("removeCategoryTitle")}
                 >
                   {cat.name}
                   <button
                     onClick={() => handleRemoveCategory(cat.id)}
                     className="hover:text-red-600 transition-colors leading-none"
-                    title="Remove category"
+                    title={t("removeCategoryButton")}
                   >
                     ×
                   </button>
@@ -463,7 +594,7 @@ export default function AssetDetails({
                   : "border-slate-300 text-slate-400"
               }`}
             >
-              <span>{removeZoneOver ? "Release to remove" : "Drop here to remove category"}</span>
+              <span>{removeZoneOver ? t("dropToRemove") : t("dropHereToRemove")}</span>
             </div>
           )}
 
@@ -473,7 +604,7 @@ export default function AssetDetails({
               value=""
               onChange={(e) => { if (e.target.value) handleAddCategory(e.target.value); }}
             >
-              <option value="">+ Add category…</option>
+              <option value="">{t("addCategory")}</option>
               {availableCategories.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
@@ -484,11 +615,11 @@ export default function AssetDetails({
 
         {/* Metadata */}
         <div className="space-y-1 pt-2 border-t border-slate-100 text-xs text-slate-400">
-          <p>ID: {asset.id}</p>
-          <p>Created: {formatDate(asset.created_at)}</p>
-          <p>Updated: {formatDate(asset.updated_at)}</p>
+          <p>{t("metaId")} {asset.id}</p>
+          <p>{t("metaCreated")} {formatDate(asset.created_at)}</p>
+          <p>{t("metaUpdated")} {formatDate(asset.updated_at)}</p>
           <div className="space-y-0.5">
-            <p className="uppercase tracking-wide font-medium">Download URL</p>
+            <p className="uppercase tracking-wide font-medium">{t("metaUrlLabel")}</p>
             <p className="break-all select-all font-mono text-slate-500">
               {typeof window !== "undefined" ? window.location.origin : ""}{`/api/assets/${asset.id}`}
             </p>
@@ -500,44 +631,67 @@ export default function AssetDetails({
       {confirmDelete ? (
         <div className="shrink-0 border-t border-red-200 bg-red-50 px-4 py-3 space-y-2">
           <p className="text-xs text-red-700 font-medium text-center">
-            Delete this asset? This cannot be undone.
+            {t("deleteConfirmMessage")}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setConfirmDelete(false)}
               className="flex-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium py-2 rounded-lg transition-colors"
             >
-              Cancel
+              {t("deleteConfirmCancel")}
             </button>
             <button
               onClick={handleDelete}
               disabled={deleting}
               className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition-colors"
             >
-              {deleting ? "Deleting…" : "Yes, delete"}
+              {deleting ? t("deleteConfirmDeleting") : t("deleteConfirmYes")}
             </button>
           </div>
         </div>
       ) : (
         <div className="shrink-0 border-t border-slate-200 bg-white px-2 py-2 flex items-stretch">
 
+          {/* Hidden file input for replace */}
+          <input
+            ref={replaceFileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => { if (e.target.files?.[0]) handleReplaceFile(e.target.files[0]); }}
+          />
+
           {/* Download */}
           <a
             href={downloadUrl(asset.id)}
             download
-            title="Download asset"
+            title={t("actionDownload")}
             className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 transition-colors"
           >
             <IconDownload />
-            <span className="text-[10px] font-medium">Download</span>
+            <span className="text-[10px] font-medium">{t("actionDownload")}</span>
           </a>
+
+          <div className="w-px bg-slate-200 my-1" />
+
+          {/* Replace file */}
+          <button
+            onClick={() => replaceFileInputRef.current?.click()}
+            disabled={replacing}
+            title={t("actionReplaceTitle")}
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <IconReplace />
+            <span className="text-[10px] font-medium">
+              {replacing ? t("replacingFile") : t("actionReplace")}
+            </span>
+          </button>
 
           <div className="w-px bg-slate-200 my-1" />
 
           {/* Lock / Unlock */}
           <button
             onClick={toggleLock}
-            title={isLocked ? "Unlock asset" : "Lock asset"}
+            title={isLocked ? t("actionUnlockTitle") : t("actionLockTitle")}
             className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors ${
               isLocked
                 ? "text-amber-600 hover:bg-amber-50"
@@ -545,7 +699,7 @@ export default function AssetDetails({
             }`}
           >
             {isLocked ? <IconLocked /> : <IconUnlocked />}
-            <span className="text-[10px] font-medium">{isLocked ? "Unlock" : "Lock"}</span>
+            <span className="text-[10px] font-medium">{isLocked ? t("actionUnlock") : t("actionLock")}</span>
           </button>
 
           <div className="w-px bg-slate-200 my-1" />
@@ -554,7 +708,7 @@ export default function AssetDetails({
           <button
             onClick={handleDelete}
             disabled={isLocked}
-            title={isLocked ? "Unlock the asset before deleting" : "Delete asset"}
+            title={isLocked ? t("actionDeleteLockedTitle") : t("actionDeleteTitle")}
             className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors ${
               isLocked
                 ? "text-slate-300 cursor-not-allowed"
@@ -562,7 +716,7 @@ export default function AssetDetails({
             }`}
           >
             <IconTrash />
-            <span className="text-[10px] font-medium">Delete</span>
+            <span className="text-[10px] font-medium">{t("actionDelete")}</span>
           </button>
 
         </div>

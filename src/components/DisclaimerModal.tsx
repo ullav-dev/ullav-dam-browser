@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import ReactMarkdown from "react-markdown";
+import { useTranslations } from "next-intl";
 
 const DISCLAIMER_CONTENT = `
 ## Disclaimer
@@ -39,6 +40,8 @@ interface Props {
 }
 
 export default function DisclaimerModal({ onClose }: Props) {
+  const t = useTranslations("modals");
+
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -63,11 +66,11 @@ export default function DisclaimerModal({ onClose }: Props) {
         aria-labelledby="disclaimer-title"
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
-          <h2 id="disclaimer-title" className="font-bold text-slate-800">Disclaimer</h2>
+          <h2 id="disclaimer-title" className="font-bold text-slate-800">{t("disclaimerTitle")}</h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 transition-colors text-xl leading-none"
-            aria-label="Close"
+            aria-label={t("close")}
           >
             ×
           </button>
@@ -80,7 +83,7 @@ export default function DisclaimerModal({ onClose }: Props) {
             onClick={onClose}
             className="w-full bg-blue-700 hover:bg-blue-800 text-white font-medium py-2 rounded-lg transition-colors text-sm"
           >
-            Close
+            {t("close")}
           </button>
         </div>
       </div>

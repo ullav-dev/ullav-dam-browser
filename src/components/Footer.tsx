@@ -3,8 +3,10 @@
 import { useState } from "react";
 import TermsModal from "@/components/TermsModal";
 import DisclaimerModal from "@/components/DisclaimerModal";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
+  const t = useTranslations("footer");
   const [showTerms, setShowTerms] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
@@ -12,19 +14,19 @@ export default function Footer() {
     <>
       <footer className="border-t border-slate-200 py-3 shrink-0">
         <div className="max-w-full px-4 sm:px-6 flex items-center justify-between gap-2 text-xs text-slate-400">
-          <span>© {new Date().getFullYear()} DAM Browser</span>
+          <span>{t("copyright", { year: new Date().getFullYear() })}</span>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowDisclaimer(true)}
               className="hover:text-slate-600 transition-colors underline underline-offset-2"
             >
-              Disclaimer
+              {t("disclaimer")}
             </button>
             <button
               onClick={() => setShowTerms(true)}
               className="hover:text-slate-600 transition-colors underline underline-offset-2"
             >
-              Terms of Service
+              {t("terms")}
             </button>
           </div>
         </div>

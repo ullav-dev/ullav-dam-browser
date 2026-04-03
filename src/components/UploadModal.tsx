@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { Asset, Category, ZipUploadResult } from "@/lib/dam-api";
 import { createAsset, uploadFile, uploadZip, addCategoryToAsset } from "@/lib/dam-api";
 
@@ -23,12 +24,6 @@ function isZip(file: File): boolean {
     file.name.toLowerCase().endsWith(".zip")
   );
 }
-
-const ZIP_MODE_OPTIONS: { mode: ZipMode; label: string; title: string }[] = [
-  { mode: "zip-only",         label: "ZIP only",         title: "Upload the ZIP file as an asset; do not expand its contents" },
-  { mode: "zip-and-contents", label: "ZIP + contents",   title: "Upload the ZIP file and expand its contents into a category tree" },
-  { mode: "contents-only",    label: "Contents only",    title: "Expand ZIP contents into a category tree; do not store the ZIP file itself" },
-];
 
 interface FileEntry {
   file: File;
@@ -79,6 +74,14 @@ interface Props {
 }
 
 export default function UploadModal({ token, username, categories, onComplete, onClose, onZipResult }: Props) {
+  const t = useTranslations("uploadModal");
+
+  const ZIP_MODE_OPTIONS: { mode: ZipMode; label: string; title: string }[] = [
+    { mode: "zip-only",         label: t("zipModeZipOnly"),         title: t("zipModeZipOnlyTitle") },
+    { mode: "zip-and-contents", label: t("zipModeZipAndContents"),  title: t("zipModeZipAndContentsTitle") },
+    { mode: "contents-only",    label: t("zipModeContentsOnly"),    title: t("zipModeContentsOnlyTitle") },
+  ];
+
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [dragging, setDragging] = useState(false);
 
@@ -246,6 +249,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
 
   const pendingCount = entries.filter((e) => e.status === "pending" || e.status === "error").length;
   const doneCount = entries.filter((e) => e.status === "done").length;
+  const uploadingIdx = entries.findIndex((e) => e.status === "uploading");
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -259,10 +263,10 @@ export default function UploadModal({ token, username, categories, onComplete, o
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0">
           <h2 className="font-bold text-slate-800">
-            Upload Assets
+            {t("title")}
             {entries.length > 0 && (
               <span className="ml-2 text-sm font-normal text-slate-500">
-                {entries.length} file{entries.length !== 1 ? "s" : ""} selected
+                {t("fileCount", { count: entries.length })}
               </span>
             )}
           </h2>
@@ -302,16 +306,16 @@ export default function UploadModal({ token, username, categories, onComplete, o
               />
               {entries.length > 0 ? (
                 <p className="text-sm text-blue-600 font-medium">
-                  Drop more files or click to add
+                  {t("dropZoneMore")}
                 </p>
               ) : (
                 <div>
                   <p className="text-2xl mb-2">📁</p>
                   <p className="text-sm text-slate-600">
-                    Drop files here or{" "}
-                    <span className="text-blue-700 font-medium">click to browse</span>
+                    {t("dropZoneEmpty")}{" "}
+                    <span className="text-blue-700 font-medium">{t("dropZoneBrowse")}</span>
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">You can select multiple files</p>
+                  <p className="text-xs text-slate-400 mt-1">{t("dropZoneHint")}</p>
                 </div>
               )}
             </div>
@@ -320,7 +324,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
           {/* File list */}
           {entries.length > 0 && (
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Files</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t("filesLabel")}</p>
               <div className="rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                 {entries.map((entry, idx) => (
                   <div key={idx} className="flex flex-col px-3 py-2 bg-white gap-1">
@@ -348,20 +352,27 @@ export default function UploadModal({ token, username, categories, onComplete, o
                       {/* Status label / error */}
                       {entry.status === "uploading" && (
                         <span className="shrink-0 text-[10px] text-blue-600">
-                          {isZip(entry.file) && entry.zipMode !== "zip-only" ? "Processing ZIP…" : "Uploading…"}
+                          {isZip(entry.file) && entry.zipMode !== "zip-only"
+                            ? t("statusProcessingZip")
+                            : t("statusUploading")}
                         </span>
                       )}
                       {entry.status === "done" && entry.zipResult && (
                         <span className="shrink-0 text-[10px] text-green-600">
-                          {entry.zipMode === "zip-and-contents" && "ZIP + "}
-                          {entry.zipResult.assets.length} assets · {entry.zipResult.categories.length} categories
+                          {entry.zipMode === "zip-and-contents" && t("zipAndPrefix")}
+                          {t("statusZipResult", {
+                            assetCount: entry.zipResult.assets.length,
+                            catCount: entry.zipResult.categories.length,
+                          })}
                           {entry.zipResult.errors.length > 0 && (
-                            <span className="text-amber-500"> · {entry.zipResult.errors.length} errors</span>
+                            <span className="text-amber-500">
+                              {" "}{t("statusZipErrors", { count: entry.zipResult.errors.length })}
+                            </span>
                           )}
                         </span>
                       )}
                       {entry.status === "done" && !entry.zipResult && (
-                        <span className="shrink-0 text-[10px] text-green-600">Done</span>
+                        <span className="shrink-0 text-[10px] text-green-600">{t("statusDone")}</span>
                       )}
                       {entry.status === "error" && (
                         <span className="shrink-0 text-[10px] text-red-500 max-w-[120px] truncate" title={entry.error}>
@@ -374,7 +385,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
                         <button
                           onClick={() => removeEntry(idx)}
                           className="shrink-0 text-slate-300 hover:text-red-400 transition-colors text-base leading-none ml-1"
-                          title="Remove"
+                          title={t("removeTitle")}
                         >
                           ×
                         </button>
@@ -412,11 +423,14 @@ export default function UploadModal({ token, username, categories, onComplete, o
           {!allDone && entries.some((e) => !isZip(e.file) || (e.zipMode ?? "contents-only") !== "contents-only") && (
             <div className="space-y-3">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Shared metadata {entries.length > 1 && <span className="font-normal normal-case">(applied to all files)</span>}
+                {t("sharedMetaLabel")}{" "}
+                {entries.length > 1 && (
+                  <span className="font-normal normal-case">{t("sharedMetaAppliedToAll")}</span>
+                )}
               </p>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-slate-700">Description</label>
+                <label className="text-sm font-medium text-slate-700">{t("fieldDescription")}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -426,7 +440,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-slate-700">Caption</label>
+                <label className="text-sm font-medium text-slate-700">{t("fieldCaption")}</label>
                 <textarea
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
@@ -436,29 +450,29 @@ export default function UploadModal({ token, username, categories, onComplete, o
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-slate-700">Keywords</label>
+                <label className="text-sm font-medium text-slate-700">{t("fieldKeywords")}</label>
                 <input
                   value={keywords}
                   onChange={(e) => setKeywords(e.target.value)}
                   className={inputCls}
-                  placeholder="comma-separated"
+                  placeholder={t("fieldKeywordsPlaceholder")}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-slate-700">Creator</label>
+                  <label className="text-sm font-medium text-slate-700">{t("fieldCreator")}</label>
                   <input value={creator} readOnly className={`${inputCls} bg-slate-50 text-slate-500 cursor-default`} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-slate-700">Copyright</label>
+                  <label className="text-sm font-medium text-slate-700">{t("fieldCopyright")}</label>
                   <input value={copyrightNotice} onChange={(e) => setCopyrightNotice(e.target.value)} className={inputCls} />
                 </div>
               </div>
 
               {categories.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-slate-700">Categories</label>
+                  <label className="text-sm font-medium text-slate-700">{t("fieldCategories")}</label>
                   <div className="flex flex-wrap gap-2 p-2 border border-slate-300 rounded-lg min-h-[40px]">
                     {categories.map((cat) => {
                       const checked = selectedCategoryIds.includes(cat.id);
@@ -501,8 +515,8 @@ export default function UploadModal({ token, username, categories, onComplete, o
                 : "bg-amber-50 border border-amber-200 text-amber-700"
             }`}>
               {doneCount === entries.length
-                ? `All ${doneCount} file${doneCount !== 1 ? "s" : ""} uploaded successfully.`
-                : `${doneCount} of ${entries.length} files uploaded. ${entries.length - doneCount} failed.`}
+                ? t("summaryAllDone", { count: doneCount })
+                : t("summaryPartial", { done: doneCount, total: entries.length, failed: entries.length - doneCount })}
             </div>
           )}
         </div>
@@ -514,7 +528,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
               onClick={onClose}
               className="flex-1 bg-blue-700 hover:bg-blue-800 text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
             >
-              Close
+              {t("buttonClose")}
             </button>
           ) : (
             <>
@@ -524,7 +538,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
                 disabled={uploading}
                 className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 disabled:opacity-50 font-medium py-2.5 rounded-lg transition-colors text-sm"
               >
-                Cancel
+                {t("buttonCancel")}
               </button>
               <button
                 onClick={handleUpload}
@@ -532,10 +546,8 @@ export default function UploadModal({ token, username, categories, onComplete, o
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors text-sm"
               >
                 {uploading
-                  ? `Uploading ${entries.filter(e => e.status === "uploading").map((_, i) => i + 1)[0] ?? "…"}/${entries.length}…`
-                  : pendingCount > 0
-                  ? `Upload ${pendingCount} file${pendingCount !== 1 ? "s" : ""}`
-                  : "Upload"}
+                  ? t("buttonUploading", { current: uploadingIdx + 1, total: entries.length })
+                  : t("buttonUpload", { count: pendingCount })}
               </button>
             </>
           )}

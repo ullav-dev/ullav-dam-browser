@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
 import AssetGrid from "@/components/AssetGrid";
@@ -10,10 +10,12 @@ import UploadModal from "@/components/UploadModal";
 import ResizeHandle from "@/components/ResizeHandle";
 import * as api from "@/lib/dam-api";
 import { createCategory, updateCategory } from "@/lib/dam-api";
+import { useTranslations } from "next-intl";
 
 export default function BrowsePage() {
   const { user, token, isLoading } = useAuth();
   const router = useRouter();
+  const t = useTranslations("browse");
 
   const [assets, setAssets] = useState<api.Asset[]>([]);
   const [categories, setCategories] = useState<api.Category[]>([]);
@@ -49,7 +51,7 @@ export default function BrowsePage() {
     });
   }, []);
 
-  // Lock state — persisted in localStorage, shared across both grid and details
+  // Lock state — persisted in localStorage
   const [lockedIds, setLockedIds] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("dam_locked_assets");
@@ -106,7 +108,6 @@ export default function BrowsePage() {
     [token, newCatName, newCatParentId]
   );
 
-  // Drag-and-drop: track which asset is being dragged onto the category tree
   const [draggingAssetId, setDraggingAssetId] = useState<string | null>(null);
 
   const handleDragStart = useCallback((assetId: string) => {
@@ -124,7 +125,7 @@ export default function BrowsePage() {
         const updated = await updateCategory(id, { parent_id: newParentId }, token);
         setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       } catch {
-        // Non-critical — tree will remain unchanged on failure
+        // Non-critical
       }
     },
     [token]
@@ -135,13 +136,11 @@ export default function BrowsePage() {
       if (!token) return;
       try {
         await api.addCategoryToAsset(assetId, categoryId, token);
-        // Update the assetCategories cache
         setAssetCategories((prev) => {
           const next = new Map(prev);
           next.set(assetId, [...(next.get(assetId) ?? []), categoryId]);
           return next;
         });
-        // If this is the selected asset, update its categories in the details panel
         setSelectedAsset((prev) => {
           if (!prev || prev.id !== assetId) return prev;
           const cat = categories.find((c) => c.id === categoryId);
@@ -149,13 +148,12 @@ export default function BrowsePage() {
           return { ...prev, categories: [...prev.categories, cat] };
         });
       } catch {
-        // Server returns a conflict or error — silently ignore (already assigned)
+        // Already assigned — silently ignore
       }
     },
     [token, categories]
   );
 
-  // Track which asset IDs have had their categories loaded
   const loadedAssetIds = useRef(new Set<string>());
 
   useEffect(() => {
@@ -187,13 +185,11 @@ export default function BrowsePage() {
   // Background-load categories for all assets in batches of 5
   useEffect(() => {
     if (!token || assets.length === 0) return;
-
     let cancelled = false;
 
     async function loadCats() {
       const toLoad = assets.filter((a) => !loadedAssetIds.current.has(a.id));
       if (toLoad.length === 0) return;
-
       for (let i = 0; i < toLoad.length; i += 5) {
         if (cancelled) break;
         const chunk = toLoad.slice(i, i + 5);
@@ -209,7 +205,7 @@ export default function BrowsePage() {
                 return next;
               });
             } catch {
-              // Non-critical — leave as undefined (shows all)
+              // Non-critical
             }
           })
         );
@@ -217,9 +213,7 @@ export default function BrowsePage() {
     }
 
     loadCats();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [assets, token]);
 
   const handleSelectAsset = useCallback(
@@ -235,7 +229,6 @@ export default function BrowsePage() {
           return next;
         });
       } catch {
-        // Fall back to showing asset without categories
         setSelectedAsset({ ...asset, categories: [] });
       }
     },
@@ -255,6 +248,19 @@ export default function BrowsePage() {
       }
     },
     [token]
+  );
+
+  const handleAssetCreated = useCallback(
+    (newAsset: api.Asset, categoryIds: string[]) => {
+      setAssets((prev) => [newAsset, ...prev]);
+      setAssetCategories((prev) => {
+        const next = new Map(prev);
+        next.set(newAsset.id, categoryIds);
+        return next;
+      });
+      loadedAssetIds.current.add(newAsset.id);
+    },
+    [],
   );
 
   const handleAssetDeleted = useCallback((id: string) => {
@@ -283,17 +289,13 @@ export default function BrowsePage() {
 
   const handleUploadComplete = useCallback(
     async (uploaded: api.Asset[]) => {
-      // Prepend all new assets to the list
       setAssets((prev) => [...uploaded.reverse(), ...prev]);
-      // Select the first uploaded asset and fetch its details
       const first = uploaded[0];
       if (first && token) {
         try {
           const detail = await api.getAsset(first.id, token);
           setSelectedAsset(detail);
-          for (const asset of uploaded) {
-            loadedAssetIds.current.add(asset.id);
-          }
+          for (const asset of uploaded) loadedAssetIds.current.add(asset.id);
           setAssetCategories((prev) => {
             const next = new Map(prev);
             next.set(first.id, detail.categories.map((c) => c.id));
@@ -310,24 +312,28 @@ export default function BrowsePage() {
 
   if (isLoading) return null;
 
+  // Asset count display
+  const countLabel = loadingAssets
+    ? t("loading")
+    : `${t("assetCount", { count: assets.length })}${selectedCategoryId ? ` ${t("filteredByCategory")}` : ""}${searchQuery ? ` ${t("filteredBySearch", { query: searchQuery })}` : ""}`;
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left: Category tree */}
       <aside style={{ width: leftWidth }} className="shrink-0 bg-slate-50 flex flex-col overflow-hidden">
         <div className="p-3 border-b border-slate-200 shrink-0 flex items-center justify-between">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Categories
+            {t("categoriesHeading")}
           </p>
           <button
             onClick={() => openCatForm(null)}
-            title="New top-level category"
+            title={t("newTopLevelCategoryTitle")}
             className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 text-sm leading-none transition-colors"
           >
             +
           </button>
         </div>
 
-        {/* Inline category creation form */}
         {showCatForm && (
           <form
             onSubmit={handleCreateCategory}
@@ -337,7 +343,7 @@ export default function BrowsePage() {
               autoFocus
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
-              placeholder="Category name"
+              placeholder={t("categoryNamePlaceholder")}
               required
               className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
@@ -346,7 +352,7 @@ export default function BrowsePage() {
               onChange={(e) => setNewCatParentId(e.target.value)}
               className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
-              <option value="">None (top level)</option>
+              <option value="">{t("categoryParentNone")}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -358,14 +364,14 @@ export default function BrowsePage() {
                 disabled={savingCat || !newCatName.trim()}
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-medium py-1 rounded transition-colors"
               >
-                {savingCat ? "Creating…" : "Create"}
+                {savingCat ? t("categoryCreating") : t("categoryCreate")}
               </button>
               <button
                 type="button"
                 onClick={() => setShowCatForm(false)}
                 className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-medium py-1 rounded transition-colors"
               >
-                Cancel
+                {t("categoryCancel")}
               </button>
             </div>
           </form>
@@ -373,7 +379,7 @@ export default function BrowsePage() {
 
         <div className="flex-1 overflow-y-auto p-2">
           {loadingAssets ? (
-            <p className="text-xs text-slate-400 px-2 py-1">Loading…</p>
+            <p className="text-xs text-slate-400 px-2 py-1">{t("loading")}</p>
           ) : (
             <CategoryTree
               categories={categories}
@@ -381,9 +387,7 @@ export default function BrowsePage() {
               onSelect={setSelectedCategoryId}
               draggingAssetId={draggingAssetId}
               draggingAssetCategoryIds={
-                draggingAssetId
-                  ? (assetCategories.get(draggingAssetId) ?? [])
-                  : []
+                draggingAssetId ? (assetCategories.get(draggingAssetId) ?? []) : []
               }
               onCategoryDrop={handleCategoryDrop}
               onAddSubcategory={openCatForm}
@@ -396,13 +400,12 @@ export default function BrowsePage() {
 
       {/* Middle: Search + asset grid */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Toolbar */}
         <div className="p-3 border-b border-slate-200 bg-white flex items-center gap-3 shrink-0">
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
             <input
               type="search"
-              placeholder="Search by name, keywords, caption…"
+              placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -412,43 +415,31 @@ export default function BrowsePage() {
             onClick={() => setShowUpload(true)}
             className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shrink-0"
           >
-            <span>+</span> Upload
+            <span>+</span> {t("uploadButton")}
           </button>
           <button
             onClick={loadData}
-            title="Refresh"
+            title={t("refreshTitle")}
             className="border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-2.5 py-2 rounded-lg transition-colors shrink-0"
           >
             ↺
           </button>
         </div>
 
-        {/* Asset count */}
         <div className="px-4 py-2 border-b border-slate-100 bg-white shrink-0">
-          <p className="text-xs text-slate-400">
-            {loadingAssets
-              ? "Loading…"
-              : `${assets.length} asset${assets.length !== 1 ? "s" : ""}${
-                  selectedCategoryId
-                    ? ` · filtered by category`
-                    : ""
-                }${searchQuery ? ` · "${searchQuery}"` : ""}`}
-          </p>
+          <p className="text-xs text-slate-400">{countLabel}</p>
         </div>
 
         {loadError ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8">
             <p className="text-sm text-red-600">{loadError}</p>
-            <button
-              onClick={loadData}
-              className="text-sm text-blue-700 hover:underline"
-            >
-              Retry
+            <button onClick={loadData} className="text-sm text-blue-700 hover:underline">
+              {t("loadError")}
             </button>
           </div>
         ) : loadingAssets ? (
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-            Loading assets…
+            {t("loadingAssets")}
           </div>
         ) : (
           <AssetGrid
@@ -459,9 +450,12 @@ export default function BrowsePage() {
             selectedAssetId={selectedAsset?.id ?? null}
             lockedIds={lockedIds}
             username={user?.username}
+            token={token ?? ""}
             onSelect={handleSelectAsset}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            onAssetCreated={handleAssetCreated}
+            onAssetUpdated={handleAssetUpdated}
           />
         )}
       </div>
@@ -487,7 +481,7 @@ export default function BrowsePage() {
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm p-8 text-center">
             <div>
               <p className="text-3xl mb-3">🖼</p>
-              <p>Select an asset to view and edit its details</p>
+              <p>{t("selectAssetPrompt")}</p>
             </div>
           </div>
         )}

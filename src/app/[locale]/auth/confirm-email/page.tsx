@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useRouter, Link } from "@/i18n/navigation";
 import { confirmEmail } from "@/lib/auth-api";
+import { useTranslations } from "next-intl";
 
 function ConfirmEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const t = useTranslations("confirmEmail");
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
@@ -15,7 +17,7 @@ function ConfirmEmailContent() {
     const token = searchParams.get("token");
     if (!token) {
       setStatus("error");
-      setMessage("No confirmation token found in the URL.");
+      setMessage(t("errorNoToken"));
       return;
     }
     confirmEmail(token)
@@ -25,9 +27,9 @@ function ConfirmEmailContent() {
       })
       .catch((err) => {
         setStatus("error");
-        setMessage(err instanceof Error ? err.message : "Confirmation failed.");
+        setMessage(err instanceof Error ? err.message : t("failureTitle"));
       });
-  }, [searchParams, router]);
+  }, [searchParams, router, t]);
 
   return (
     <div className="h-full flex items-center justify-center p-4">
@@ -35,29 +37,27 @@ function ConfirmEmailContent() {
         {status === "loading" && (
           <>
             <div className="text-4xl mb-4">⏳</div>
-            <h1 className="font-bold text-lg text-slate-800 mb-2">Confirming your email…</h1>
-            <p className="text-sm text-slate-500">Please wait.</p>
+            <h1 className="font-bold text-lg text-slate-800 mb-2">{t("loadingTitle")}</h1>
+            <p className="text-sm text-slate-500">{t("loadingBody")}</p>
           </>
         )}
         {status === "success" && (
           <>
             <div className="text-4xl mb-4">✅</div>
-            <h1 className="font-bold text-lg text-slate-800 mb-2">Email confirmed!</h1>
-            <p className="text-sm text-slate-600 mb-4">
-              Your account is now active. Redirecting to sign in…
-            </p>
+            <h1 className="font-bold text-lg text-slate-800 mb-2">{t("successTitle")}</h1>
+            <p className="text-sm text-slate-600 mb-4">{t("successBody")}</p>
             <Link href="/login" className="text-sm text-blue-700 hover:underline">
-              Go to sign in
+              {t("goToSignIn")}
             </Link>
           </>
         )}
         {status === "error" && (
           <>
             <div className="text-4xl mb-4">❌</div>
-            <h1 className="font-bold text-lg text-slate-800 mb-2">Confirmation failed</h1>
+            <h1 className="font-bold text-lg text-slate-800 mb-2">{t("failureTitle")}</h1>
             <p className="text-sm text-red-600 mb-4">{message}</p>
             <Link href="/login" className="text-sm text-blue-700 hover:underline">
-              Back to sign in
+              {t("goToSignIn")}
             </Link>
           </>
         )}

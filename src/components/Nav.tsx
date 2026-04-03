@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, Link } from "@/i18n/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslations } from "next-intl";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
+  const t = useTranslations("nav");
 
   function handleLogout() {
     logout();
@@ -41,7 +43,7 @@ export default function Nav() {
             {!isLoading && user ? (
               <>
                 <Link href="/browse" className={navLink("/browse")}>
-                  Assets
+                  {t("assets")}
                 </Link>
                 <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
                   <span className="text-sm text-slate-500 hidden sm:block">{user.username}</span>
@@ -49,7 +51,7 @@ export default function Nav() {
                     onClick={handleLogout}
                     className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
                   >
-                    Sign out
+                    {t("signOut")}
                   </button>
                 </div>
               </>
@@ -62,9 +64,13 @@ export default function Nav() {
                     : "border-slate-300 text-slate-700 hover:bg-slate-50"
                 }`}
               >
-                Sign in
+                {t("signIn")}
               </Link>
             ) : null}
+            <Link href="/help" className={navLink("/help")}>
+              {t("help")}
+            </Link>
+            <LocaleSwitcher />
           </nav>
         </div>
       </div>

@@ -35,7 +35,7 @@ function TreeNodeItem({
   depth = 0,
 }: {
   node: TreeNode;
-  selectedId: string | null;
+  selectedId: string | null | undefined;
   onSelect: (id: string | null) => void;
   depth?: number;
 }) {
