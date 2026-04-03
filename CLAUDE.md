@@ -65,6 +65,7 @@ before reaching the DAM server.
 | `/[locale]/help` | Help pages (7 sections) |
 | `/[locale]/auth/confirm-email` | Email confirmation callback |
 | `/[locale]/auth/password-reset` | Password reset callback |
+| `/[locale]/auth/sso` | SSO handoff from ullav-portal (`?t=<encoded-session>`); writes session to `dam_auth` in localStorage and redirects to `/browse` |
 
 ## Component overview
 

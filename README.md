@@ -22,6 +22,7 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Multi-file upload** with shared metadata and category pre-selection
 - **ZIP import** with three modes: upload ZIP only, upload ZIP and expand contents, or expand contents only; creator attributed to uploading user on all extracted assets
 - **Authentication** via `ullav-user-management` (login, register, email confirmation, password reset)
+- **SSO handoff** from ullav-portal — clicking DAM Browser in the portal sidebar lands the user already authenticated (no second login)
 - Terms of Service and Disclaimer modals at registration
 - **Localised UI** — English (`en`), German (`de`), Irish (`ga`); language switcher in the nav bar
 - **Help pages** — in-app 7-section guide available in all three locales (`/[locale]/help`)
