@@ -117,16 +117,30 @@ export default function ImageEditorModal({
   const [saving, setSaving] = useState<"new" | "replace" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [pendingNewName, setPendingNewName] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // ── Close on Escape ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (showNamePrompt) setShowNamePrompt(false);
+        else onClose();
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, showNamePrompt]);
+
+  // Auto-focus + select the name input when the prompt opens
+  useEffect(() => {
+    if (showNamePrompt) {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    }
+  }, [showNamePrompt]);
 
   // ── Load full image (authenticated fetch → object URL) ─────────────────────
 
@@ -406,7 +420,8 @@ export default function ImageEditorModal({
 
   // ── Save handlers ─────────────────────────────────────────────────────────────
 
-  async function handleSaveAsNew() {
+  async function handleSaveAsNew(name: string) {
+    setShowNamePrompt(false);
     setSaving("new");
     setError(null);
     try {
@@ -416,7 +431,7 @@ export default function ImageEditorModal({
       // Create asset record (creator = current session user)
       const created = await createAsset(
         {
-          name: asset.name,
+          name,
           description: asset.description,
           asset_type: outputMime,
           caption: asset.caption,
@@ -592,6 +607,43 @@ export default function ImageEditorModal({
         )}
       </div>
 
+      {/* ── Name prompt dialog ── */}
+      {showNamePrompt && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60">
+          <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-sm font-semibold text-white mb-3">{t("namePromptTitle")}</h3>
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={pendingNewName}
+              onChange={(e) => setPendingNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && pendingNewName.trim()) handleSaveAsNew(pendingNewName.trim());
+                if (e.key === "Escape") setShowNamePrompt(false);
+              }}
+              className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNamePrompt(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveAsNew(pendingNewName.trim())}
+                disabled={!pendingNewName.trim()}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-colors"
+              >
+                {t("namePromptConfirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Footer action bar ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-3 bg-slate-800 border-t border-slate-700">
         <div className="flex-1 min-w-0">
@@ -613,7 +665,7 @@ export default function ImageEditorModal({
           </button>
           <button
             type="button"
-            onClick={handleSaveAsNew}
+            onClick={() => { setPendingNewName(asset.name + "_edited"); setShowNamePrompt(true); }}
             disabled={isSaving || !imgLoaded}
             title={t("saveAsNewTitle")}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white transition-colors"

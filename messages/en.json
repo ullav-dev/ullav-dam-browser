@@ -145,7 +145,9 @@
     "successReplace": "Asset file replaced.",
     "errorCreate": "Failed to create asset.",
     "errorReplace": "Failed to replace asset.",
-    "errorLoad": "Failed to load image."
+    "errorLoad": "Failed to load image.",
+    "namePromptTitle": "Name for New Asset",
+    "namePromptConfirm": "Create"
   },
   "assetDetails": {
     "locked": "Locked",
