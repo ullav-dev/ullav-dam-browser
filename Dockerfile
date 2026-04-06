@@ -1,6 +1,7 @@
 # Stage 1: Install dependencies
 FROM node:22-alpine AS deps
 WORKDIR /app
+RUN npm install -g npm@11
 COPY package*.json ./
 COPY packages/dam-picker/package.json ./packages/dam-picker/package.json
 RUN npm ci
