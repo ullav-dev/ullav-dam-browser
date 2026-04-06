@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { AuthUser, LoginResponse } from "@/lib/auth-api";
 import { login as apiLogin } from "@/lib/auth-api";
 
@@ -11,6 +12,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
+  setSession: (session: { token: string; user: AuthUser; roles: string[] }) => void;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -20,15 +22,87 @@ const AuthContext = createContext<AuthState>({
   isLoading: true,
   login: async () => { throw new Error("AuthProvider not mounted"); },
   logout: () => {},
+  setSession: () => {},
 });
 
 const STORAGE_KEY = "dam_auth";
+
+// Idle timeout — configurable via NEXT_PUBLIC_IDLE_TIMEOUT_MS (milliseconds).
+// Defaults to 1 hour. The warning banner appears 60 s before logout.
+const IDLE_MS = Number(process.env.NEXT_PUBLIC_IDLE_TIMEOUT_MS ?? 3_600_000);
+const WARN_BEFORE_MS = 60_000;
+
+const ACTIVITY_EVENTS = [
+  "mousemove",
+  "keydown",
+  "pointerdown",
+  "scroll",
+  "touchstart",
+] as const;
+
+// ── Idle warning modal ────────────────────────────────────────────────────────
+
+function IdleWarningModal({
+  onStay,
+  onLogout,
+}: {
+  onStay: () => void;
+  onLogout: () => void;
+}) {
+  const t = useTranslations("idleWarning");
+  const [seconds, setSeconds] = useState(Math.round(WARN_BEFORE_MS / 1000));
+
+  useEffect(() => {
+    const id = setInterval(() => setSeconds((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+        <h2 className="text-base font-semibold text-slate-800 mb-2">
+          {t("title")}
+        </h2>
+        <p className="text-sm text-slate-600 mb-5">
+          {t("message", { seconds })}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            {t("logoutNow")}
+          </button>
+          <button
+            type="button"
+            onClick={onStay}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-700 hover:bg-blue-800 text-white transition-colors"
+          >
+            {t("stayLoggedIn")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── AuthProvider ──────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [idleWarning, setIdleWarning] = useState(false);
+
+  const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref mirrors idleWarning so activity handlers can read it without needing
+  // to be recreated (and re-registered) every time the warning state changes.
+  const idleWarningRef = useRef(false);
+
+  // ── Restore session from localStorage ──────────────────────────────────────
 
   useEffect(() => {
     try {
@@ -50,25 +124,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<LoginResponse> => {
-    const resp = await apiLogin(email, password);
-    setUser(resp.user);
-    setToken(resp.token);
-    setRoles(resp.roles);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: resp.user, token: resp.token, roles: resp.roles }));
-    return resp;
-  }, []);
+  // ── Auth actions ────────────────────────────────────────────────────────────
 
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
     setRoles([]);
+    setIdleWarning(false);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const setSession = useCallback((session: { token: string; user: AuthUser; roles: string[] }) => {
+    setUser(session.user);
+    setToken(session.token);
+    setRoles(session.roles);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  }, []);
+
+  const login = useCallback(async (email: string, password: string): Promise<LoginResponse> => {
+    const resp = await apiLogin(email, password);
+    setSession({ user: resp.user, token: resp.token, roles: resp.roles });
+    return resp;
+  }, [setSession]);
+
+  // ── Idle timeout ────────────────────────────────────────────────────────────
+
+  const startTimers = useCallback(() => {
+    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    if (warnTimerRef.current) clearTimeout(warnTimerRef.current);
+    idleWarningRef.current = false;
+    setIdleWarning(false);
+
+    if (IDLE_MS > WARN_BEFORE_MS) {
+      warnTimerRef.current = setTimeout(() => {
+        idleWarningRef.current = true;
+        setIdleWarning(true);
+      }, IDLE_MS - WARN_BEFORE_MS);
+    }
+
+    logoutTimerRef.current = setTimeout(() => {
+      idleWarningRef.current = false;
+      setIdleWarning(false);
+      logout();
+    }, IDLE_MS);
+  }, [logout]);
+
+  // Activity handler ignores events while the warning modal is open so the
+  // user must make an explicit choice (Stay / Log Out) rather than having the
+  // modal dismissed by an accidental mouse move.
+  const handleActivity = useCallback(() => {
+    if (!idleWarningRef.current) startTimers();
+  }, [startTimers]);
+
+  useEffect(() => {
+    if (!user) {
+      if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+      if (warnTimerRef.current) clearTimeout(warnTimerRef.current);
+      return;
+    }
+
+    startTimers();
+
+    ACTIVITY_EVENTS.forEach((e) =>
+      window.addEventListener(e, handleActivity, { passive: true }),
+    );
+
+    return () => {
+      if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+      if (warnTimerRef.current) clearTimeout(warnTimerRef.current);
+      ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, handleActivity));
+    };
+  }, [user, startTimers, handleActivity]);
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
   return (
-    <AuthContext.Provider value={{ user, token, roles, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, roles, isLoading, login, logout, setSession }}>
       {children}
+      {idleWarning && (
+        <IdleWarningModal onStay={startTimers} onLogout={logout} />
+      )}
     </AuthContext.Provider>
   );
 }

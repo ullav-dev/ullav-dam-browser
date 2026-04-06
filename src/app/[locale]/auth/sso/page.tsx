@@ -4,18 +4,18 @@
 // URL format: /en/auth/sso?t=<encoded-session>
 //
 // The encoded session is JSON: { token, user, roles }
-// We write it straight into localStorage (same key as the normal login flow)
-// and redirect to the app home page.
+// We call setSession() from AuthContext (which sets React state + localStorage)
+// so that the idle timeout timers start immediately without a page reload.
 
 import { useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import type { AuthUser } from "@/lib/auth-api";
-
-const STORAGE_KEY = "dam_auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 function SsoHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { setSession } = useAuth();
 
   useEffect(() => {
     const raw = searchParams.get("t");
@@ -30,16 +30,16 @@ function SsoHandler() {
         roles: string[];
       };
       if (!session.token || !session.user || !session.roles) throw new Error("invalid");
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      setSession(session);
       router.replace("/browse");
     } catch {
       router.replace("/login");
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, setSession]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <p className="text-stone-400 text-sm">Signing you in…</p>
+      <p className="text-slate-400 text-sm">Signing you in…</p>
     </div>
   );
 }
@@ -48,7 +48,7 @@ export default function SsoPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-stone-400 text-sm">Signing you in…</p>
+        <p className="text-slate-400 text-sm">Signing you in…</p>
       </div>
     }>
       <SsoHandler />

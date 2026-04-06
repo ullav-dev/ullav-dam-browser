@@ -1,4 +1,10 @@
 {
+  "idleWarning": {
+    "title": "Sitzung läuft ab",
+    "message": "Sie waren inaktiv. Sie werden in {seconds} Sekunden automatisch abgemeldet.",
+    "stayLoggedIn": "Angemeldet bleiben",
+    "logoutNow": "Jetzt abmelden"
+  },
   "localeSwitcher": {
     "label": "Sprache",
     "en": "English",
