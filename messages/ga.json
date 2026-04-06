@@ -1,4 +1,10 @@
 {
+  "idleWarning": {
+    "title": "Seisiún ag Dul in Éag",
+    "message": "Bhí tú neamhghníomhach. Déanfar thú a logáil amach i {seconds} soicind.",
+    "stayLoggedIn": "Fan Logáilte Isteach",
+    "logoutNow": "Logáil Amach Anois"
+  },
   "localeSwitcher": {
     "label": "Teanga",
     "en": "English",

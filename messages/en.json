@@ -1,4 +1,10 @@
 {
+  "idleWarning": {
+    "title": "Session Expiring",
+    "message": "You have been inactive. You will be logged out in {seconds} seconds.",
+    "stayLoggedIn": "Stay Logged In",
+    "logoutNow": "Log Out Now"
+  },
   "localeSwitcher": {
     "label": "Language",
     "en": "English",
