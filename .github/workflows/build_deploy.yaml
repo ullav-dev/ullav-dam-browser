@@ -31,8 +31,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/ullav-dev/clann-webapp:${{ steps.commit.outputs.short }}
-            ghcr.io/ullav-dev/clann-webapp:latest
+            ghcr.io/ullav-dev/ullav-dam-browser:${{ steps.commit.outputs.short }}
+            ghcr.io/ullav-dev/ullav-dam-browser:latest
           secrets: |
             emailjs_service_id=${{ secrets.EMAILJS_SERVICE_ID }}
             emailjs_template_id=${{ secrets.EMAILJS_TEMPLATE_ID }}
