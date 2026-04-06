@@ -12,6 +12,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
+  setSession: (session: { token: string; user: AuthUser; roles: string[] }) => void;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthState>({
   isLoading: true,
   login: async () => { throw new Error("AuthProvider not mounted"); },
   logout: () => {},
+  setSession: () => {},
 });
 
 const STORAGE_KEY = "dam_auth";
@@ -132,14 +134,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const setSession = useCallback((session: { token: string; user: AuthUser; roles: string[] }) => {
+    setUser(session.user);
+    setToken(session.token);
+    setRoles(session.roles);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  }, []);
+
   const login = useCallback(async (email: string, password: string): Promise<LoginResponse> => {
     const resp = await apiLogin(email, password);
-    setUser(resp.user);
-    setToken(resp.token);
-    setRoles(resp.roles);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: resp.user, token: resp.token, roles: resp.roles }));
+    setSession({ user: resp.user, token: resp.token, roles: resp.roles });
     return resp;
-  }, []);
+  }, [setSession]);
 
   // ── Idle timeout ────────────────────────────────────────────────────────────
 
@@ -193,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <AuthContext.Provider value={{ user, token, roles, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, roles, isLoading, login, logout, setSession }}>
       {children}
       {idleWarning && (
         <IdleWarningModal onStay={startTimers} onLogout={logout} />
