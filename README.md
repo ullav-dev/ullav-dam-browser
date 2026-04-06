@@ -18,7 +18,9 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Category assignment** — drag an asset onto a category node to assign; drag-to-remove or click × to unassign
 - **Asset actions** — Download, Replace file, Lock/Unlock, Delete (delete disabled when locked)
 - **File replacement** — replace the underlying file of an existing asset while keeping its metadata and category assignments; thumbnail updates automatically
+- **Image editor** — crop and rotate JPEG/PNG/WebP assets in a full-screen editor; save as a new asset (with a prompted name, pre-filled as `originalName_edited`) or replace the current file in place
 - **Privacy controls** — assets can be private (owner-only) or public; the grid only shows other users' assets when `is_private` is false
+- **Idle session timeout** — automatic logout after configurable inactivity period (default 1 hour); 60 s warning modal with countdown and Stay Logged In / Log Out Now options
 - **Multi-file upload** with shared metadata and category pre-selection
 - **ZIP import** with three modes: upload ZIP only, upload ZIP and expand contents, or expand contents only; creator attributed to uploading user on all extracted assets
 - **Authentication** via `ullav-user-management` (login, register, email confirmation, password reset)
@@ -44,11 +46,15 @@ npm run dev        # http://localhost:3002
 
 ## Configuration
 
-Create `.env.local` (or adjust the existing one) if your services run on different ports:
+Create `.env.local` (or adjust the existing one):
 
 ```
 API_URL=http://localhost:8080
 AUTH_URL=http://localhost:8081
+
+# Idle session timeout in milliseconds (default: 3600000 = 1 hour).
+# Set low (e.g. 70000) to test the warning modal.
+# NEXT_PUBLIC_IDLE_TIMEOUT_MS=3600000
 ```
 
 ## Architecture
@@ -133,9 +139,14 @@ src/
 │   ├── CategoryTree.tsx      # Hierarchical tree with drag-to-assign and drag-to-move
 │   ├── AssetGrid.tsx         # Thumbnail grid with filter / sort / paginate
 │   ├── AssetDetails.tsx      # Metadata editor, category tags, action bar (incl. Replace)
+│   ├── ImageEditorModal.tsx  # Full-screen crop/rotate editor
 │   ├── UploadModal.tsx       # Multi-file upload with ZIP mode selector
 │   ├── LocaleSwitcher.tsx    # Language switcher (far right in Nav)
 │   └── ResizeHandle.tsx      # Draggable vertical panel divider
+├── __tests__/
+│   ├── dam-api.test.ts       # Unit tests: API client
+│   ├── auth-api.test.ts      # Unit tests: auth client
+│   └── asset-grid.test.tsx   # Unit tests: AssetGrid filtering/sorting/pagination
 └── messages/
     ├── en.json               # English translations
     ├── de.json               # German translations
@@ -150,6 +161,7 @@ src/
 | `npm run build` | Production build |
 | `npm start` | Start production server on port 3002 |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run Jest unit tests |
 
 ## Embeddable asset picker (`@ullav/dam-picker`)
 

@@ -42,6 +42,7 @@ All API calls from the browser go through the proxy to avoid CORS:
 Environment variables (`.env.local`):
 - `API_URL` — DAM server base URL (default `http://localhost:8080`)
 - `AUTH_URL` — Auth service base URL (default `http://localhost:8081`)
+- `NEXT_PUBLIC_IDLE_TIMEOUT_MS` — idle session timeout in ms (default `3600000` = 1 hour; set e.g. `70000` to test)
 
 ## Proxy body size limit
 
@@ -75,6 +76,7 @@ before reaching the DAM server.
 | `AssetGrid` | Thumbnail grid; client-side filtering, sorting, and pagination |
 | `AssetDetails` | Right-panel metadata editor; handles save/delete/replace/category assignment |
 | `UploadModal` | Multi-file upload with metadata; ZIP files have a 3-mode selector |
+| `ImageEditorModal` | Full-screen image editor (crop, rotate); Save As New Asset or Replace Current |
 | `ResizeHandle` | Drag handle placed between panels; fires `onResize(delta)` on mousemove |
 | `LocaleSwitcher` | Locale switcher in Nav (far right); links to current path in each locale |
 | `TermsModal` | Terms of Service modal (shown at registration) |
@@ -277,6 +279,45 @@ All buttons in PickerTree and PickerGrid have `type="button"` to prevent them fr
 2. `transpilePackages: ["@ullav/dam-picker"]` in host `next.config.ts`
 3. `@source "../../node_modules/@ullav/dam-picker/src";` in host global CSS
 4. Proxy `/api/dam/*` → DAM server (strip `/api/dam` prefix)
+
+## ImageEditorModal
+
+Full-screen editor for image assets (`image/jpeg`, `image/png`, `image/webp`). Opened from the edit pencil button that appears on hover over an image card in `AssetGrid`.
+
+- **Crop**: click and drag on the canvas to draw a crop rectangle; rule-of-thirds grid and corner handles shown. Tiny drags (< 5 px) are discarded.
+- **Rotate**: 90° increments (CW and CCW); rotation and crop can be combined.
+- **Reset**: clears rotation and crop box.
+- **Save As New Asset**: prompts for an asset name (pre-populated with `asset.name + "_edited"`), then creates a new asset record, uploads the edited file, mirrors visibility settings from the original, and assigns the same categories. Calls `onAssetCreated`.
+- **Replace Current**: overwrites the existing asset's file in place. Calls `onAssetUpdated`, which propagates the new `updated_at` so `ThumbnailImage` cache-busts.
+- Authenticated image download uses a `fetch` + object URL so the `Authorization` header is sent.
+- Canvas is drawn via `drawCanvas` (stable `useCallback`, reads from refs) and re-triggered via `useEffect` syncing state → refs.
+
+## Idle session timeout
+
+Implemented in `AuthContext.tsx`. Tracks activity via `mousemove`, `keydown`, `pointerdown`, `scroll`, and `touchstart` on `window`.
+
+- Timeout controlled by `NEXT_PUBLIC_IDLE_TIMEOUT_MS` (default 3 600 000 ms = 1 hour).
+- A warning modal with a live countdown appears **60 s before** logout.
+- Warning modal offers **Stay Logged In** (resets timers) and **Log Out Now**.
+- Activity events are **ignored while the warning is visible** (via `idleWarningRef`) so the modal cannot be accidentally dismissed by mouse movement.
+- Timers and event listeners are registered only when `user !== null` and cleaned up on logout or unmount.
+- i18n keys under `idleWarning` namespace in `messages/{en,de,ga}.json`.
+
+## Unit tests
+
+```bash
+npm test
+```
+
+Jest with `next/jest` (SWC transformer), `jsdom` environment, React Testing Library.
+
+| File | Coverage |
+|---|---|
+| `src/__tests__/dam-api.test.ts` | URL helpers, `apiRequest` error handling, all endpoint methods |
+| `src/__tests__/auth-api.test.ts` | `authRequest` error handling, all auth/user endpoints |
+| `src/__tests__/asset-grid.test.tsx` | Visibility filtering, search, category filtering, My Assets toggle, sorting, pagination, `typeInfo` badge labels, `formatSize` display |
+
+Mocks: `next-intl` (`useTranslations` → key passthrough), `@/components/ImageEditorModal` → `null`.
 
 ## Adding new endpoints
 
