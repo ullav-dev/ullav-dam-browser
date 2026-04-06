@@ -96,6 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref mirrors idleWarning so activity handlers can read it without needing
+  // to be recreated (and re-registered) every time the warning state changes.
+  const idleWarningRef = useRef(false);
 
   // ── Restore session from localStorage ──────────────────────────────────────
 
@@ -143,20 +146,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const startTimers = useCallback(() => {
     if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
     if (warnTimerRef.current) clearTimeout(warnTimerRef.current);
+    idleWarningRef.current = false;
     setIdleWarning(false);
 
     if (IDLE_MS > WARN_BEFORE_MS) {
-      warnTimerRef.current = setTimeout(
-        () => setIdleWarning(true),
-        IDLE_MS - WARN_BEFORE_MS,
-      );
+      warnTimerRef.current = setTimeout(() => {
+        idleWarningRef.current = true;
+        setIdleWarning(true);
+      }, IDLE_MS - WARN_BEFORE_MS);
     }
 
     logoutTimerRef.current = setTimeout(() => {
+      idleWarningRef.current = false;
       setIdleWarning(false);
       logout();
     }, IDLE_MS);
   }, [logout]);
+
+  // Activity handler ignores events while the warning modal is open so the
+  // user must make an explicit choice (Stay / Log Out) rather than having the
+  // modal dismissed by an accidental mouse move.
+  const handleActivity = useCallback(() => {
+    if (!idleWarningRef.current) startTimers();
+  }, [startTimers]);
 
   useEffect(() => {
     if (!user) {
@@ -168,15 +180,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     startTimers();
 
     ACTIVITY_EVENTS.forEach((e) =>
-      window.addEventListener(e, startTimers, { passive: true }),
+      window.addEventListener(e, handleActivity, { passive: true }),
     );
 
     return () => {
       if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
       if (warnTimerRef.current) clearTimeout(warnTimerRef.current);
-      ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, startTimers));
+      ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, handleActivity));
     };
-  }, [user, startTimers]);
+  }, [user, startTimers, handleActivity]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
