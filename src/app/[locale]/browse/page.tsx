@@ -388,9 +388,10 @@ export default function BrowsePage() {
 
   if (isLoading) return null;
 
-  // Only show categories the user owns or that are globally accessible
+  // Only show categories the user owns, or that are globally accessible,
+  // or that have no creator set (legacy data created before access control was added).
   const visibleCategories = categories.filter(
-    (c) => c.creator === user?.username || c.access_level === "Global"
+    (c) => !c.creator || c.creator === user?.username || c.access_level === "Global"
   );
 
   // Asset count display

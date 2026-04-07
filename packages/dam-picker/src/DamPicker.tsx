@@ -44,7 +44,7 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
 
   const [categories, setCategories] = useState<Category[]>([]);
   const visibleCategories = useMemo(
-    () => categories.filter((c) => c.creator === username || c.access_level === "Global"),
+    () => categories.filter((c) => !c.creator || c.creator === username || c.access_level === "Global"),
     [categories, username]
   );
 
