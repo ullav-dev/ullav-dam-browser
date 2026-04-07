@@ -98,7 +98,7 @@
     "categorySave": "Save",
     "categorySaving": "Saving…",
     "categoryAccessLevelPrivate": "Private",
-    "categoryAccessLevelInternal": "Internal",
+    "categoryAccessLevelGroup": "Group",
     "categoryAccessLevelGlobal": "Global",
     "categoryDeleteConfirmTitle": "Delete Category",
     "categoryDeleteConfirmMessage": "Delete \"{name}\"? This cannot be undone.",

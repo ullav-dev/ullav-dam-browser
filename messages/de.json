@@ -98,7 +98,7 @@
     "categorySave": "Speichern",
     "categorySaving": "Speichere…",
     "categoryAccessLevelPrivate": "Privat",
-    "categoryAccessLevelInternal": "Intern",
+    "categoryAccessLevelGroup": "Gruppe",
     "categoryAccessLevelGlobal": "Global",
     "categoryDeleteConfirmTitle": "Kategorie löschen",
     "categoryDeleteConfirmMessage": "\"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",

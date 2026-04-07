@@ -98,7 +98,7 @@
     "categorySave": "Sábháil",
     "categorySaving": "Á shábháil…",
     "categoryAccessLevelPrivate": "Príobháideach",
-    "categoryAccessLevelInternal": "Inmheánach",
+    "categoryAccessLevelGroup": "Grúpa",
     "categoryAccessLevelGlobal": "Domhanda",
     "categoryDeleteConfirmTitle": "Catagóir a Scriosadh",
     "categoryDeleteConfirmMessage": "\"{name}\" a scriosadh? Ní féidir é seo a chur ar ceal.",

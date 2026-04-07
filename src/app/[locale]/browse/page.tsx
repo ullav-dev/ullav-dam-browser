@@ -449,7 +449,7 @@ export default function BrowsePage() {
               className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
               <option value="private">{t("categoryAccessLevelPrivate")}</option>
-              <option value="internal">{t("categoryAccessLevelInternal")}</option>
+              <option value="group">{t("categoryAccessLevelGroup")}</option>
               <option value="global">{t("categoryAccessLevelGlobal")}</option>
             </select>
             {catError && <p className="text-xs text-red-600">{catError}</p>}
