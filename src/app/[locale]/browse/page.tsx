@@ -76,7 +76,7 @@ export default function BrowsePage() {
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState("");
   const [newCatParentId, setNewCatParentId] = useState<string>("");
-  const [newCatAccessLevel, setNewCatAccessLevel] = useState<string>("private");
+  const [newCatAccessLevel, setNewCatAccessLevel] = useState<string>("Private");
   const [savingCat, setSavingCat] = useState(false);
   const [catError, setCatError] = useState<string | null>(null);
 
@@ -84,7 +84,7 @@ export default function BrowsePage() {
     setEditingCatId(null);
     setNewCatName("");
     setNewCatParentId(parentId ?? "");
-    setNewCatAccessLevel("private");
+    setNewCatAccessLevel("Private");
     setCatError(null);
     setShowCatForm(true);
   }, []);
@@ -125,7 +125,7 @@ export default function BrowsePage() {
         setEditingCatId(null);
         setNewCatName("");
         setNewCatParentId("");
-        setNewCatAccessLevel("private");
+        setNewCatAccessLevel("Private");
       } catch (err) {
         setCatError(err instanceof Error ? err.message : "Failed to save category.");
       } finally {
@@ -390,7 +390,7 @@ export default function BrowsePage() {
 
   // Only show categories the user owns or that are globally accessible
   const visibleCategories = categories.filter(
-    (c) => c.creator === user?.username || c.access_level === "global"
+    (c) => c.creator === user?.username || c.access_level === "Global"
   );
 
   // Asset count display
@@ -448,9 +448,9 @@ export default function BrowsePage() {
               onChange={(e) => setNewCatAccessLevel(e.target.value)}
               className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
-              <option value="private">{t("categoryAccessLevelPrivate")}</option>
-              <option value="group">{t("categoryAccessLevelGroup")}</option>
-              <option value="global">{t("categoryAccessLevelGlobal")}</option>
+              <option value="Private">Private</option>
+              <option value="Group">Group</option>
+              <option value="Global">Global</option>
             </select>
             {catError && <p className="text-xs text-red-600">{catError}</p>}
             <div className="flex gap-1.5">
