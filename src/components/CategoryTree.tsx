@@ -31,7 +31,7 @@ function buildTree(categories: Category[]): TreeNode[] {
 }
 
 /** Returns the ID of the given node plus all its descendants. */
-function getDescendantIds(catId: string, categories: Category[]): Set<string> {
+export function getDescendantIds(catId: string, categories: Category[]): Set<string> {
   const result = new Set<string>();
   const queue = [catId];
   while (queue.length > 0) {
@@ -77,6 +77,9 @@ function TreeNodeItem({
   assetDrag,
   catMove,
   onAddSubcategory,
+  username,
+  onEditCategory,
+  onDeleteCategory,
   depth = 0,
 }: {
   node: TreeNode;
@@ -85,6 +88,9 @@ function TreeNodeItem({
   assetDrag: AssetDragCtx;
   catMove: CatMoveCtx;
   onAddSubcategory?: (parentId: string) => void;
+  username?: string;
+  onEditCategory?: (id: string) => void;
+  onDeleteCategory?: (id: string) => void;
   depth?: number;
 }) {
   const t = useTranslations("categoryTree");
@@ -265,6 +271,7 @@ function TreeNodeItem({
         {/* Add sub-category button — visible on hover when not dragging */}
         {!isAssetDragging && !isCatMoving && onAddSubcategory && hovered && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onAddSubcategory(node.id);
@@ -274,6 +281,32 @@ function TreeNodeItem({
           >
             +
           </button>
+        )}
+
+        {/* Edit / Delete buttons — visible on hover for categories owned by the current user */}
+        {!isAssetDragging && !isCatMoving && username && node.creator === username && hovered && (
+          <>
+            {onEditCategory && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onEditCategory(node.id); }}
+                title={t("editCategoryTitle")}
+                className="shrink-0 w-4 h-4 flex items-center justify-center rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 text-xs leading-none transition-colors"
+              >
+                ✏
+              </button>
+            )}
+            {onDeleteCategory && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onDeleteCategory(node.id); }}
+                title={t("deleteCategoryTitle")}
+                className="shrink-0 w-4 h-4 flex items-center justify-center rounded text-slate-400 hover:text-red-600 hover:bg-red-100 text-xs leading-none transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </>
         )}
       </div>
 
@@ -288,6 +321,9 @@ function TreeNodeItem({
               assetDrag={assetDrag}
               catMove={catMove}
               onAddSubcategory={onAddSubcategory}
+              username={username}
+              onEditCategory={onEditCategory}
+              onDeleteCategory={onDeleteCategory}
               depth={depth + 1}
             />
           ))}
@@ -312,6 +348,10 @@ interface Props {
   onAddSubcategory?: (parentId: string) => void;
   // Category move drag-and-drop
   onMoveCategory?: (id: string, newParentId: string | null) => void;
+  // Category edit / delete (only shown for owned categories)
+  username?: string;
+  onEditCategory?: (id: string) => void;
+  onDeleteCategory?: (id: string) => void;
 }
 
 export default function CategoryTree({
@@ -324,6 +364,9 @@ export default function CategoryTree({
   onCategoryDrop,
   onAddSubcategory,
   onMoveCategory,
+  username,
+  onEditCategory,
+  onDeleteCategory,
 }: Props) {
   const t = useTranslations("categoryTree");
   const tree = buildTree(categories);
@@ -441,6 +484,9 @@ export default function CategoryTree({
           assetDrag={assetDrag}
           catMove={catMove}
           onAddSubcategory={onAddSubcategory}
+          username={username}
+          onEditCategory={onEditCategory}
+          onDeleteCategory={onDeleteCategory}
           depth={0}
         />
       ))}
