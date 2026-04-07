@@ -14,6 +14,8 @@ export interface DamPickerProps {
   apiBase: string;
   /** Bearer token from ullav-user-management. */
   token: string;
+  /** Logged-in username — used to show the user's own categories plus global ones. */
+  username?: string;
   /** Called when the user clicks an asset. */
   onSelect: (asset: PickedAsset) => void;
   /**
@@ -26,7 +28,7 @@ export interface DamPickerProps {
   filter?: (asset: Asset) => boolean;
 }
 
-export default function DamPicker({ apiBase, token, onSelect, onDragStart, filter }: DamPickerProps) {
+export default function DamPicker({ apiBase, token, username, onSelect, onDragStart, filter }: DamPickerProps) {
   const client = useMemo(() => createDamClient(apiBase, token), [apiBase, token]);
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -41,6 +43,10 @@ export default function DamPicker({ apiBase, token, onSelect, onDragStart, filte
   const visibleAssets = useMemo(() => (filter ? assets.filter(filter) : assets), [assets, filter]);
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const visibleCategories = useMemo(
+    () => categories.filter((c) => c.creator === username || c.access_level === "global"),
+    [categories, username]
+  );
 
   // ── Initial data load ────────────────────────────────────────────────────────
 
@@ -138,7 +144,7 @@ export default function DamPicker({ apiBase, token, onSelect, onDragStart, filte
       {/* Category tree */}
       <aside className="w-52 shrink-0 overflow-y-auto border-r border-slate-200 p-3">
         <PickerTree
-          categories={categories}
+          categories={visibleCategories}
           selectedId={selectedCategoryId}
           onSelect={setSelectedCategoryId}
         />

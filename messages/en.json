@@ -99,7 +99,7 @@
     "categorySaving": "Saving…",
     "categoryAccessLevelPrivate": "Private",
     "categoryAccessLevelInternal": "Internal",
-    "categoryAccessLevelPublic": "Public",
+    "categoryAccessLevelGlobal": "Global",
     "categoryDeleteConfirmTitle": "Delete Category",
     "categoryDeleteConfirmMessage": "Delete \"{name}\"? This cannot be undone.",
     "categoryDeleteConfirmWithChildren": "The following child categories will also be deleted:",

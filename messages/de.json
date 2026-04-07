@@ -99,7 +99,7 @@
     "categorySaving": "Speichere…",
     "categoryAccessLevelPrivate": "Privat",
     "categoryAccessLevelInternal": "Intern",
-    "categoryAccessLevelPublic": "Öffentlich",
+    "categoryAccessLevelGlobal": "Global",
     "categoryDeleteConfirmTitle": "Kategorie löschen",
     "categoryDeleteConfirmMessage": "\"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
     "categoryDeleteConfirmWithChildren": "Die folgenden Unterkategorien werden ebenfalls gelöscht:",

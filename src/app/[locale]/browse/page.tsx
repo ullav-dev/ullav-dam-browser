@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
@@ -388,6 +388,11 @@ export default function BrowsePage() {
 
   if (isLoading) return null;
 
+  // Only show categories the user owns or that are globally accessible
+  const visibleCategories = categories.filter(
+    (c) => c.creator === user?.username || c.access_level === "global"
+  );
+
   // Asset count display
   const countLabel = loadingAssets
     ? t("loading")
@@ -432,7 +437,7 @@ export default function BrowsePage() {
               className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
               <option value="">{t("categoryParentNone")}</option>
-              {categories
+              {visibleCategories
                 .filter((c) => c.id !== editingCatId && !getDescendantIds(editingCatId ?? "", categories).has(c.id))
                 .map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -445,7 +450,7 @@ export default function BrowsePage() {
             >
               <option value="private">{t("categoryAccessLevelPrivate")}</option>
               <option value="internal">{t("categoryAccessLevelInternal")}</option>
-              <option value="public">{t("categoryAccessLevelPublic")}</option>
+              <option value="global">{t("categoryAccessLevelGlobal")}</option>
             </select>
             {catError && <p className="text-xs text-red-600">{catError}</p>}
             <div className="flex gap-1.5">
@@ -472,7 +477,7 @@ export default function BrowsePage() {
             <p className="text-xs text-slate-400 px-2 py-1">{t("loading")}</p>
           ) : (
             <CategoryTree
-              categories={categories}
+              categories={visibleCategories}
               selectedId={selectedCategoryId}
               onSelect={setSelectedCategoryId}
               draggingAssetId={draggingAssetId}
@@ -560,7 +565,7 @@ export default function BrowsePage() {
         {selectedAsset ? (
           <AssetDetails
             asset={selectedAsset}
-            categories={categories}
+            categories={visibleCategories}
             token={token ?? ""}
             isLocked={lockedIds.has(selectedAsset.id)}
             onToggleLock={() => toggleLock(selectedAsset.id)}
@@ -629,7 +634,7 @@ export default function BrowsePage() {
         <UploadModal
           token={token ?? ""}
           username={user?.username ?? ""}
-          categories={categories}
+          categories={visibleCategories}
           onComplete={handleUploadComplete}
           onClose={() => setShowUpload(false)}
           onZipResult={(result) => {

@@ -99,7 +99,7 @@
     "categorySaving": "Á shábháil…",
     "categoryAccessLevelPrivate": "Príobháideach",
     "categoryAccessLevelInternal": "Inmheánach",
-    "categoryAccessLevelPublic": "Poiblí",
+    "categoryAccessLevelGlobal": "Domhanda",
     "categoryDeleteConfirmTitle": "Catagóir a Scriosadh",
     "categoryDeleteConfirmMessage": "\"{name}\" a scriosadh? Ní féidir é seo a chur ar ceal.",
     "categoryDeleteConfirmWithChildren": "Scriosfar na fo-chatagóirí seo a leanas freisin:",
