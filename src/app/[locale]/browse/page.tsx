@@ -272,16 +272,16 @@ export default function BrowsePage() {
         await Promise.all(
           chunk.map(async (asset) => {
             if (loadedAssetIds.current.has(asset.id)) return;
-            loadedAssetIds.current.add(asset.id);
             try {
               const detail = await api.getAsset(asset.id, token!);
+              loadedAssetIds.current.add(asset.id); // mark loaded only on success
               setAssetCategories((prev) => {
                 const next = new Map(prev);
                 next.set(asset.id, detail.categories.map((c) => c.id));
                 return next;
               });
             } catch {
-              // Non-critical
+              // Non-critical — not marked as loaded, will retry on next effect run
             }
           })
         );

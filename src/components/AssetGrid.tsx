@@ -200,7 +200,7 @@ export default function AssetGrid({
     }
     if (selectedCategoryId) {
       const cats = assetCategories.get(asset.id);
-      if (cats === undefined) return true; // not loaded yet — show optimistically
+      if (cats === undefined) return false; // wait for load — don't show through unfiltered
       return cats.includes(selectedCategoryId);
     }
     return true;
