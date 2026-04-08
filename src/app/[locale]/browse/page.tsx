@@ -281,7 +281,16 @@ export default function BrowsePage() {
                 return next;
               });
             } catch {
-              // Non-critical — not marked as loaded, will retry on next effect run
+              // Not marked as loaded so it can retry, but write an empty array
+              // so the asset doesn't show through the category filter optimistically.
+              if (!cancelled) {
+                setAssetCategories((prev) => {
+                  if (prev.has(asset.id)) return prev;
+                  const next = new Map(prev);
+                  next.set(asset.id, []);
+                  return next;
+                });
+              }
             }
           })
         );
