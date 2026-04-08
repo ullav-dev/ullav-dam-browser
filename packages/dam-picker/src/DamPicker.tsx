@@ -75,38 +75,47 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
 
   useEffect(() => {
     if (assets.length === 0) return;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const unloaded = assets.filter((a) => !loadedAssetIds.current.has(a.id));
-    if (unloaded.length === 0) return;
+    async function loadCats(retryCount = 0): Promise<void> {
+      const toLoad = assets.filter((a) => !loadedAssetIds.current.has(a.id));
+      if (toLoad.length === 0 || cancelled) return;
 
-    async function loadBatch(batch: Asset[]) {
-      for (const asset of batch) {
-        if (loadedAssetIds.current.has(asset.id)) continue;
-        try {
-          const full = await client.getAsset(asset.id);
-          loadedAssetIds.current.add(asset.id); // mark loaded only on success
-          const catIds = full.categories.map((c) => c.id);
-          setAssetCategories((prev) => {
-            const next = new Map(prev);
-            next.set(asset.id, catIds);
-            return next;
-          });
-        } catch {
-          // Not marked as loaded so it can retry, but write an empty array
-          // so the asset doesn't show through the category filter optimistically.
-          setAssetCategories((prev) => {
-            if (prev.has(asset.id)) return prev;
-            const next = new Map(prev);
-            next.set(asset.id, []);
-            return next;
-          });
-        }
+      for (let i = 0; i < toLoad.length; i += 5) {
+        if (cancelled) return;
+        const chunk = toLoad.slice(i, i + 5);
+        await Promise.all(
+          chunk.map(async (asset) => {
+            if (loadedAssetIds.current.has(asset.id)) return;
+            try {
+              const full = await client.getAsset(asset.id);
+              if (cancelled) return;
+              loadedAssetIds.current.add(asset.id);
+              const catIds = full.categories.map((c) => c.id);
+              setAssetCategories((prev) => {
+                const next = new Map(prev);
+                next.set(asset.id, catIds);
+                return next;
+              });
+            } catch {
+              // Not marked as loaded — will retry below (up to 2 more times)
+            }
+          })
+        );
+      }
+
+      // Retry failed assets after a delay (up to 2 retries total)
+      if (!cancelled && retryCount < 2 && assets.some((a) => !loadedAssetIds.current.has(a.id))) {
+        retryTimer = setTimeout(() => { if (!cancelled) loadCats(retryCount + 1); }, 3000);
       }
     }
 
-    for (let i = 0; i < unloaded.length; i += 5) {
-      loadBatch(unloaded.slice(i, i + 5));
-    }
+    loadCats();
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [assets, client]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
