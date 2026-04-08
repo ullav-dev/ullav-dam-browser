@@ -82,9 +82,9 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
     async function loadBatch(batch: Asset[]) {
       for (const asset of batch) {
         if (loadedAssetIds.current.has(asset.id)) continue;
-        loadedAssetIds.current.add(asset.id);
         try {
           const full = await client.getAsset(asset.id);
+          loadedAssetIds.current.add(asset.id); // mark loaded only on success
           const catIds = full.categories.map((c) => c.id);
           setAssetCategories((prev) => {
             const next = new Map(prev);
@@ -92,7 +92,14 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
             return next;
           });
         } catch {
-          loadedAssetIds.current.delete(asset.id); // allow retry
+          // Not marked as loaded so it can retry, but write an empty array
+          // so the asset doesn't show through the category filter optimistically.
+          setAssetCategories((prev) => {
+            if (prev.has(asset.id)) return prev;
+            const next = new Map(prev);
+            next.set(asset.id, []);
+            return next;
+          });
         }
       }
     }
