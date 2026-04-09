@@ -18,17 +18,17 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@ullav'
-      - name: Publish @ullav/dam-picker (if version is new)
+          scope: '@ullav-dev'
+      - name: Publish @ullav-dev/dam-picker (if version is new)
         working-directory: packages/dam-picker
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          PUBLISHED=$(npm show @ullav/dam-picker@$VERSION version 2>/dev/null || true)
+          PUBLISHED=$(npm show @ullav-dev/dam-picker@$VERSION version 2>/dev/null || true)
           if [ -z "$PUBLISHED" ]; then
-            echo "Publishing @ullav/dam-picker@$VERSION"
+            echo "Publishing @ullav-dev/dam-picker@$VERSION"
             npm publish
           else
-            echo "@ullav/dam-picker@$VERSION already published, skipping"
+            echo "@ullav-dev/dam-picker@$VERSION already published, skipping"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
