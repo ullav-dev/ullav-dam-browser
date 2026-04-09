@@ -104,6 +104,25 @@ Widths are persisted to `localStorage` on every resize event.
   - `string` = specific category UUID
 - The "All Assets" row is only highlighted when `selectedId === null` (not undefined)
 
+## CategoryTree — access levels and visibility
+
+Each category has an `access_level` field (`Private` | `Group` | `Global`) and an optional `creator` (username string).
+
+`visibleCategories` in `browse/page.tsx` filters what the tree shows:
+```typescript
+categories.filter((c) => !c.creator || c.creator === user?.username || c.access_level === "Global")
+```
+- Categories without a creator (legacy) — always visible
+- The logged-in user's own categories — always visible
+- `Global` categories — visible to everyone
+- `Private`/`Group` categories owned by other users — hidden
+
+`access_level` values are **not translated** — the exact strings `Private`, `Group`, `Global` are sent to and stored by the server.
+
+Edit (✏) and delete (✕) buttons appear on hover for categories where `node.creator === username`. Deleting a category shows a confirmation modal listing all child categories that will also be deleted (recursive).
+
+`getDescendantIds` is exported from `CategoryTree.tsx` and reused by `browse/page.tsx` for the recursive delete.
+
 ## CategoryTree — drag-and-drop
 
 The tree supports two independent drag operations:
@@ -122,6 +141,8 @@ Visual feedback: green ring = valid drop, amber = already assigned / already her
 via `GET /assets/:id` in background batches of 5. Until an asset's categories are
 loaded, they are shown optimistically (not hidden). The `assetCategories` map in
 `browse/page.tsx` tracks `assetId → categoryId[]`.
+
+The background loading effect retries failed requests up to 2 times (3s delay between attempts) because `GET /assets/:id` calls can fail transiently due to connection reuse issues in the Next.js proxy. Assets that haven't loaded yet remain as `undefined` in the map (optimistic show) rather than being set to `[]`.
 
 ## Browse page — initial state
 
@@ -209,7 +230,7 @@ The `creator` value is appended as a multipart field when calling `uploadZip(fil
 ## Nav bar order
 
 From left to right:
-- Logo + "DAM Browser" wordmark (links to `/`)
+- Logo + "Comad" wordmark (links to `/`)
 - **Assets** link (authenticated only)
 - Username / **Sign Out** (authenticated) or **Sign In** link (unauthenticated)
 - **Help** link
@@ -232,10 +253,12 @@ All sections are translated in `messages/{en,de,ga}.json` under the `help` names
 
 - Default Axum body limit is 2 MB — upload and ZIP routes raised to **200 MB** via `DefaultBodyLimit::max`
 - Migration 003 (`is_locked` column) registered in `db.rs` via `run_migrations`
+- Migration 004 (`creator` and `access_level` columns on `categories`) registered in `db.rs` via `run_migrations`
 - Thumbnails: images (image crate), PDFs (pdfium-render), Office files (LibreOffice via `soffice`), Apple iWork (ZIP extraction of `QuickLook/Thumbnail.jpg`)
 - `PDFIUM_LIB_PATH` env var points to the PDFium dynamic library
 - `SOFFICE_PATH` env var points to the LibreOffice binary (macOS: `/Applications/LibreOffice.app/Contents/MacOS/soffice`)
 - **Thumbnail cache invalidation**: The server holds an in-memory thumbnail cache (`Arc<RwLock<HashMap<Uuid, Bytes>>>`). The `upload_asset` handler (`handlers/assets.rs`) calls `state.thumbnail_cache.write().await.remove(&id)` after a successful file replacement so the next thumbnail request regenerates from the new file.
+- **Category JOIN in `get_asset`**: The SELECT in `handlers/assets.rs` for the category JOIN must include `c.creator, c.access_level`. If omitted, `Category::from` panics at `row.get("access_level")` → Axum closes the connection → ECONNRESET on every `GET /assets/:id` call (all individual asset fetches fail silently).
 
 ## @ullav/dam-picker — embeddable picker package
 
@@ -257,6 +280,7 @@ Lives at `packages/dam-picker/` inside this repo. Published as an npm workspace 
 |---|---|---|
 | `apiBase` | `string` | Prefix for all API calls (e.g. `/api/dam`) |
 | `token` | `string` | Bearer token |
+| `username?` | `string` | Logged-in username — filters category tree to show own + Global categories |
 | `onSelect` | `(asset: PickedAsset) => void` | Fired on click |
 | `onDragStart?` | `(asset: PickedAsset, e: DragEvent) => void` | Fired after dataTransfer is set |
 | `filter?` | `(asset: Asset) => boolean` | Client-side predicate; applied via `useMemo` after loading |

@@ -18,7 +18,7 @@
     "signIn": "Logáil Isteach"
   },
   "footer": {
-    "copyright": "© {year} DAM Browser",
+    "copyright": "© {year} Comad",
     "disclaimer": "Séanadh",
     "terms": "Téarmaí Seirbhíse"
   },
@@ -94,6 +94,15 @@
     "categoryCreating": "Á cruthú…",
     "categoryCreate": "Cruthaigh",
     "categoryCancel": "Cealaigh",
+    "categoryEditHeading": "Catagóir a Chur in Eagar",
+    "categorySave": "Sábháil",
+    "categorySaving": "Á shábháil…",
+    "categoryDeleteConfirmTitle": "Catagóir a Scriosadh",
+    "categoryDeleteConfirmMessage": "\"{name}\" a scriosadh? Ní féidir é seo a chur ar ceal.",
+    "categoryDeleteConfirmWithChildren": "Scriosfar na fo-chatagóirí seo a leanas freisin:",
+    "categoryDeleteConfirmYes": "Sea, scrios",
+    "categoryDeleteConfirmDeleting": "Á scriosadh…",
+    "categoryDeleteConfirmCancel": "Cealaigh",
     "loading": "Á lódáil…",
     "searchPlaceholder": "Cuardach de réir ainm, eochairfhocal, fotheideal…",
     "uploadButton": "Uaslódáil",
@@ -114,7 +123,9 @@
     "dropCannotMove": "Ní féidir bogadh",
     "dropMakeTopLevel": "Déan barrleibhéal",
     "dropAlreadyTopLevel": "Barrleibhéal cheana",
-    "addSubcategoryTitle": "Fo-chatagóir a chur faoi \"{name}\""
+    "addSubcategoryTitle": "Fo-chatagóir a chur faoi \"{name}\"",
+    "editCategoryTitle": "Catagóir a chur in eagar",
+    "deleteCategoryTitle": "Catagóir a scriosadh"
   },
   "assetGrid": {
     "sortLabel": "Sórtáil:",
@@ -258,7 +269,7 @@
   },
   "help": {
     "title": "Cabhair & Doiciméadú",
-    "subtitle": "Foghlaim conas an DAM Browser a úsáid chun do shócmhainní digiteacha a eagrú agus a bhainistiú.",
+    "subtitle": "Foghlaim conas Comad a úsáid chun do shócmhainní digiteacha a eagrú agus a bhainistiú.",
     "cta": "Réidh le tosú?",
     "ctaButton": "Brabhsáil Sócmhainní",
     "gettingStarted": {

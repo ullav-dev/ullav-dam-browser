@@ -14,7 +14,8 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **My Assets filter** — toggle to show only assets uploaded by the logged-in user
 - **Rich metadata editor** — caption, keywords, copyright, availability window; asset base URL shown as a read-only field
 - **Creator auto-set** — creator field is populated from the logged-in username at upload time and is read-only
-- **Category management** — create top-level and sub-categories inline; drag to reparent categories in the hierarchy
+- **Category management** — create top-level and sub-categories inline; drag to reparent categories in the hierarchy; edit and delete your own categories (with recursive child-deletion confirmation)
+- **Category access levels** — each category has an access level (`Private`, `Group`, or `Global`); the tree shows only the logged-in user's own categories and Global categories (plus legacy categories without an owner); `Private` and `Group` categories owned by other users are hidden
 - **Category assignment** — drag an asset onto a category node to assign; drag-to-remove or click × to unassign
 - **Asset actions** — Download, Replace file, Lock/Unlock, Delete (delete disabled when locked)
 - **File replacement** — replace the underlying file of an existing asset while keeping its metadata and category assignments; thumbnail updates automatically
@@ -24,7 +25,7 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Multi-file upload** with shared metadata and category pre-selection
 - **ZIP import** with three modes: upload ZIP only, upload ZIP and expand contents, or expand contents only; creator attributed to uploading user on all extracted assets
 - **Authentication** via `ullav-user-management` (login, register, email confirmation, password reset)
-- **SSO handoff** from ullav-portal — clicking DAM Browser in the portal sidebar lands the user already authenticated (no second login)
+- **SSO handoff** from ullav-portal — clicking Comad in the portal sidebar lands the user already authenticated (no second login)
 - Terms of Service and Disclaimer modals at registration
 - **Localised UI** — English (`en`), German (`de`), Irish (`ga`); language switcher in the nav bar
 - **Help pages** — in-app 7-section guide available in all three locales (`/[locale]/help`)
@@ -233,6 +234,7 @@ The component renders inline — wrap it in whatever container or modal you need
 |---|---|---|
 | `apiBase` | `string` | API prefix (e.g. `/api/dam`) |
 | `token` | `string` | Bearer token |
+| `username?` | `string` | Logged-in username — used to show the user's own categories plus Global ones |
 | `onSelect` | `(asset: PickedAsset) => void` | Fired on click |
 | `onDragStart?` | `(asset: PickedAsset, e: DragEvent) => void` | Fired after dataTransfer is set |
 | `filter?` | `(asset: Asset) => boolean` | Client-side predicate — e.g. images only, or creator === username |
@@ -284,8 +286,10 @@ The optional `onDragStart` prop fires after `dataTransfer` is set:
 
 The `ullav-dam-server` must have:
 - **Migration 003** (`is_locked` column) registered in `db.rs`
+- **Migration 004** (`creator` and `access_level` columns on `categories`) registered in `db.rs`
 - **Body limit raised** to 200 MB on upload and ZIP routes (`DefaultBodyLimit::max` in `main.rs`)
 - **Full MIME types** for `asset_type` (e.g. `image/jpeg`, not `image`) — required for thumbnail generation
 - **PDFium library** at `PDFIUM_LIB_PATH` — required for PDF thumbnails
 - **LibreOffice** at `SOFFICE_PATH` — required for Office document thumbnails (docx, xlsx, pptx, etc.)
 - **Thumbnail cache invalidation** on file replacement — `upload_asset` handler must call `state.thumbnail_cache.write().await.remove(&id)` after a successful file upload so the next thumbnail request regenerates from the new file
+- **Category JOIN in `get_asset`** — the `SELECT` in `handlers/assets.rs` for the category JOIN must include `c.creator, c.access_level`; omitting them causes `Category::from` to panic → ECONNRESET on every `GET /assets/:id`

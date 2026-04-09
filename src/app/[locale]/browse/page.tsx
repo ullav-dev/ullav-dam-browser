@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
@@ -9,7 +9,8 @@ import AssetDetails from "@/components/AssetDetails";
 import UploadModal from "@/components/UploadModal";
 import ResizeHandle from "@/components/ResizeHandle";
 import * as api from "@/lib/dam-api";
-import { createCategory, updateCategory } from "@/lib/dam-api";
+import { createCategory, updateCategory, deleteCategory } from "@/lib/dam-api";
+import { getDescendantIds } from "@/components/CategoryTree";
 import { useTranslations } from "next-intl";
 
 export default function BrowsePage() {
@@ -70,43 +71,118 @@ export default function BrowsePage() {
     });
   }, []);
 
-  // Category creation form
+  // Category creation / edit form
   const [showCatForm, setShowCatForm] = useState(false);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState("");
   const [newCatParentId, setNewCatParentId] = useState<string>("");
+  const [newCatAccessLevel, setNewCatAccessLevel] = useState<string>("Private");
   const [savingCat, setSavingCat] = useState(false);
   const [catError, setCatError] = useState<string | null>(null);
 
   const openCatForm = useCallback((parentId: string | null = null) => {
+    setEditingCatId(null);
     setNewCatName("");
     setNewCatParentId(parentId ?? "");
+    setNewCatAccessLevel("Private");
     setCatError(null);
     setShowCatForm(true);
   }, []);
 
-  const handleCreateCategory = useCallback(
+  const openEditCatForm = useCallback((catId: string) => {
+    const cat = categories.find((c) => c.id === catId);
+    if (!cat) return;
+    setEditingCatId(catId);
+    setNewCatName(cat.name);
+    setNewCatParentId(cat.parent_id ?? "");
+    setNewCatAccessLevel(cat.access_level ?? "private");
+    setCatError(null);
+    setShowCatForm(true);
+  }, [categories]);
+
+  const handleSaveCategory = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!token || !newCatName.trim()) return;
       setSavingCat(true);
       setCatError(null);
       try {
-        const created = await createCategory(
-          { name: newCatName.trim(), parent_id: newCatParentId || null },
-          token
-        );
-        setCategories((prev) => [...prev, created]);
+        if (editingCatId) {
+          const updated = await updateCategory(
+            editingCatId,
+            { name: newCatName.trim(), parent_id: newCatParentId || null, access_level: newCatAccessLevel },
+            token
+          );
+          setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        } else {
+          const created = await createCategory(
+            { name: newCatName.trim(), parent_id: newCatParentId || null, creator: user?.username ?? null, access_level: newCatAccessLevel },
+            token
+          );
+          setCategories((prev) => [...prev, created]);
+        }
         setShowCatForm(false);
+        setEditingCatId(null);
         setNewCatName("");
         setNewCatParentId("");
+        setNewCatAccessLevel("Private");
       } catch (err) {
-        setCatError(err instanceof Error ? err.message : "Failed to create category.");
+        setCatError(err instanceof Error ? err.message : "Failed to save category.");
       } finally {
         setSavingCat(false);
       }
     },
-    [token, newCatName, newCatParentId]
+    [token, editingCatId, newCatName, newCatParentId, newCatAccessLevel, user?.username]
   );
+
+  // Category delete confirmation
+  const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
+  const [deletingCat, setDeletingCat] = useState(false);
+
+  const handleRequestDeleteCat = useCallback((catId: string) => {
+    setDeletingCatId(catId);
+  }, []);
+
+  const handleConfirmDeleteCat = useCallback(async () => {
+    if (!token || !deletingCatId) return;
+    setDeletingCat(true);
+    // Collect all IDs to delete (BFS order), then reverse for deepest-first
+    const allIds = (() => {
+      const result: string[] = [];
+      const queue = [deletingCatId];
+      while (queue.length > 0) {
+        const id = queue.shift()!;
+        result.push(id);
+        for (const cat of categories) {
+          if (cat.parent_id === id) queue.push(cat.id);
+        }
+      }
+      return result.reverse();
+    })();
+    try {
+      for (const id of allIds) {
+        await deleteCategory(id, token);
+      }
+      const deletedSet = new Set(allIds);
+      setCategories((prev) => prev.filter((c) => !deletedSet.has(c.id)));
+      setAssetCategories((prev) => {
+        const next = new Map(prev);
+        for (const [assetId, catIds] of next.entries()) {
+          const filtered = catIds.filter((cid) => !deletedSet.has(cid));
+          if (filtered.length !== catIds.length) next.set(assetId, filtered);
+        }
+        return next;
+      });
+      if (selectedCategoryId && deletedSet.has(selectedCategoryId)) {
+        setSelectedCategoryId(undefined);
+      }
+    } catch (err) {
+      setCatError(err instanceof Error ? err.message : "Failed to delete category.");
+    } finally {
+      setDeletingCat(false);
+      setDeletingCatId(null);
+    }
+  }, [token, deletingCatId, categories, selectedCategoryId]);
 
   const [draggingAssetId, setDraggingAssetId] = useState<string | null>(null);
 
@@ -182,38 +258,49 @@ export default function BrowsePage() {
     if (token) loadData();
   }, [token, loadData]);
 
-  // Background-load categories for all assets in batches of 5
+  // Background-load categories for all assets in batches of 5, with retry on failure
   useEffect(() => {
     if (!token || assets.length === 0) return;
     let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    async function loadCats() {
+    async function loadCats(retryCount = 0): Promise<void> {
       const toLoad = assets.filter((a) => !loadedAssetIds.current.has(a.id));
-      if (toLoad.length === 0) return;
+      if (toLoad.length === 0 || cancelled) return;
+
       for (let i = 0; i < toLoad.length; i += 5) {
-        if (cancelled) break;
+        if (cancelled) return;
         const chunk = toLoad.slice(i, i + 5);
         await Promise.all(
           chunk.map(async (asset) => {
             if (loadedAssetIds.current.has(asset.id)) return;
-            loadedAssetIds.current.add(asset.id);
             try {
               const detail = await api.getAsset(asset.id, token!);
+              if (cancelled) return;
+              loadedAssetIds.current.add(asset.id);
               setAssetCategories((prev) => {
                 const next = new Map(prev);
                 next.set(asset.id, detail.categories.map((c) => c.id));
                 return next;
               });
             } catch {
-              // Non-critical
+              // Not marked as loaded — will retry below (up to 2 more times)
             }
           })
         );
       }
+
+      // Retry failed assets after a delay (up to 2 retries total)
+      if (!cancelled && retryCount < 2 && assets.some((a) => !loadedAssetIds.current.has(a.id))) {
+        retryTimer = setTimeout(() => { if (!cancelled) loadCats(retryCount + 1); }, 3000);
+      }
     }
 
     loadCats();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [assets, token]);
 
   const handleSelectAsset = useCallback(
@@ -312,6 +399,12 @@ export default function BrowsePage() {
 
   if (isLoading) return null;
 
+  // Only show categories the user owns, or that are globally accessible,
+  // or that have no creator set (legacy data created before access control was added).
+  const visibleCategories = categories.filter(
+    (c) => !c.creator || c.creator === user?.username || c.access_level === "Global"
+  );
+
   // Asset count display
   const countLabel = loadingAssets
     ? t("loading")
@@ -336,9 +429,12 @@ export default function BrowsePage() {
 
         {showCatForm && (
           <form
-            onSubmit={handleCreateCategory}
+            onSubmit={handleSaveCategory}
             className="p-2 border-b border-slate-200 bg-white space-y-2 shrink-0"
           >
+            {editingCatId && (
+              <p className="text-xs font-semibold text-slate-500">{t("categoryEditHeading")}</p>
+            )}
             <input
               autoFocus
               value={newCatName}
@@ -353,9 +449,20 @@ export default function BrowsePage() {
               className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
             >
               <option value="">{t("categoryParentNone")}</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+              {visibleCategories
+                .filter((c) => c.id !== editingCatId && !getDescendantIds(editingCatId ?? "", categories).has(c.id))
+                .map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+            </select>
+            <select
+              value={newCatAccessLevel}
+              onChange={(e) => setNewCatAccessLevel(e.target.value)}
+              className="w-full rounded border border-slate-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            >
+              <option value="Private">Private</option>
+              <option value="Group">Group</option>
+              <option value="Global">Global</option>
             </select>
             {catError && <p className="text-xs text-red-600">{catError}</p>}
             <div className="flex gap-1.5">
@@ -364,11 +471,11 @@ export default function BrowsePage() {
                 disabled={savingCat || !newCatName.trim()}
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-medium py-1 rounded transition-colors"
               >
-                {savingCat ? t("categoryCreating") : t("categoryCreate")}
+                {savingCat ? t("categorySaving") : editingCatId ? t("categorySave") : t("categoryCreate")}
               </button>
               <button
                 type="button"
-                onClick={() => setShowCatForm(false)}
+                onClick={() => { setShowCatForm(false); setEditingCatId(null); }}
                 className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-medium py-1 rounded transition-colors"
               >
                 {t("categoryCancel")}
@@ -382,7 +489,7 @@ export default function BrowsePage() {
             <p className="text-xs text-slate-400 px-2 py-1">{t("loading")}</p>
           ) : (
             <CategoryTree
-              categories={categories}
+              categories={visibleCategories}
               selectedId={selectedCategoryId}
               onSelect={setSelectedCategoryId}
               draggingAssetId={draggingAssetId}
@@ -392,6 +499,9 @@ export default function BrowsePage() {
               onCategoryDrop={handleCategoryDrop}
               onAddSubcategory={openCatForm}
               onMoveCategory={handleMoveCategory}
+              username={user?.username}
+              onEditCategory={openEditCatForm}
+              onDeleteCategory={handleRequestDeleteCat}
             />
           )}
         </div>
@@ -467,7 +577,7 @@ export default function BrowsePage() {
         {selectedAsset ? (
           <AssetDetails
             asset={selectedAsset}
-            categories={categories}
+            categories={visibleCategories}
             token={token ?? ""}
             isLocked={lockedIds.has(selectedAsset.id)}
             onToggleLock={() => toggleLock(selectedAsset.id)}
@@ -487,11 +597,56 @@ export default function BrowsePage() {
         )}
       </aside>
 
+      {deletingCatId && (() => {
+        const cat = categories.find((c) => c.id === deletingCatId);
+        const childIds = [...getDescendantIds(deletingCatId, categories)].filter((id) => id !== deletingCatId);
+        const childNames = childIds.map((id) => categories.find((c) => c.id === id)?.name).filter(Boolean) as string[];
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+              <h2 className="text-base font-semibold text-slate-800 mb-2">{t("categoryDeleteConfirmTitle")}</h2>
+              <p className="text-sm text-slate-600 mb-3">
+                {t("categoryDeleteConfirmMessage", { name: cat?.name ?? "" })}
+              </p>
+              {childNames.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-medium text-amber-700 mb-1">{t("categoryDeleteConfirmWithChildren")}</p>
+                  <ul className="text-xs text-slate-600 list-disc list-inside space-y-0.5 max-h-32 overflow-y-auto">
+                    {childNames.map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {catError && <p className="text-xs text-red-600 mb-3">{catError}</p>}
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setDeletingCatId(null); setCatError(null); }}
+                  disabled={deletingCat}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  {t("categoryDeleteConfirmCancel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeleteCat}
+                  disabled={deletingCat}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white transition-colors"
+                >
+                  {deletingCat ? t("categoryDeleteConfirmDeleting") : t("categoryDeleteConfirmYes")}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {showUpload && (
         <UploadModal
           token={token ?? ""}
           username={user?.username ?? ""}
-          categories={categories}
+          categories={visibleCategories}
           onComplete={handleUploadComplete}
           onClose={() => setShowUpload(false)}
           onZipResult={(result) => {

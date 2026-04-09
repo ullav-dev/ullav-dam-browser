@@ -11,7 +11,7 @@ const TERMS_CONTENT = `
 
 ### 1. Acceptance of Terms
 
-By accessing and using the DAM Browser ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
+By accessing and using Comad ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
 
 ### 2. Use of the Service
 

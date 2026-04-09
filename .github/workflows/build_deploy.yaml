@@ -5,6 +5,33 @@ on:
     branches: main
 
 jobs:
+  publish-dam-picker:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@ullav'
+      - name: Publish @ullav/dam-picker (if version is new)
+        working-directory: packages/dam-picker
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm show @ullav/dam-picker@$VERSION version 2>/dev/null || true)
+          if [ -z "$PUBLISHED" ]; then
+            echo "Publishing @ullav/dam-picker@$VERSION"
+            npm publish
+          else
+            echo "@ullav/dam-picker@$VERSION already published, skipping"
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   docker:
     runs-on: ubuntu-latest
     steps:

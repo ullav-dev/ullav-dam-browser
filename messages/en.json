@@ -18,7 +18,7 @@
     "signIn": "Sign in"
   },
   "footer": {
-    "copyright": "© {year} DAM Browser",
+    "copyright": "© {year} Comad",
     "disclaimer": "Disclaimer",
     "terms": "Terms of Service"
   },
@@ -94,6 +94,15 @@
     "categoryCreating": "Creating…",
     "categoryCreate": "Create",
     "categoryCancel": "Cancel",
+    "categoryEditHeading": "Edit Category",
+    "categorySave": "Save",
+    "categorySaving": "Saving…",
+    "categoryDeleteConfirmTitle": "Delete Category",
+    "categoryDeleteConfirmMessage": "Delete \"{name}\"? This cannot be undone.",
+    "categoryDeleteConfirmWithChildren": "The following child categories will also be deleted:",
+    "categoryDeleteConfirmYes": "Yes, delete",
+    "categoryDeleteConfirmDeleting": "Deleting…",
+    "categoryDeleteConfirmCancel": "Cancel",
     "loading": "Loading…",
     "searchPlaceholder": "Search by name, keywords, caption…",
     "uploadButton": "Upload",
@@ -114,7 +123,9 @@
     "dropCannotMove": "Cannot move",
     "dropMakeTopLevel": "Make top-level",
     "dropAlreadyTopLevel": "Already top-level",
-    "addSubcategoryTitle": "Add sub-category under \"{name}\""
+    "addSubcategoryTitle": "Add sub-category under \"{name}\"",
+    "editCategoryTitle": "Edit category",
+    "deleteCategoryTitle": "Delete category"
   },
   "assetGrid": {
     "sortLabel": "Sort:",
@@ -258,7 +269,7 @@
   },
   "help": {
     "title": "Help & Documentation",
-    "subtitle": "Learn how to use the DAM Browser to organise and manage your digital assets.",
+    "subtitle": "Learn how to use Comad to organise and manage your digital assets.",
     "cta": "Ready to get started?",
     "ctaButton": "Browse Assets",
     "gettingStarted": {

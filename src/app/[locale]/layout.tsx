@@ -12,7 +12,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DAM Browser",
+  title: "Comad",
   description: "Digital Asset Management Browser",
   icons: { icon: "/favicon.svg" },
 };

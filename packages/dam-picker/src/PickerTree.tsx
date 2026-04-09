@@ -50,7 +50,7 @@ function TreeNodeItem({
   return (
     <div>
       <div
-        className={`flex items-center gap-1 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${rowCls}`}
+        className={`flex items-center gap-1 py-1 rounded-md text-xs cursor-pointer transition-colors ${rowCls}`}
         style={{ paddingLeft: `${8 + depth * 16}px`, paddingRight: "8px" }}
         onClick={() => onSelect(isSelected ? null : node.id)}
       >
@@ -100,7 +100,7 @@ export default function PickerTree({ categories, selectedId, onSelect }: Props) 
   return (
     <div className="space-y-0.5">
       <div
-        className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer text-sm transition-colors ${
+        className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer text-xs transition-colors ${
           selectedId === null
             ? "bg-blue-100 text-blue-800 font-medium"
             : "text-slate-700 hover:bg-slate-100"  // undefined = nothing selected — no highlight

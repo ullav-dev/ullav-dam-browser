@@ -23,7 +23,7 @@ export default function HomePage() {
               <path d="M20 42 L28 32 L34 38 L38 34 L44 42 Z" fill="#60a5fa"/>
               <circle cx="38" cy="32" r="3" fill="#fbbf24"/>
             </svg>
-            <span className="text-4xl font-bold tracking-tight">DAM Browser</span>
+            <span className="text-4xl font-bold tracking-tight">Comad</span>
           </div>
           <p className="text-blue-100 text-lg mb-8 max-w-md mx-auto">
             {t("tagline")}

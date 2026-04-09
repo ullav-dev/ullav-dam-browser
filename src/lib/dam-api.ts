@@ -37,6 +37,8 @@ export interface Category {
   name: string;
   description: string | null;
   parent_id: string | null;
+  creator: string | null;
+  access_level: string;
   created_at: string;
   updated_at: string;
 }
@@ -167,7 +169,7 @@ export const getCategory = (id: string, token: string): Promise<CategoryWithChil
   apiRequest(`/categories/${id}`, { headers: bearerHeaders(token) });
 
 export const createCategory = (
-  body: { name: string; description?: string | null; parent_id?: string | null },
+  body: { name: string; description?: string | null; parent_id?: string | null; creator?: string | null; access_level?: string },
   token: string
 ): Promise<Category> =>
   apiRequest("/categories", {
@@ -178,7 +180,7 @@ export const createCategory = (
 
 export const updateCategory = (
   id: string,
-  body: Partial<{ name: string; description: string | null; parent_id: string | null }>,
+  body: Partial<{ name: string; description: string | null; parent_id: string | null; access_level: string }>,
   token: string
 ): Promise<Category> =>
   apiRequest(`/categories/${id}`, {

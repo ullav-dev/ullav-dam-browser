@@ -18,7 +18,7 @@
     "signIn": "Anmelden"
   },
   "footer": {
-    "copyright": "© {year} DAM Browser",
+    "copyright": "© {year} Comad",
     "disclaimer": "Haftungsausschluss",
     "terms": "Nutzungsbedingungen"
   },
@@ -94,6 +94,15 @@
     "categoryCreating": "Erstelle…",
     "categoryCreate": "Erstellen",
     "categoryCancel": "Abbrechen",
+    "categoryEditHeading": "Kategorie bearbeiten",
+    "categorySave": "Speichern",
+    "categorySaving": "Speichere…",
+    "categoryDeleteConfirmTitle": "Kategorie löschen",
+    "categoryDeleteConfirmMessage": "\"{name}\" löschen? Dies kann nicht rückgängig gemacht werden.",
+    "categoryDeleteConfirmWithChildren": "Die folgenden Unterkategorien werden ebenfalls gelöscht:",
+    "categoryDeleteConfirmYes": "Ja, löschen",
+    "categoryDeleteConfirmDeleting": "Wird gelöscht…",
+    "categoryDeleteConfirmCancel": "Abbrechen",
     "loading": "Lade…",
     "searchPlaceholder": "Nach Name, Schlüsselwörtern, Bildunterschriften suchen…",
     "uploadButton": "Hochladen",
@@ -114,7 +123,9 @@
     "dropCannotMove": "Kann nicht verschoben werden",
     "dropMakeTopLevel": "Zur Hauptebene machen",
     "dropAlreadyTopLevel": "Bereits auf Hauptebene",
-    "addSubcategoryTitle": "Unterkategorie unter \"{name}\" hinzufügen"
+    "addSubcategoryTitle": "Unterkategorie unter \"{name}\" hinzufügen",
+    "editCategoryTitle": "Kategorie bearbeiten",
+    "deleteCategoryTitle": "Kategorie löschen"
   },
   "assetGrid": {
     "sortLabel": "Sortieren:",
@@ -258,7 +269,7 @@
   },
   "help": {
     "title": "Hilfe & Dokumentation",
-    "subtitle": "Lernen Sie, wie Sie den DAM Browser zum Organisieren und Verwalten Ihrer digitalen Assets verwenden.",
+    "subtitle": "Lernen Sie, wie Sie Comad zum Organisieren und Verwalten Ihrer digitalen Assets verwenden.",
     "cta": "Bereit, loszulegen?",
     "ctaButton": "Assets durchsuchen",
     "gettingStarted": {

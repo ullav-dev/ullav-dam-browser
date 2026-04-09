@@ -14,6 +14,8 @@ export interface DamPickerProps {
   apiBase: string;
   /** Bearer token from ullav-user-management. */
   token: string;
+  /** Logged-in username — used to show the user's own categories plus global ones. */
+  username?: string;
   /** Called when the user clicks an asset. */
   onSelect: (asset: PickedAsset) => void;
   /**
@@ -26,7 +28,7 @@ export interface DamPickerProps {
   filter?: (asset: Asset) => boolean;
 }
 
-export default function DamPicker({ apiBase, token, onSelect, onDragStart, filter }: DamPickerProps) {
+export default function DamPicker({ apiBase, token, username, onSelect, onDragStart, filter }: DamPickerProps) {
   const client = useMemo(() => createDamClient(apiBase, token), [apiBase, token]);
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -40,7 +42,40 @@ export default function DamPicker({ apiBase, token, onSelect, onDragStart, filte
   const loadedAssetIds = useRef(new Set<string>());
   const visibleAssets = useMemo(() => (filter ? assets.filter(filter) : assets), [assets, filter]);
 
+  // ── Resizable category panel ──────────────────────────────────────────────────
+  const TREE_MIN = 120;
+  const TREE_MAX = 400;
+  const TREE_DEFAULT = 208; // w-52 = 13rem = 208px
+  const [treeWidth, setTreeWidth] = useState(TREE_DEFAULT);
+  const dragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = treeWidth;
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!dragging.current) return;
+      const delta = ev.clientX - dragStartX.current;
+      setTreeWidth(Math.min(TREE_MAX, Math.max(TREE_MIN, dragStartWidth.current + delta)));
+    }
+    function onMouseUp() {
+      dragging.current = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, [treeWidth]);
+
   const [categories, setCategories] = useState<Category[]>([]);
+  const visibleCategories = useMemo(
+    () => categories.filter((c) => !c.creator || c.creator === username || c.access_level === "Global"),
+    [categories, username]
+  );
 
   // ── Initial data load ────────────────────────────────────────────────────────
 
@@ -69,31 +104,47 @@ export default function DamPicker({ apiBase, token, onSelect, onDragStart, filte
 
   useEffect(() => {
     if (assets.length === 0) return;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const unloaded = assets.filter((a) => !loadedAssetIds.current.has(a.id));
-    if (unloaded.length === 0) return;
+    async function loadCats(retryCount = 0): Promise<void> {
+      const toLoad = assets.filter((a) => !loadedAssetIds.current.has(a.id));
+      if (toLoad.length === 0 || cancelled) return;
 
-    async function loadBatch(batch: Asset[]) {
-      for (const asset of batch) {
-        if (loadedAssetIds.current.has(asset.id)) continue;
-        loadedAssetIds.current.add(asset.id);
-        try {
-          const full = await client.getAsset(asset.id);
-          const catIds = full.categories.map((c) => c.id);
-          setAssetCategories((prev) => {
-            const next = new Map(prev);
-            next.set(asset.id, catIds);
-            return next;
-          });
-        } catch {
-          loadedAssetIds.current.delete(asset.id); // allow retry
-        }
+      for (let i = 0; i < toLoad.length; i += 5) {
+        if (cancelled) return;
+        const chunk = toLoad.slice(i, i + 5);
+        await Promise.all(
+          chunk.map(async (asset) => {
+            if (loadedAssetIds.current.has(asset.id)) return;
+            try {
+              const full = await client.getAsset(asset.id);
+              if (cancelled) return;
+              loadedAssetIds.current.add(asset.id);
+              const catIds = full.categories.map((c) => c.id);
+              setAssetCategories((prev) => {
+                const next = new Map(prev);
+                next.set(asset.id, catIds);
+                return next;
+              });
+            } catch {
+              // Not marked as loaded — will retry below (up to 2 more times)
+            }
+          })
+        );
+      }
+
+      // Retry failed assets after a delay (up to 2 retries total)
+      if (!cancelled && retryCount < 2 && assets.some((a) => !loadedAssetIds.current.has(a.id))) {
+        retryTimer = setTimeout(() => { if (!cancelled) loadCats(retryCount + 1); }, 3000);
       }
     }
 
-    for (let i = 0; i < unloaded.length; i += 5) {
-      loadBatch(unloaded.slice(i, i + 5));
-    }
+    loadCats();
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [assets, client]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -136,13 +187,19 @@ export default function DamPicker({ apiBase, token, onSelect, onDragStart, filte
   return (
     <div className="flex h-full overflow-hidden bg-white">
       {/* Category tree */}
-      <aside className="w-52 shrink-0 overflow-y-auto border-r border-slate-200 p-3">
+      <aside className="shrink-0 overflow-y-auto p-2 relative" style={{ width: treeWidth }}>
         <PickerTree
-          categories={categories}
+          categories={visibleCategories}
           selectedId={selectedCategoryId}
           onSelect={setSelectedCategoryId}
         />
       </aside>
+
+      {/* Resize handle */}
+      <div
+        className="shrink-0 w-1.5 cursor-col-resize bg-slate-200 hover:bg-blue-400 transition-colors"
+        onMouseDown={onResizeMouseDown}
+      />
 
       {/* Search + grid */}
       <div className="flex-1 flex flex-col overflow-hidden">
