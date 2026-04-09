@@ -230,7 +230,7 @@ The `creator` value is appended as a multipart field when calling `uploadZip(fil
 ## Nav bar order
 
 From left to right:
-- Logo + "DAM Browser" wordmark (links to `/`)
+- Logo + "Comad" wordmark (links to `/`)
 - **Assets** link (authenticated only)
 - Username / **Sign Out** (authenticated) or **Sign In** link (unauthenticated)
 - **Help** link

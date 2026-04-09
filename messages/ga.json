@@ -18,7 +18,7 @@
     "signIn": "Logáil Isteach"
   },
   "footer": {
-    "copyright": "© {year} DAM Browser",
+    "copyright": "© {year} Comad",
     "disclaimer": "Séanadh",
     "terms": "Téarmaí Seirbhíse"
   },
@@ -269,7 +269,7 @@
   },
   "help": {
     "title": "Cabhair & Doiciméadú",
-    "subtitle": "Foghlaim conas an DAM Browser a úsáid chun do shócmhainní digiteacha a eagrú agus a bhainistiú.",
+    "subtitle": "Foghlaim conas Comad a úsáid chun do shócmhainní digiteacha a eagrú agus a bhainistiú.",
     "cta": "Réidh le tosú?",
     "ctaButton": "Brabhsáil Sócmhainní",
     "gettingStarted": {

@@ -11,7 +11,7 @@ const DISCLAIMER_CONTENT = `
 
 ### No Warranty
 
-The DAM Browser is provided for internal use without any warranty, express or implied. The system administrators and developers make no representations regarding the accuracy, reliability, or completeness of the Service.
+Comad is provided for internal use without any warranty, express or implied. The system administrators and developers make no representations regarding the accuracy, reliability, or completeness of the Service.
 
 ### Asset Responsibility
 

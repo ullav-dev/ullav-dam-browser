@@ -252,7 +252,7 @@ export default function LoginPage() {
             <path d="M20 42 L28 32 L34 38 L38 34 L44 42 Z" fill="#60a5fa"/>
             <circle cx="38" cy="32" r="3" fill="#fbbf24"/>
           </svg>
-          <span className="font-bold text-lg text-slate-800">DAM Browser</span>
+          <span className="font-bold text-lg text-slate-800">Comad</span>
         </div>
 
         <div className="flex gap-1 mb-6 border-b border-slate-200">

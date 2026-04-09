@@ -18,7 +18,7 @@
     "signIn": "Sign in"
   },
   "footer": {
-    "copyright": "© {year} DAM Browser",
+    "copyright": "© {year} Comad",
     "disclaimer": "Disclaimer",
     "terms": "Terms of Service"
   },
@@ -269,7 +269,7 @@
   },
   "help": {
     "title": "Help & Documentation",
-    "subtitle": "Learn how to use the DAM Browser to organise and manage your digital assets.",
+    "subtitle": "Learn how to use Comad to organise and manage your digital assets.",
     "cta": "Ready to get started?",
     "ctaButton": "Browse Assets",
     "gettingStarted": {

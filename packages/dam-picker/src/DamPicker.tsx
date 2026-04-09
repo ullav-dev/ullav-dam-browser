@@ -42,6 +42,35 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
   const loadedAssetIds = useRef(new Set<string>());
   const visibleAssets = useMemo(() => (filter ? assets.filter(filter) : assets), [assets, filter]);
 
+  // ── Resizable category panel ──────────────────────────────────────────────────
+  const TREE_MIN = 120;
+  const TREE_MAX = 400;
+  const TREE_DEFAULT = 208; // w-52 = 13rem = 208px
+  const [treeWidth, setTreeWidth] = useState(TREE_DEFAULT);
+  const dragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = treeWidth;
+
+    function onMouseMove(ev: MouseEvent) {
+      if (!dragging.current) return;
+      const delta = ev.clientX - dragStartX.current;
+      setTreeWidth(Math.min(TREE_MAX, Math.max(TREE_MIN, dragStartWidth.current + delta)));
+    }
+    function onMouseUp() {
+      dragging.current = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, [treeWidth]);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const visibleCategories = useMemo(
     () => categories.filter((c) => !c.creator || c.creator === username || c.access_level === "Global"),
@@ -158,13 +187,19 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
   return (
     <div className="flex h-full overflow-hidden bg-white">
       {/* Category tree */}
-      <aside className="w-52 shrink-0 overflow-y-auto border-r border-slate-200 p-3">
+      <aside className="shrink-0 overflow-y-auto p-2 relative" style={{ width: treeWidth }}>
         <PickerTree
           categories={visibleCategories}
           selectedId={selectedCategoryId}
           onSelect={setSelectedCategoryId}
         />
       </aside>
+
+      {/* Resize handle */}
+      <div
+        className="shrink-0 w-1.5 cursor-col-resize bg-slate-200 hover:bg-blue-400 transition-colors"
+        onMouseDown={onResizeMouseDown}
+      />
 
       {/* Search + grid */}
       <div className="flex-1 flex flex-col overflow-hidden">
