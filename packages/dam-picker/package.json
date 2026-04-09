@@ -1,5 +1,5 @@
 {
-  "name": "@ullav/dam-picker",
+  "name": "@ullav-dev/dam-picker",
   "version": "0.1.0",
   "description": "Embeddable read-only DAM asset picker for Next.js apps",
   "main": "./src/index.ts",

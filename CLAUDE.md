@@ -260,9 +260,9 @@ All sections are translated in `messages/{en,de,ga}.json` under the `help` names
 - **Thumbnail cache invalidation**: The server holds an in-memory thumbnail cache (`Arc<RwLock<HashMap<Uuid, Bytes>>>`). The `upload_asset` handler (`handlers/assets.rs`) calls `state.thumbnail_cache.write().await.remove(&id)` after a successful file replacement so the next thumbnail request regenerates from the new file.
 - **Category JOIN in `get_asset`**: The SELECT in `handlers/assets.rs` for the category JOIN must include `c.creator, c.access_level`. If omitted, `Category::from` panics at `row.get("access_level")` → Axum closes the connection → ECONNRESET on every `GET /assets/:id` call (all individual asset fetches fail silently).
 
-## @ullav/dam-picker — embeddable picker package
+## @ullav-dev/dam-picker — embeddable picker package
 
-Lives at `packages/dam-picker/` inside this repo. Published as an npm workspace package — host apps reference it via `"@ullav/dam-picker": "file:../ullav-dam-browser/packages/dam-picker"`.
+Lives at `packages/dam-picker/` inside this repo. Published as an npm workspace package — host apps reference it via `"@ullav-dev/dam-picker": "file:../ullav-dam-browser/packages/dam-picker"`.
 
 ### Key files
 
@@ -299,9 +299,9 @@ All buttons in PickerTree and PickerGrid have `type="button"` to prevent them fr
 
 ### Host app integration (summary)
 
-1. `"@ullav/dam-picker": "file:../ullav-dam-browser/packages/dam-picker"` in host `package.json`
-2. `transpilePackages: ["@ullav/dam-picker"]` in host `next.config.ts`
-3. `@source "../../node_modules/@ullav/dam-picker/src";` in host global CSS
+1. `"@ullav-dev/dam-picker": "file:../ullav-dam-browser/packages/dam-picker"` in host `package.json`
+2. `transpilePackages: ["@ullav-dev/dam-picker"]` in host `next.config.ts`
+3. `@source "../../node_modules/@ullav-dev/dam-picker/src";` in host global CSS
 4. Proxy `/api/dam/*` → DAM server (strip `/api/dam` prefix)
 
 ## ImageEditorModal

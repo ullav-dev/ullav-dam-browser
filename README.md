@@ -164,7 +164,7 @@ src/
 | `npm run lint` | Run ESLint |
 | `npm test` | Run Jest unit tests |
 
-## Embeddable asset picker (`@ullav/dam-picker`)
+## Embeddable asset picker (`@ullav-dev/dam-picker`)
 
 The `packages/dam-picker` directory contains a read-only asset picker component
 that can be embedded in other Next.js apps (e.g. clann-webapp). It renders a
@@ -179,7 +179,7 @@ Add to the host app's `package.json`:
 
 ```json
 "dependencies": {
-  "@ullav/dam-picker": "file:../ullav-dam-browser/packages/dam-picker"
+  "@ullav-dev/dam-picker": "file:../ullav-dam-browser/packages/dam-picker"
 }
 ```
 
@@ -189,7 +189,7 @@ Then run `npm install`.
 
 ```typescript
 const nextConfig = {
-  transpilePackages: ["@ullav/dam-picker"],
+  transpilePackages: ["@ullav-dev/dam-picker"],
 };
 ```
 
@@ -198,7 +198,7 @@ scans the picker's source files:
 
 ```css
 @import "tailwindcss";
-@source "../../node_modules/@ullav/dam-picker/src";
+@source "../../node_modules/@ullav-dev/dam-picker/src";
 ```
 
 Adjust the relative path to `node_modules` as needed.
@@ -214,8 +214,8 @@ forward `/api/dam/*` to the DAM server on the Docker network (strip the
 **5. Use**
 
 ```tsx
-import { DamPicker } from "@ullav/dam-picker";
-import type { PickedAsset } from "@ullav/dam-picker";
+import { DamPicker } from "@ullav-dev/dam-picker";
+import type { PickedAsset } from "@ullav-dev/dam-picker";
 
 <DamPicker
   apiBase="/api/dam"
