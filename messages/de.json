@@ -1,4 +1,94 @@
 {
+  "pricing": {
+    "heading": "Wählen Sie Ihren Comad-Plan",
+    "subheading": "Starten Sie kostenlos und wechseln Sie, wenn Ihre Bibliothek wächst. Team-Plan mit 7 Tagen kostenloser Testphase.",
+    "perMonth": "/ Monat",
+    "mostPopular": "Beliebteste Wahl",
+    "trialNote": "Der Team-Plan enthält eine 7-tägige kostenlose Testphase.",
+    "learnMore": "Mehr erfahren",
+    "checkoutTitle": "Abonnieren",
+    "checkoutError": "Checkout konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+    "paymentProvider": "Bezahlen mit",
+    "proceedToPayment": "Weiter zur Zahlung →",
+    "redirecting": "Weiterleiten…",
+    "cancel": "Abbrechen",
+    "plans": {
+      "individual": {
+        "name": "Einzelperson",
+        "price": "Kostenlos",
+        "description": "Für persönliche Projekte und Einzelnutzer.",
+        "cta": "Jetzt starten",
+        "features": [
+          "1 Benutzer",
+          "Bis zu 100 Medien",
+          "100 MB Cloud-Speicher",
+          "Nur Bilder hochladen",
+          "Hierarchische Kategorien",
+          "Volltextsuche",
+          "Community-Support"
+        ]
+      },
+      "team": {
+        "name": "Team",
+        "price": "€8",
+        "description": "Für Teams mit allen Dateitypen und mehr Speicher.",
+        "cta": "Abonnieren",
+        "features": [
+          "Bis zu 10 Benutzer",
+          "Bis zu 10.000 Medien",
+          "50 GB Cloud-Speicher",
+          "Alle Dateitypen (Bilder, Video, Audio, Dokumente)",
+          "ZIP-Massenimport",
+          "Bildbearbeitung im Browser",
+          "E-Mail-Support",
+          "7-tägige kostenlose Testphase"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Individuell",
+        "description": "Für große Teams und Organisationen.",
+        "cta": "Kontakt",
+        "features": [
+          "Unbegrenzte Benutzer",
+          "Unbegrenzte Medien",
+          "Benutzerdefinierter Speicher",
+          "Alle Dateitypen inkl. RAW",
+          "Custom Branding",
+          "API-Zugang",
+          "SSO-Integration",
+          "On-Site / Hybrid-Betrieb",
+          "Support nach Vereinbarung"
+        ]
+      }
+    }
+  },
+  "subscription": {
+    "heading": "Ihr Comad-Abonnement",
+    "subheading": "Verwalten Sie Ihren Plan und Ihre Abrechnungsdaten.",
+    "backToBrowse": "Zurück zur Übersicht",
+    "currentPlan": "Aktueller Plan",
+    "product": "Produkt",
+    "seats": "Plätze",
+    "periodStart": "Zeitraumbeginn",
+    "periodEnd": "Zeitraumende",
+    "memberSince": "Mitglied seit",
+    "trialEnds": "Testphase endet {date}",
+    "upgradePlan": "Plan upgraden",
+    "manageBilling": "Abrechnung verwalten",
+    "changePlan": "Plan wechseln",
+    "redirecting": "Weiterleiten…",
+    "loadError": "Abonnementdetails konnten nicht geladen werden.",
+    "portalError": "Abrechnungsportal konnte nicht geöffnet werden.",
+    "helpText": "Fragen zu Ihrem Abonnement?",
+    "helpLink": "Hilfe aufrufen"
+  },
+  "subscriptionSuccess": {
+    "heading": "Sie sind abonniert!",
+    "message": "Ihr Comad-Abonnement ist jetzt aktiv.",
+    "viewSubscription": "Abonnement ansehen",
+    "goToBrowse": "Medien durchsuchen"
+  },
   "idleWarning": {
     "title": "Sitzung läuft ab",
     "message": "Sie waren inaktiv. Sie werden in {seconds} Sekunden automatisch abgemeldet.",
@@ -15,7 +105,8 @@
     "assets": "Assets",
     "help": "Hilfe",
     "signOut": "Abmelden",
-    "signIn": "Anmelden"
+    "signIn": "Anmelden",
+    "pricing": "Preise"
   },
   "footer": {
     "copyright": "© {year} Comad",
@@ -112,7 +203,8 @@
     "filteredBySearch": "· \"{query}\"",
     "loadError": "Erneut versuchen",
     "loadingAssets": "Assets werden geladen…",
-    "selectAssetPrompt": "Asset auswählen, um Details anzuzeigen und zu bearbeiten"
+    "selectAssetPrompt": "Asset auswählen, um Details anzuzeigen und zu bearbeiten",
+    "uploadNoAccessTitle": "DAM-Zugriff erfordert ein Family-Abonnement oder höher"
   },
   "categoryTree": {
     "allAssets": "Alle Assets",
@@ -260,7 +352,8 @@
     "buttonCancel": "Abbrechen",
     "buttonUpload": "{count, plural, one {# Datei hochladen} other {# Dateien hochladen}}",
     "buttonUploading": "Hochladen {current}/{total}…",
-    "zipAndPrefix": "ZIP + "
+    "zipAndPrefix": "ZIP + ",
+    "planImagesOnly": "Family-Plan: Nur Bilddateien können hochgeladen werden. Upgraden Sie auf Professional für alle Dateitypen."
   },
   "modals": {
     "termsTitle": "Nutzungsbedingungen",

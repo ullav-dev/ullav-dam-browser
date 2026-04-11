@@ -1,4 +1,94 @@
 {
+  "pricing": {
+    "heading": "Roghnaigh do phlean Comad",
+    "subheading": "Tosaigh saor in aisce agus uasghrádaigh de réir mar a fhásann do leabharlann. Triail 7 lá san áireamh sa phlean Foirne.",
+    "perMonth": "/ mí",
+    "mostPopular": "Is Mó a Roghnaítear",
+    "trialNote": "Áirítear triail saor in aisce 7 lá sa phlean Foirne.",
+    "learnMore": "Tuilleadh eolais",
+    "checkoutTitle": "Liostáil",
+    "checkoutError": "Níorbh fhéidir seiceáil amach a thosú. Bain triail as arís.",
+    "paymentProvider": "Íoc le",
+    "proceedToPayment": "Ar Aghaidh go dtí Íocaíocht →",
+    "redirecting": "Ag atreorú…",
+    "cancel": "Cealaigh",
+    "plans": {
+      "individual": {
+        "name": "Aonair",
+        "price": "Saor",
+        "description": "Do thionscadail phearsanta agus úsáideoirí aonair.",
+        "cta": "Tosaigh",
+        "features": [
+          "1 suíochán úsáideora",
+          "Suas le 100 acmhainn",
+          "100 MB stóráil sa scamall",
+          "Íomhánna amháin",
+          "Catagóirí ordlathacha",
+          "Cuardach iomlán téacs",
+          "Tacaíocht pobail"
+        ]
+      },
+      "team": {
+        "name": "Foireann",
+        "price": "€8",
+        "description": "Do fhoirne a dteastaíonn gach cineál comhaid uathu.",
+        "cta": "Liostáil",
+        "features": [
+          "Suas le 10 suíochán úsáideora",
+          "Suas le 10,000 acmhainn",
+          "50 GB stóráil sa scamall",
+          "Gach cineál comhaid",
+          "Iompórtáil ZIP baisceach",
+          "Eagarthóir íomhánna sa bhrabhsálaí",
+          "Tacaíocht ríomhphoist",
+          "Triail saor in aisce 7 lá"
+        ]
+      },
+      "enterprise": {
+        "name": "Fiontar",
+        "price": "Saincheaptha",
+        "description": "Do fhoirne móra agus institiúidí.",
+        "cta": "Déan Teagmháil",
+        "features": [
+          "Úsáideoirí gan teorainn",
+          "Acmhainní gan teorainn",
+          "Stóráil shaincheaptha",
+          "Gach cineál comhaid lena n-áirítear RAW",
+          "Branda saincheaptha",
+          "Rochtain API",
+          "Comhtháthú SSO",
+          "Imscaradh ar an láthair / hibrideach",
+          "Tacaíocht de réir comhaontú"
+        ]
+      }
+    }
+  },
+  "subscription": {
+    "heading": "Do shuibscríbhinn Comad",
+    "subheading": "Bainistigh do phlean agus sonraí billeála.",
+    "backToBrowse": "Ar ais go Brabhsáil",
+    "currentPlan": "Plean reatha",
+    "product": "Táirge",
+    "seats": "Suíocháin",
+    "periodStart": "Tús tréimhse",
+    "periodEnd": "Deireadh tréimhse",
+    "memberSince": "Ball ó",
+    "trialEnds": "Críochnaíonn an triail {date}",
+    "upgradePlan": "Uasghrádaigh plean",
+    "manageBilling": "Bainistigh billeáil",
+    "changePlan": "Athraigh plean",
+    "redirecting": "Ag atreorú…",
+    "loadError": "Theip ar lódáil sonraí suibscríbhinne.",
+    "portalError": "Níorbh fhéidir tairseach billeála a oscailt.",
+    "helpText": "Ceisteanna faoi do shuibscríbhinn?",
+    "helpLink": "Cuairt ar Cabhair"
+  },
+  "subscriptionSuccess": {
+    "heading": "Tá tú liostáilte!",
+    "message": "Tá do shuibscríbhinn Comad gníomhach anois.",
+    "viewSubscription": "Féach ar Shuibscríbhinn",
+    "goToBrowse": "Brabhsáil Acmhainní"
+  },
   "idleWarning": {
     "title": "Seisiún ag Dul in Éag",
     "message": "Bhí tú neamhghníomhach. Déanfar thú a logáil amach i {seconds} soicind.",
@@ -15,7 +105,8 @@
     "assets": "Sócmhainní",
     "help": "Cabhair",
     "signOut": "Logáil Amach",
-    "signIn": "Logáil Isteach"
+    "signIn": "Logáil Isteach",
+    "pricing": "Praghsáil"
   },
   "footer": {
     "copyright": "© {year} Comad",
@@ -112,7 +203,8 @@
     "filteredBySearch": "· \"{query}\"",
     "loadError": "Bain triail eile as",
     "loadingAssets": "Sócmhainní á lódáil…",
-    "selectAssetPrompt": "Roghnaigh sócmhainn chun a sonraí a fheiceáil agus a chur in eagar"
+    "selectAssetPrompt": "Roghnaigh sócmhainn chun a sonraí a fheiceáil agus a chur in eagar",
+    "uploadNoAccessTitle": "Teastaíonn suibscríbhinn Teaghlaigh nó níos airde chun an DAM a úsáid"
   },
   "categoryTree": {
     "allAssets": "Gach Sócmhainn",
@@ -260,7 +352,8 @@
     "buttonCancel": "Cealaigh",
     "buttonUpload": "{count, plural, one {# chomhad a uaslódáil} other {# chomhad a uaslódáil}}",
     "buttonUploading": "Ag uaslódáil {current}/{total}…",
-    "zipAndPrefix": "ZIP + "
+    "zipAndPrefix": "ZIP + ",
+    "planImagesOnly": "Plean Teaghlaigh: ní féidir ach comhaid íomhá a uaslódáil. Uasghrádaigh go gairmiúil le haghaidh gach cineál comhaid."
   },
   "modals": {
     "termsTitle": "Téarmaí Seirbhíse",
