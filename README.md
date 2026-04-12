@@ -27,6 +27,9 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Authentication** via `ullav-user-management` (login, register, email confirmation, password reset)
 - **SSO handoff** from ullav-portal — clicking Comad in the portal sidebar lands the user already authenticated (no second login)
 - Terms of Service and Disclaimer modals at registration
+- **Subscription plans** — Individual (free, images only), Team (paid, all file types), Enterprise; in-app pricing page with Stripe/PayPal checkout
+- **Subscription-aware upload** — upload button disabled with no subscription; non-image files filtered out on image-only plans; amber banner notifies the user
+- **Admin bypass** — users with the `admin` JWT role get full access unconditionally (client and server)
 - **Localised UI** — English (`en`), German (`de`), Irish (`ga`); language switcher in the nav bar
 - **Help pages** — in-app 7-section guide available in all three locales (`/[locale]/help`)
 - **Empty initial state** — no category selected and no assets shown on first load
@@ -127,14 +130,19 @@ src/
 │   ├── page.tsx              # Redirects / → /en
 │   └── [locale]/
 │       ├── layout.tsx        # Locale layout (<html lang={locale}><body>)
-│       ├── page.tsx          # Landing page
+│       ├── page.tsx          # Landing page (hero + features + CTA)
 │       ├── login/            # Sign in / register / password reset
 │       ├── browse/           # Main DAM browser (protected)
+│       ├── pricing/          # Plan cards + Stripe/PayPal checkout modal
+│       ├── account/
+│       │   └── subscription/ # Subscription management (active plan, portal link)
+│       ├── subscription/
+│       │   └── success/      # Post-checkout callback page
 │       ├── help/             # Help pages (7 sections, localised)
 │       └── auth/             # Email confirm / password reset callbacks
-├── contexts/AuthContext.tsx  # JWT session (localStorage: dam_auth)
+├── contexts/AuthContext.tsx  # JWT session + damAccess (DamAccess) (localStorage: dam_auth)
 ├── lib/
-│   ├── auth-api.ts           # ullav-user-management client
+│   ├── auth-api.ts           # ullav-user-management client; getDamAccess(); subscription API
 │   └── dam-api.ts            # ullav-dam-server client (all endpoints)
 ├── components/
 │   ├── CategoryTree.tsx      # Hierarchical tree with drag-to-assign and drag-to-move

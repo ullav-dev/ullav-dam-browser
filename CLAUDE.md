@@ -60,9 +60,12 @@ before reaching the DAM server.
 | Route | Description |
 |---|---|
 | `/` | Redirects to `/en` |
-| `/[locale]` | Landing page (localised) |
+| `/[locale]` | Landing page — hero, 6-feature grid, CTA; server component |
 | `/[locale]/login` | Sign in / Register / Password reset |
 | `/[locale]/browse` | Main 3-column DAM browser (protected) |
+| `/[locale]/pricing` | Pricing page — plan cards + Stripe/PayPal checkout modal |
+| `/[locale]/account/subscription` | Subscription management (active plan, portal, upgrade) |
+| `/[locale]/subscription/success` | Post-checkout callback page |
 | `/[locale]/help` | Help pages (7 sections) |
 | `/[locale]/auth/confirm-email` | Email confirmation callback |
 | `/[locale]/auth/password-reset` | Password reset callback |
@@ -206,9 +209,11 @@ When `updatedAt` changes (e.g. after file replacement), a `useEffect` resets the
 - **Thumbnail error**: shows "No preview available" text instead of a blank grey box
 - **Thumbnail cache-bust**: thumbnail `src` uses `asset.updated_at` as `?v=` param; `useEffect([asset.updated_at])` resets `thumbFailed` so the image retries after replacement
 
-## UploadModal — creator and ZIP import modes
+## UploadModal — creator, access control, and ZIP import modes
 
 Props: `username: string` — the logged-in user's username. The `creator` field is pre-filled from `username` and is read-only (no setter); users cannot change it.
+
+Props: `damAccess: DamAccess` — passed from `browse/page.tsx`. When `"images-only"`, non-image files and ZIPs are filtered out of the file list as they are added (via the `addFiles` callback). An amber banner is shown inside the modal informing the user of the plan restriction.
 
 When a ZIP file is detected (by MIME type or `.zip` extension), a per-file mode
 selector appears below the file row with three options:
@@ -227,12 +232,33 @@ file will be stored as an asset.
 
 The `creator` value is appended as a multipart field when calling `uploadZip(file, token, creator)` so the server sets it on every asset extracted from the ZIP. The server (`handlers/zip.rs`) reads the `creator` multipart field alongside `file` and stores it in the asset INSERT.
 
+## Subscription access control
+
+DAM access is derived from the JWT payload (decoded client-side in `getDamAccess()` in `src/lib/auth-api.ts`; enforced server-side in `ullav-dam-server/src/auth.rs`).
+
+| Condition | `DamAccess` |
+|---|---|
+| JWT `roles` contains `"admin"` | `"full"` — bypasses all subscription checks |
+| `subscriptions["comad"].tier` = `"team"` or `"enterprise"` (active/trialing) | `"full"` |
+| `subscriptions["comad"].tier` = `"individual"` (active/trialing) | `"images-only"` |
+| `subscriptions["clann"].tier` = `"professional"` or `"enterprise"` (active/trialing) | `"full"` |
+| `subscriptions["clann"].tier` = `"family"` (active/trialing) | `"images-only"` |
+| No matching subscription | `"none"` |
+
+`AuthContext` exposes `damAccess: DamAccess` (computed on login/restore, reset to `"none"` on logout).
+
+**UI effects:**
+- `browse/page.tsx`: Upload button is disabled (`disabled`, `opacity-50`) when `damAccess === "none"`
+- `UploadModal`: non-image files are silently filtered out when `damAccess === "images-only"`; an amber banner notifies the user. ZIP files are also excluded (they may contain non-image types).
+
+The server enforces the same rules independently — client-side checks are UX only.
+
 ## Nav bar order
 
 From left to right:
 - Logo + "Comad" wordmark (links to `/`)
 - **Assets** link (authenticated only)
-- Username / **Sign Out** (authenticated) or **Sign In** link (unauthenticated)
+- Username / **Sign Out** (authenticated) or **Pricing** + **Sign In** (unauthenticated)
 - **Help** link
 - **LocaleSwitcher** (far right)
 
@@ -338,7 +364,7 @@ Jest with `next/jest` (SWC transformer), `jsdom` environment, React Testing Libr
 | File | Coverage |
 |---|---|
 | `src/__tests__/dam-api.test.ts` | URL helpers, `apiRequest` error handling, all endpoint methods |
-| `src/__tests__/auth-api.test.ts` | `authRequest` error handling, all auth/user endpoints |
+| `src/__tests__/auth-api.test.ts` | `authRequest` error handling, all auth/user endpoints, `getDamAccess` (null, malformed, no-subs, clann tiers, comad tiers, admin bypass) |
 | `src/__tests__/asset-grid.test.tsx` | Visibility filtering, search, category filtering, My Assets toggle, sorting, pagination, `typeInfo` badge labels, `formatSize` display |
 
 Mocks: `next-intl` (`useTranslations` → key passthrough), `@/components/ImageEditorModal` → `null`.
