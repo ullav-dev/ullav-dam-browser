@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
+import type { DamAccess } from "@/lib/auth-api";
 import type { Asset, Category, ZipUploadResult } from "@/lib/dam-api";
 import { createAsset, uploadFile, uploadZip, addCategoryToAsset } from "@/lib/dam-api";
 
@@ -65,6 +66,7 @@ function StatusIcon({ status }: { status: FileStatus }) {
 interface Props {
   token: string;
   username: string;
+  damAccess: DamAccess;
   categories: Category[];
   onComplete: (assets: Asset[]) => void;
   onClose: () => void;
@@ -73,7 +75,7 @@ interface Props {
   onZipResult?: (result: ZipUploadResult) => void;
 }
 
-export default function UploadModal({ token, username, categories, onComplete, onClose, onZipResult }: Props) {
+export default function UploadModal({ token, username, damAccess, categories, onComplete, onClose, onZipResult }: Props) {
   const t = useTranslations("uploadModal");
 
   const ZIP_MODE_OPTIONS: { mode: ZipMode; label: string; title: string }[] = [
@@ -104,7 +106,12 @@ export default function UploadModal({ token, username, categories, onComplete, o
     setEntries((prev) => {
       const existingNames = new Set(prev.map((e) => e.file.name));
       const newEntries: FileEntry[] = incoming
-        .filter((f) => !existingNames.has(f.name))
+        .filter((f) => {
+          if (existingNames.has(f.name)) return false;
+          // Family plan: only images allowed (ZIP also blocked — would contain mixed types)
+          if (damAccess === "images-only" && !f.type.startsWith("image/")) return false;
+          return true;
+        })
         .map((f) => {
           const { name, mimeType } = deriveNameAndMime(f);
           return { file: f, name, mimeType, status: "pending",
@@ -112,7 +119,7 @@ export default function UploadModal({ token, username, categories, onComplete, o
         });
       return [...prev, ...newEntries];
     });
-  }, []);
+  }, [damAccess]);
 
   function removeEntry(idx: number) {
     setEntries((prev) => prev.filter((_, i) => i !== idx));
@@ -279,6 +286,13 @@ export default function UploadModal({ token, username, categories, onComplete, o
             </button>
           )}
         </div>
+
+        {/* Plan restriction banner */}
+        {damAccess === "images-only" && (
+          <div className="px-6 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-700">
+            {t("planImagesOnly")}
+          </div>
+        )}
 
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
 

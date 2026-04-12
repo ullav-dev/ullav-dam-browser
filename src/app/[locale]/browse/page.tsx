@@ -14,7 +14,7 @@ import { getDescendantIds } from "@/components/CategoryTree";
 import { useTranslations } from "next-intl";
 
 export default function BrowsePage() {
-  const { user, token, isLoading } = useAuth();
+  const { user, token, damAccess, isLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations("browse");
 
@@ -523,7 +523,9 @@ export default function BrowsePage() {
           </div>
           <button
             onClick={() => setShowUpload(true)}
-            className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shrink-0"
+            disabled={damAccess === "none"}
+            title={damAccess === "none" ? t("uploadNoAccessTitle") : undefined}
+            className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shrink-0"
           >
             <span>+</span> {t("uploadButton")}
           </button>
@@ -646,6 +648,7 @@ export default function BrowsePage() {
         <UploadModal
           token={token ?? ""}
           username={user?.username ?? ""}
+          damAccess={damAccess}
           categories={visibleCategories}
           onComplete={handleUploadComplete}
           onClose={() => setShowUpload(false)}
