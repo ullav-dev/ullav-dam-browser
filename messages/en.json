@@ -114,14 +114,39 @@
     "terms": "Terms of Service"
   },
   "landing": {
-    "tagline": "Organise, browse, and manage your digital assets — images, videos, documents and more.",
+    "heroHeading1": "Your digital assets,",
+    "heroHeading2": "beautifully organised.",
+    "heroDescription": "Comad is a Digital Asset Manager for teams and creators — store, search, and share images, videos, documents, and more.",
     "openBrowser": "Open Asset Browser",
-    "feature1Title": "Organised Categories",
-    "feature1Desc": "Browse assets by hierarchical category trees",
-    "feature2Title": "Fast Search",
-    "feature2Desc": "Find assets instantly by name, keywords, or caption",
-    "feature3Title": "Rich Metadata",
-    "feature3Desc": "Edit captions, keywords, creator info and rights"
+    "seePricing": "See Pricing",
+    "featuresHeading": "Everything you need to manage your media",
+    "ctaText": "Ready to take control of your digital assets?",
+    "features": {
+      "categories": {
+        "title": "Hierarchical Categories",
+        "description": "Organise assets into nested categories. Drag to reparent, create sub-categories, and filter the grid with a click."
+      },
+      "search": {
+        "title": "Full-text Search",
+        "description": "Find any asset instantly by name, keywords, caption, creator, or description — all client-side, no delay."
+      },
+      "metadata": {
+        "title": "Rich Metadata",
+        "description": "Edit captions, keywords, copyright, availability windows, and creator info directly in the details panel."
+      },
+      "upload": {
+        "title": "Flexible Upload",
+        "description": "Upload multiple files at once with shared metadata. Import entire folder structures from a ZIP archive."
+      },
+      "editor": {
+        "title": "In-browser Image Editor",
+        "description": "Crop and rotate JPEG, PNG, and WebP images without leaving the app. Save as a new asset or replace the original."
+      },
+      "privacy": {
+        "title": "Privacy Controls",
+        "description": "Mark assets as private or public. Control who can read, download, or write — per asset."
+      }
+    }
   },
   "login": {
     "tabSignIn": "Sign in",

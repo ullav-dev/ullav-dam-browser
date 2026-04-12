@@ -114,14 +114,39 @@
     "terms": "Nutzungsbedingungen"
   },
   "landing": {
-    "tagline": "Organisieren, durchsuchen und verwalten Sie Ihre digitalen Assets — Bilder, Videos, Dokumente und mehr.",
+    "heroHeading1": "Ihre digitalen Assets,",
+    "heroHeading2": "wunderbar organisiert.",
+    "heroDescription": "Comad ist ein digitales Asset-Management-System für Teams und Creator — speichern, suchen und teilen Sie Bilder, Videos, Dokumente und mehr.",
     "openBrowser": "Asset-Browser öffnen",
-    "feature1Title": "Organisierte Kategorien",
-    "feature1Desc": "Assets nach hierarchischen Kategoriebäumen durchsuchen",
-    "feature2Title": "Schnelle Suche",
-    "feature2Desc": "Assets sofort nach Name, Schlüsselwörtern oder Bildunterschriften finden",
-    "feature3Title": "Detaillierte Metadaten",
-    "feature3Desc": "Bildunterschriften, Schlüsselwörter, Ersteller-Info und Rechte bearbeiten"
+    "seePricing": "Preise ansehen",
+    "featuresHeading": "Alles, was Sie für Ihre Medienverwaltung brauchen",
+    "ctaText": "Bereit, Ihre digitalen Assets in den Griff zu bekommen?",
+    "features": {
+      "categories": {
+        "title": "Hierarchische Kategorien",
+        "description": "Organisieren Sie Assets in verschachtelten Kategorien. Drag & Drop zum Verschieben, Erstellen von Unterkategorien und filtern per Klick."
+      },
+      "search": {
+        "title": "Volltextsuche",
+        "description": "Finden Sie jedes Asset sofort nach Name, Stichwörtern, Bildunterschrift, Ersteller oder Beschreibung — vollständig clientseitig."
+      },
+      "metadata": {
+        "title": "Umfangreiche Metadaten",
+        "description": "Bearbeiten Sie Bildunterschriften, Stichwörter, Copyright, Verfügbarkeitszeitraum und Erstellerinformationen direkt im Detailbereich."
+      },
+      "upload": {
+        "title": "Flexibler Upload",
+        "description": "Laden Sie mehrere Dateien auf einmal mit gemeinsamen Metadaten hoch. Importieren Sie ganze Ordnerstrukturen aus einem ZIP-Archiv."
+      },
+      "editor": {
+        "title": "In-Browser-Bildeditor",
+        "description": "Beschneiden und drehen Sie JPEG-, PNG- und WebP-Bilder ohne die App zu verlassen. Als neues Asset speichern oder das Original ersetzen."
+      },
+      "privacy": {
+        "title": "Datenschutzeinstellungen",
+        "description": "Markieren Sie Assets als privat oder öffentlich. Steuern Sie, wer lesen, herunterladen oder schreiben darf — pro Asset."
+      }
+    }
   },
   "login": {
     "tabSignIn": "Anmelden",

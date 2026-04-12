@@ -114,14 +114,39 @@
     "terms": "Téarmaí Seirbhíse"
   },
   "landing": {
-    "tagline": "Eagraigh, brabhsáil agus bainistigh do shócmhainní digiteacha — íomhánna, físeáin, cáipéisí agus tuilleadh.",
-    "openBrowser": "Oscail Brabhsálaí Sócmhainní",
-    "feature1Title": "Catagóirí Eagraithe",
-    "feature1Desc": "Brabhsáil sócmhainní de réir crainnte catagóirí ordlathach",
-    "feature2Title": "Cuardach Tapa",
-    "feature2Desc": "Faigh sócmhainní láithreach de réir ainm, eochairfhocal nó fotheideal",
-    "feature3Title": "Meiteashonraí Saibhre",
-    "feature3Desc": "Cuir fotheidil, eochairfhocail, faisnéis cruthaitheora agus cearta in eagar"
+    "heroHeading1": "Do shócmhainní digiteacha,",
+    "heroHeading2": "eagraithe go hálainn.",
+    "heroDescription": "Is córas bainistíochta sócmhainní digiteacha é Comad do fhoirne agus do chruthaitheoirí — stóráil, cuardaigh agus comhroinne íomhánna, físeáin, cáipéisí agus níos mó.",
+    "openBrowser": "Brabhsálaí Sócmhainní a Oscailt",
+    "seePricing": "Féach ar Phraghsanna",
+    "featuresHeading": "Gach rud a theastaíonn chun do mheáin a bhainistiú",
+    "ctaText": "Réidh chun smacht a fháil ar do shócmhainní digiteacha?",
+    "features": {
+      "categories": {
+        "title": "Catagóirí Ordlathach",
+        "description": "Eagraigh sócmhainní i gcatagóirí neadaithe. Tarraing chun athshuíomh, cruthaigh fo-chatagóirí, agus scagadh le cliceáil."
+      },
+      "search": {
+        "title": "Cuardach Lántéacs",
+        "description": "Aimsigh aon sócmhainn láithreach de réir ainm, eochairfhocail, fotheideal, cruthaitheoir nó tuairisc."
+      },
+      "metadata": {
+        "title": "Meiteashonraí Saibhre",
+        "description": "Cuir fotheidil, eochairfhocail, cóipcheart, fuinneoga infhaighteachta agus faisnéis cruthaitheora in eagar sa phainéal sonraí."
+      },
+      "upload": {
+        "title": "Uaslódáil Solúbtha",
+        "description": "Uaslódáil comhaid iolracha le meiteashonraí comhroinnte. Iompórtáil struchtúir fillteán iomlána ó chartlann ZIP."
+      },
+      "editor": {
+        "title": "Eagarthóir Íomhánna sa Bhrabhsálaí",
+        "description": "Bearr agus rothlaigh íomhánna JPEG, PNG agus WebP gan an aip a fhágáil. Sábháil mar shócmhainn nua nó ionadaigh an ceann bunaidh."
+      },
+      "privacy": {
+        "title": "Rialuithe Príobháideachta",
+        "description": "Marcáil sócmhainní mar phríobháideach nó poiblí. Rialaigh cé is féidir léamh, íoslódáil nó scríobh — in aghaidh sócmhainne."
+      }
+    }
   },
   "login": {
     "tabSignIn": "Logáil Isteach",
