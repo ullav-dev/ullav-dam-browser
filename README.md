@@ -22,7 +22,7 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Image editor** — crop and rotate JPEG/PNG/WebP assets in a full-screen editor; save as a new asset (with a prompted name, pre-filled as `originalName_edited`) or replace the current file in place
 - **Privacy controls** — assets can be private (owner-only) or public; the grid only shows other users' assets when `is_private` is false
 - **Idle session timeout** — automatic logout after configurable inactivity period (default 1 hour); 60 s warning modal with countdown and Stay Logged In / Log Out Now options
-- **Multi-file upload** with shared metadata and category pre-selection
+- **Multi-file upload** with shared metadata; if a category is selected in the browser when the upload dialog opens, all uploaded files are automatically assigned to it
 - **ZIP import** with three modes: upload ZIP only, upload ZIP and expand contents, or expand contents only; creator attributed to uploading user on all extracted assets
 - **Authentication** via `ullav-user-management` (login, register, email confirmation, password reset)
 - **SSO handoff** from ullav-portal — clicking Comad in the portal sidebar lands the user already authenticated (no second login)

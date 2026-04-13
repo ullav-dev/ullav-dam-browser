@@ -209,11 +209,13 @@ When `updatedAt` changes (e.g. after file replacement), a `useEffect` resets the
 - **Thumbnail error**: shows "No preview available" text instead of a blank grey box
 - **Thumbnail cache-bust**: thumbnail `src` uses `asset.updated_at` as `?v=` param; `useEffect([asset.updated_at])` resets `thumbFailed` so the image retries after replacement
 
-## UploadModal — creator, access control, and ZIP import modes
+## UploadModal — creator, access control, category auto-assign, and ZIP import modes
 
 Props: `username: string` — the logged-in user's username. The `creator` field is pre-filled from `username` and is read-only (no setter); users cannot change it.
 
 Props: `damAccess: DamAccess` — passed from `browse/page.tsx`. When `"images-only"`, non-image files and ZIPs are filtered out of the file list as they are added (via the `addFiles` callback). An amber banner is shown inside the modal informing the user of the plan restriction.
+
+Props: `initialCategoryId?: string` / `initialCategoryName?: string` — when a specific category is selected in the browser at the time the modal opens, `browse/page.tsx` passes its ID and name. After each regular file upload (and ZIP files in `zip-only` mode), `addCategoryToAsset` is called automatically. A blue info banner displays *"Will be added to category: {name}"*. ZIP content-mode uploads (`contents-only` / `zip-and-contents`) are excluded — they create their own category tree from the ZIP structure. `onComplete` receives `assignedCategoryId` as a second argument so `browse/page.tsx` can pre-seed `assetCategories` state for all uploaded assets immediately.
 
 When a ZIP file is detected (by MIME type or `.zip` extension), a per-file mode
 selector appears below the file row with three options:
