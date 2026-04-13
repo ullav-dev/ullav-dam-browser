@@ -5,7 +5,23 @@ import {
   requestPasswordReset,
   confirmPasswordReset,
   changePassword,
+  getDamAccess,
 } from "@/lib/auth-api";
+
+// ── JWT stub builder (no signature verification in getDamAccess) ──────────────
+
+function makeJwt(payload: object): string {
+  const b64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `header.${b64}.sig`;
+}
+
+function clannJwt(tier: string, status: string): string {
+  return makeJwt({ sub: "u1", subscriptions: { clann: { tier, status } } });
+}
+
+function noSubsJwt(): string {
+  return makeJwt({ sub: "u1" });
+}
 
 function mockFetch(status: number, body: unknown, contentType = "application/json") {
   global.fetch = jest.fn().mockResolvedValue({
@@ -186,5 +202,106 @@ describe("changePassword", () => {
     const [, init] = (global.fetch as jest.Mock).mock.calls[0];
     const body = JSON.parse(init.body as string);
     expect(body.new_password).toBe("newpass");
+  });
+});
+
+// ── getDamAccess ──────────────────────────────────────────────────────────────
+
+describe("getDamAccess", () => {
+  it('returns "none" for null token', () => {
+    expect(getDamAccess(null)).toBe("none");
+  });
+
+  it('returns "none" for a malformed token', () => {
+    expect(getDamAccess("not.a.jwt")).toBe("none");
+    expect(getDamAccess("totally-invalid")).toBe("none");
+  });
+
+  it('returns "none" when there is no subscriptions claim', () => {
+    expect(getDamAccess(noSubsJwt())).toBe("none");
+  });
+
+  it('returns "none" for individual active subscription', () => {
+    // Individual plan has no DAM access
+    expect(getDamAccess(clannJwt("individual", "active"))).toBe("none");
+  });
+
+  it('returns "images-only" for family active subscription', () => {
+    expect(getDamAccess(clannJwt("family", "active"))).toBe("images-only");
+  });
+
+  it('returns "images-only" for family trialing subscription', () => {
+    expect(getDamAccess(clannJwt("family", "trialing"))).toBe("images-only");
+  });
+
+  it('returns "full" for professional active subscription', () => {
+    expect(getDamAccess(clannJwt("professional", "active"))).toBe("full");
+  });
+
+  it('returns "full" for enterprise active subscription', () => {
+    expect(getDamAccess(clannJwt("enterprise", "active"))).toBe("full");
+  });
+
+  it('returns "full" for professional trialing subscription', () => {
+    expect(getDamAccess(clannJwt("professional", "trialing"))).toBe("full");
+  });
+
+  it('returns "none" for a canceled family subscription', () => {
+    // Inactive subscription → no access regardless of tier
+    expect(getDamAccess(clannJwt("family", "canceled"))).toBe("none");
+  });
+
+  it('returns "none" for a past_due professional subscription', () => {
+    expect(getDamAccess(clannJwt("professional", "past_due"))).toBe("none");
+  });
+});
+
+// ── getDamAccess — comad subscription ─────────────────────────────────────────
+
+function comadJwt(tier: string, status: string): string {
+  return makeJwt({ sub: "u1", subscriptions: { comad: { tier, status } } });
+}
+
+function bothJwt(comadTier: string, comadStatus: string, clannTier: string, clannStatus: string): string {
+  return makeJwt({
+    sub: "u1",
+    subscriptions: {
+      comad: { tier: comadTier, status: comadStatus },
+      clann: { tier: clannTier, status: clannStatus },
+    },
+  });
+}
+
+describe("getDamAccess (comad subscription)", () => {
+  it('returns "images-only" for comad individual active', () => {
+    expect(getDamAccess(comadJwt("individual", "active"))).toBe("images-only");
+  });
+
+  it('returns "full" for comad team active', () => {
+    expect(getDamAccess(comadJwt("team", "active"))).toBe("full");
+  });
+
+  it('returns "full" for comad enterprise active', () => {
+    expect(getDamAccess(comadJwt("enterprise", "active"))).toBe("full");
+  });
+
+  it('returns "full" for comad team trialing', () => {
+    expect(getDamAccess(comadJwt("team", "trialing"))).toBe("full");
+  });
+
+  it('returns "none" for comad team canceled', () => {
+    expect(getDamAccess(comadJwt("team", "canceled"))).toBe("none");
+  });
+
+  it('comad takes priority over clann — comad team + clann individual gives full', () => {
+    expect(getDamAccess(bothJwt("team", "active", "individual", "active"))).toBe("full");
+  });
+
+  it('falls back to clann when comad is absent — clann family gives images-only', () => {
+    expect(getDamAccess(clannJwt("family", "active"))).toBe("images-only");
+  });
+
+  it('uses highest access — comad individual + clann professional gives full', () => {
+    expect(getDamAccess(bothJwt("individual", "active", "professional", "active"))).toBe("full");
   });
 });

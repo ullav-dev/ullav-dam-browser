@@ -2,13 +2,14 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import type { AuthUser, LoginResponse } from "@/lib/auth-api";
-import { login as apiLogin } from "@/lib/auth-api";
+import type { AuthUser, DamAccess, LoginResponse } from "@/lib/auth-api";
+import { login as apiLogin, getDamAccess } from "@/lib/auth-api";
 
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
   roles: string[];
+  damAccess: DamAccess;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthState>({
   user: null,
   token: null,
   roles: [],
+  damAccess: "none",
   isLoading: true,
   login: async () => { throw new Error("AuthProvider not mounted"); },
   logout: () => {},
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
+  const [damAccess, setDamAccess] = useState<DamAccess>("none");
   const [isLoading, setIsLoading] = useState(true);
   const [idleWarning, setIdleWarning] = useState(false);
 
@@ -115,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(parsed.user);
           setToken(parsed.token);
           setRoles(parsed.roles);
+          setDamAccess(getDamAccess(parsed.token));
         }
       }
     } catch {
@@ -130,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setToken(null);
     setRoles([]);
+    setDamAccess("none");
     setIdleWarning(false);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
@@ -138,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(session.user);
     setToken(session.token);
     setRoles(session.roles);
+    setDamAccess(getDamAccess(session.token));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   }, []);
 
@@ -199,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <AuthContext.Provider value={{ user, token, roles, isLoading, login, logout, setSession }}>
+    <AuthContext.Provider value={{ user, token, roles, damAccess, isLoading, login, logout, setSession }}>
       {children}
       {idleWarning && (
         <IdleWarningModal onStay={startTimers} onLogout={logout} />

@@ -14,7 +14,7 @@ import { getDescendantIds } from "@/components/CategoryTree";
 import { useTranslations } from "next-intl";
 
 export default function BrowsePage() {
-  const { user, token, isLoading } = useAuth();
+  const { user, token, damAccess, isLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations("browse");
 
@@ -375,7 +375,7 @@ export default function BrowsePage() {
   );
 
   const handleUploadComplete = useCallback(
-    async (uploaded: api.Asset[]) => {
+    async (uploaded: api.Asset[], assignedCategoryId?: string) => {
       setAssets((prev) => [...uploaded.reverse(), ...prev]);
       const first = uploaded[0];
       if (first && token) {
@@ -386,6 +386,14 @@ export default function BrowsePage() {
           setAssetCategories((prev) => {
             const next = new Map(prev);
             next.set(first.id, detail.categories.map((c) => c.id));
+            // Seed the remaining uploaded assets with the assigned category so
+            // they appear in the correct category filter before the background
+            // loader picks them up.
+            if (assignedCategoryId) {
+              for (const asset of uploaded.slice(1)) {
+                next.set(asset.id, [assignedCategoryId]);
+              }
+            }
             return next;
           });
         } catch {
@@ -404,6 +412,11 @@ export default function BrowsePage() {
   const visibleCategories = categories.filter(
     (c) => !c.creator || c.creator === user?.username || c.access_level === "Global"
   );
+
+  const selectedCategory =
+    typeof selectedCategoryId === "string"
+      ? visibleCategories.find((c) => c.id === selectedCategoryId)
+      : undefined;
 
   // Asset count display
   const countLabel = loadingAssets
@@ -523,7 +536,9 @@ export default function BrowsePage() {
           </div>
           <button
             onClick={() => setShowUpload(true)}
-            className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shrink-0"
+            disabled={damAccess === "none"}
+            title={damAccess === "none" ? t("uploadNoAccessTitle") : undefined}
+            className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shrink-0"
           >
             <span>+</span> {t("uploadButton")}
           </button>
@@ -646,7 +661,9 @@ export default function BrowsePage() {
         <UploadModal
           token={token ?? ""}
           username={user?.username ?? ""}
-          categories={visibleCategories}
+          damAccess={damAccess}
+          initialCategoryId={selectedCategory?.id}
+          initialCategoryName={selectedCategory?.name}
           onComplete={handleUploadComplete}
           onClose={() => setShowUpload(false)}
           onZipResult={(result) => {

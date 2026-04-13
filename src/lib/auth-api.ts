@@ -42,6 +42,89 @@ async function authRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
+// ── DAM access level (derived client-side from JWT claims) ────────────────────
+
+export type DamAccess = "none" | "images-only" | "full";
+
+/** Comad subscription tiers. */
+export type ComadTier = "individual" | "team" | "enterprise" | null;
+
+export interface ComadSubscription {
+  tier: ComadTier;
+  status: string | null;
+  isActive: boolean;
+}
+
+function decodePayload(token: string): Record<string, unknown> | null {
+  try {
+    const b64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(b64));
+  } catch {
+    return null;
+  }
+}
+
+function isActiveStatus(status: string | undefined): boolean {
+  return status === "active" || status === "trialing";
+}
+
+/**
+ * Decode the JWT payload without verification (server enforces; client uses for UX only).
+ * Admins always get full access. Otherwise checks subscriptions["comad"] first,
+ * then falls back to subscriptions["clann"] for users who have DAM access bundled
+ * with their Clann plan.
+ */
+export function getDamAccess(token: string | null): DamAccess {
+  if (!token) return "none";
+  const payload = decodePayload(token);
+  if (!payload) return "none";
+
+  // Admins bypass all subscription checks.
+  const roles = (payload.roles ?? []) as string[];
+  if (roles.includes("admin")) return "full";
+
+  const subs = (payload.subscriptions ?? {}) as Record<string, { tier?: string; status?: string }>;
+
+  // Comad standalone subscription access
+  const comad = subs["comad"];
+  const comadAccess: DamAccess = comad && isActiveStatus(comad.status)
+    ? comad.tier === "team" || comad.tier === "enterprise"
+      ? "full"
+      : comad.tier === "individual"
+      ? "images-only"
+      : "none"
+    : "none";
+
+  // Clann bundled DAM access
+  const clann = subs["clann"];
+  const clannAccess: DamAccess = clann && isActiveStatus(clann.status)
+    ? clann.tier === "professional" || clann.tier === "enterprise"
+      ? "full"
+      : clann.tier === "family"
+      ? "images-only"
+      : "none"
+    : "none";
+
+  // Return the highest access level from either subscription.
+  if (comadAccess === "full" || clannAccess === "full") return "full";
+  if (comadAccess === "images-only" || clannAccess === "images-only") return "images-only";
+  return "none";
+}
+
+/** Decode Comad subscription details from a JWT (client-side, no signature verification). */
+export function decodeComadSubscription(token: string | null): ComadSubscription {
+  const none: ComadSubscription = { tier: null, status: null, isActive: false };
+  if (!token) return none;
+  const payload = decodePayload(token);
+  if (!payload) return none;
+  const comad = payload?.subscriptions && (payload.subscriptions as Record<string, unknown>)["comad"] as { tier?: string; status?: string } | undefined;
+  if (!comad) return none;
+  const status = comad.status ?? null;
+  const isActive = isActiveStatus(comad.status);
+  const tier = isActive ? (comad.tier as ComadTier) ?? "individual" : null;
+  return { tier, status, isActive };
+}
+
 export const login = (email: string, password: string): Promise<LoginResponse> =>
   authRequest("/auth/login", {
     method: "POST",
@@ -90,4 +173,46 @@ export const changePassword = (
     method: "PUT",
     headers: { Authorization: `Bearer ${bearerToken}` },
     body: JSON.stringify({ new_password: newPassword, current_password: currentPassword }),
+  });
+
+// ── Subscription API ──────────────────────────────────────────────────────────
+
+export interface SubscriptionInfo {
+  id: string;
+  product: string;
+  plan: string;
+  status: string;
+  seat_count: number;
+  trial_end?: string;
+  current_period_start?: string;
+  current_period_end?: string;
+  created_at: string;
+}
+
+export interface CheckoutResponse {
+  url: string;
+}
+
+export const getSubscription = (product: string, token: string): Promise<SubscriptionInfo> =>
+  authRequest(`/subscriptions/current?product=${encodeURIComponent(product)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const createCheckoutSession = (
+  provider: string,
+  product: string,
+  plan: string,
+  seatCount: number,
+  token: string
+): Promise<CheckoutResponse> =>
+  authRequest("/subscriptions/checkout", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ provider, product, plan, seat_count: seatCount }),
+  });
+
+export const createPortalSession = (token: string): Promise<CheckoutResponse> =>
+  authRequest("/subscriptions/portal", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
   });

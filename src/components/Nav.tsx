@@ -56,16 +56,21 @@ export default function Nav() {
                 </div>
               </>
             ) : !isLoading ? (
-              <Link
-                href="/login"
-                className={`text-sm font-medium px-4 py-1.5 rounded-lg border transition-colors ${
-                  pathname === "/login"
-                    ? "border-blue-600 text-blue-700 bg-blue-50"
-                    : "border-slate-300 text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {t("signIn")}
-              </Link>
+              <>
+                <Link href="/pricing" className={navLink("/pricing")}>
+                  {t("pricing")}
+                </Link>
+                <Link
+                  href="/login"
+                  className={`text-sm font-medium px-4 py-1.5 rounded-lg border transition-colors ${
+                    pathname === "/login"
+                      ? "border-blue-600 text-blue-700 bg-blue-50"
+                      : "border-slate-300 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {t("signIn")}
+                </Link>
+              </>
             ) : null}
             <Link href="/help" className={navLink("/help")}>
               {t("help")}

@@ -1,4 +1,94 @@
 {
+  "pricing": {
+    "heading": "Wählen Sie Ihren Comad-Plan",
+    "subheading": "Starten Sie kostenlos und wechseln Sie, wenn Ihre Bibliothek wächst. Team-Plan mit 7 Tagen kostenloser Testphase.",
+    "perMonth": "/ Monat",
+    "mostPopular": "Beliebteste Wahl",
+    "trialNote": "Der Team-Plan enthält eine 7-tägige kostenlose Testphase.",
+    "learnMore": "Mehr erfahren",
+    "checkoutTitle": "Abonnieren",
+    "checkoutError": "Checkout konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+    "paymentProvider": "Bezahlen mit",
+    "proceedToPayment": "Weiter zur Zahlung →",
+    "redirecting": "Weiterleiten…",
+    "cancel": "Abbrechen",
+    "plans": {
+      "individual": {
+        "name": "Einzelperson",
+        "price": "Kostenlos",
+        "description": "Für persönliche Projekte und Einzelnutzer.",
+        "cta": "Jetzt starten",
+        "features": [
+          "1 Benutzer",
+          "Bis zu 100 Medien",
+          "100 MB Cloud-Speicher",
+          "Nur Bilder hochladen",
+          "Hierarchische Kategorien",
+          "Volltextsuche",
+          "Community-Support"
+        ]
+      },
+      "team": {
+        "name": "Team",
+        "price": "€8",
+        "description": "Für Teams mit allen Dateitypen und mehr Speicher.",
+        "cta": "Abonnieren",
+        "features": [
+          "Bis zu 10 Benutzer",
+          "Bis zu 10.000 Medien",
+          "50 GB Cloud-Speicher",
+          "Alle Dateitypen (Bilder, Video, Audio, Dokumente)",
+          "ZIP-Massenimport",
+          "Bildbearbeitung im Browser",
+          "E-Mail-Support",
+          "7-tägige kostenlose Testphase"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Individuell",
+        "description": "Für große Teams und Organisationen.",
+        "cta": "Kontakt",
+        "features": [
+          "Unbegrenzte Benutzer",
+          "Unbegrenzte Medien",
+          "Benutzerdefinierter Speicher",
+          "Alle Dateitypen inkl. RAW",
+          "Custom Branding",
+          "API-Zugang",
+          "SSO-Integration",
+          "On-Site / Hybrid-Betrieb",
+          "Support nach Vereinbarung"
+        ]
+      }
+    }
+  },
+  "subscription": {
+    "heading": "Ihr Comad-Abonnement",
+    "subheading": "Verwalten Sie Ihren Plan und Ihre Abrechnungsdaten.",
+    "backToBrowse": "Zurück zur Übersicht",
+    "currentPlan": "Aktueller Plan",
+    "product": "Produkt",
+    "seats": "Plätze",
+    "periodStart": "Zeitraumbeginn",
+    "periodEnd": "Zeitraumende",
+    "memberSince": "Mitglied seit",
+    "trialEnds": "Testphase endet {date}",
+    "upgradePlan": "Plan upgraden",
+    "manageBilling": "Abrechnung verwalten",
+    "changePlan": "Plan wechseln",
+    "redirecting": "Weiterleiten…",
+    "loadError": "Abonnementdetails konnten nicht geladen werden.",
+    "portalError": "Abrechnungsportal konnte nicht geöffnet werden.",
+    "helpText": "Fragen zu Ihrem Abonnement?",
+    "helpLink": "Hilfe aufrufen"
+  },
+  "subscriptionSuccess": {
+    "heading": "Sie sind abonniert!",
+    "message": "Ihr Comad-Abonnement ist jetzt aktiv.",
+    "viewSubscription": "Abonnement ansehen",
+    "goToBrowse": "Medien durchsuchen"
+  },
   "idleWarning": {
     "title": "Sitzung läuft ab",
     "message": "Sie waren inaktiv. Sie werden in {seconds} Sekunden automatisch abgemeldet.",
@@ -15,7 +105,8 @@
     "assets": "Assets",
     "help": "Hilfe",
     "signOut": "Abmelden",
-    "signIn": "Anmelden"
+    "signIn": "Anmelden",
+    "pricing": "Preise"
   },
   "footer": {
     "copyright": "© {year} Comad",
@@ -23,14 +114,39 @@
     "terms": "Nutzungsbedingungen"
   },
   "landing": {
-    "tagline": "Organisieren, durchsuchen und verwalten Sie Ihre digitalen Assets — Bilder, Videos, Dokumente und mehr.",
+    "heroHeading1": "Ihre digitalen Assets,",
+    "heroHeading2": "wunderbar organisiert.",
+    "heroDescription": "Comad ist ein digitales Asset-Management-System für Teams und Creator — speichern, suchen und teilen Sie Bilder, Videos, Dokumente und mehr.",
     "openBrowser": "Asset-Browser öffnen",
-    "feature1Title": "Organisierte Kategorien",
-    "feature1Desc": "Assets nach hierarchischen Kategoriebäumen durchsuchen",
-    "feature2Title": "Schnelle Suche",
-    "feature2Desc": "Assets sofort nach Name, Schlüsselwörtern oder Bildunterschriften finden",
-    "feature3Title": "Detaillierte Metadaten",
-    "feature3Desc": "Bildunterschriften, Schlüsselwörter, Ersteller-Info und Rechte bearbeiten"
+    "seePricing": "Preise ansehen",
+    "featuresHeading": "Alles, was Sie für Ihre Medienverwaltung brauchen",
+    "ctaText": "Bereit, Ihre digitalen Assets in den Griff zu bekommen?",
+    "features": {
+      "categories": {
+        "title": "Hierarchische Kategorien",
+        "description": "Organisieren Sie Assets in verschachtelten Kategorien. Drag & Drop zum Verschieben, Erstellen von Unterkategorien und filtern per Klick."
+      },
+      "search": {
+        "title": "Volltextsuche",
+        "description": "Finden Sie jedes Asset sofort nach Name, Stichwörtern, Bildunterschrift, Ersteller oder Beschreibung — vollständig clientseitig."
+      },
+      "metadata": {
+        "title": "Umfangreiche Metadaten",
+        "description": "Bearbeiten Sie Bildunterschriften, Stichwörter, Copyright, Verfügbarkeitszeitraum und Erstellerinformationen direkt im Detailbereich."
+      },
+      "upload": {
+        "title": "Flexibler Upload",
+        "description": "Laden Sie mehrere Dateien auf einmal mit gemeinsamen Metadaten hoch. Importieren Sie ganze Ordnerstrukturen aus einem ZIP-Archiv."
+      },
+      "editor": {
+        "title": "In-Browser-Bildeditor",
+        "description": "Beschneiden und drehen Sie JPEG-, PNG- und WebP-Bilder ohne die App zu verlassen. Als neues Asset speichern oder das Original ersetzen."
+      },
+      "privacy": {
+        "title": "Datenschutzeinstellungen",
+        "description": "Markieren Sie Assets als privat oder öffentlich. Steuern Sie, wer lesen, herunterladen oder schreiben darf — pro Asset."
+      }
+    }
   },
   "login": {
     "tabSignIn": "Anmelden",
@@ -112,7 +228,8 @@
     "filteredBySearch": "· \"{query}\"",
     "loadError": "Erneut versuchen",
     "loadingAssets": "Assets werden geladen…",
-    "selectAssetPrompt": "Asset auswählen, um Details anzuzeigen und zu bearbeiten"
+    "selectAssetPrompt": "Asset auswählen, um Details anzuzeigen und zu bearbeiten",
+    "uploadNoAccessTitle": "DAM-Zugriff erfordert ein Family-Abonnement oder höher"
   },
   "categoryTree": {
     "allAssets": "Alle Assets",
@@ -139,8 +256,8 @@
     "noAssets": "Noch keine Assets.",
     "paginationShow": "Anzeigen",
     "paginationPerPage": "pro Seite · {count} gesamt",
-    "paginationPrev": "‹ Zurück",
-    "paginationNext": "Weiter ›",
+    "paginationPrev": "‹",
+    "paginationNext": "›",
     "unavailable": "NICHT VERFÜGBAR",
     "editImage": "Bild bearbeiten"
   },
@@ -253,14 +370,15 @@
     "fieldKeywordsPlaceholder": "kommagetrennt",
     "fieldCreator": "Ersteller",
     "fieldCopyright": "Urheberrecht",
-    "fieldCategories": "Kategorien",
+    "autoAssignCategory": "Wird zur Kategorie hinzugefügt: {name}",
     "summaryAllDone": "{count, plural, one {# Datei erfolgreich hochgeladen.} other {Alle # Dateien erfolgreich hochgeladen.}}",
     "summaryPartial": "{done} von {total} Dateien hochgeladen. {failed} fehlgeschlagen.",
     "buttonClose": "Schließen",
     "buttonCancel": "Abbrechen",
     "buttonUpload": "{count, plural, one {# Datei hochladen} other {# Dateien hochladen}}",
     "buttonUploading": "Hochladen {current}/{total}…",
-    "zipAndPrefix": "ZIP + "
+    "zipAndPrefix": "ZIP + ",
+    "planImagesOnly": "Family-Plan: Nur Bilddateien können hochgeladen werden. Upgraden Sie auf Professional für alle Dateitypen."
   },
   "modals": {
     "termsTitle": "Nutzungsbedingungen",
@@ -292,7 +410,7 @@
       "zipTitle": "ZIP-Datei-Modi",
       "zipBody": "Wenn eine ZIP-Datei erkannt wird, erscheint eine Modusauswahl. Wählen Sie Nur ZIP, um die ZIP als einzelnes Asset zu speichern. Wählen Sie Nur Inhalt (Standard), um die ZIP in einen Kategoriebaum zu entpacken. Wählen Sie ZIP + Inhalt für beides.",
       "categoriesTitle": "Kategorien beim Hochladen zuweisen",
-      "categoriesBody": "Wählen Sie im Bereich gemeinsame Metadaten eine oder mehrere Kategorien aus der Kategorieauswahl aus. Alle hochgeladenen Assets werden automatisch diesen Kategorien zugewiesen."
+      "categoriesBody": "Wenn beim Öffnen des Upload-Dialogs eine Kategorie im Browser ausgewählt ist, werden alle hochgeladenen Dateien automatisch dieser Kategorie zugewiesen. Um weitere Kategorien zuzuweisen, wählen Sie das Asset danach aus und verwenden die Kategoriesteuerelemente im rechten Bereich."
     },
     "browsing": {
       "title": "Durchsuchen & Suchen",

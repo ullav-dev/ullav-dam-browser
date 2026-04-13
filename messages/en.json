@@ -1,4 +1,94 @@
 {
+  "pricing": {
+    "heading": "Choose your Comad plan",
+    "subheading": "Start free and upgrade as your library grows. 7-day trial included on the Team plan.",
+    "perMonth": "/ mo",
+    "mostPopular": "Most Popular",
+    "trialNote": "The Team plan includes a 7-day free trial — no charge until the trial ends.",
+    "learnMore": "Learn more",
+    "checkoutTitle": "Subscribe",
+    "checkoutError": "Could not start checkout. Please try again.",
+    "paymentProvider": "Pay with",
+    "proceedToPayment": "Proceed to Payment →",
+    "redirecting": "Redirecting…",
+    "cancel": "Cancel",
+    "plans": {
+      "individual": {
+        "name": "Individual",
+        "price": "Free",
+        "description": "For personal projects and solo users.",
+        "cta": "Get Started",
+        "features": [
+          "1 user seat",
+          "Up to 100 assets",
+          "100 MB cloud storage",
+          "Image uploads only",
+          "Hierarchical categories",
+          "Full-text search",
+          "Community support"
+        ]
+      },
+      "team": {
+        "name": "Team",
+        "price": "€8",
+        "description": "For teams who need all file types and more storage.",
+        "cta": "Subscribe",
+        "features": [
+          "Up to 10 user seats",
+          "Up to 10,000 assets",
+          "50 GB cloud storage",
+          "All file types (images, video, audio, docs)",
+          "ZIP batch import",
+          "In-browser image editor",
+          "Email support",
+          "7-day free trial"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "description": "For large teams and institutions with custom needs.",
+        "cta": "Contact Us",
+        "features": [
+          "Unlimited user seats",
+          "Unlimited assets",
+          "Custom cloud storage",
+          "All file types including RAW",
+          "Custom branding",
+          "API access",
+          "SSO integration",
+          "On-site / hybrid deployment",
+          "By Agreement support"
+        ]
+      }
+    }
+  },
+  "subscription": {
+    "heading": "Your Comad subscription",
+    "subheading": "Manage your plan and billing details.",
+    "backToBrowse": "Back to Browse",
+    "currentPlan": "Current plan",
+    "product": "Product",
+    "seats": "Seats",
+    "periodStart": "Period start",
+    "periodEnd": "Period end",
+    "memberSince": "Member since",
+    "trialEnds": "Trial ends {date}",
+    "upgradePlan": "Upgrade plan",
+    "manageBilling": "Manage billing",
+    "changePlan": "Change plan",
+    "redirecting": "Redirecting…",
+    "loadError": "Failed to load subscription details.",
+    "portalError": "Could not open billing portal. Please try again.",
+    "helpText": "Questions about your subscription?",
+    "helpLink": "Visit Help"
+  },
+  "subscriptionSuccess": {
+    "heading": "You're subscribed!",
+    "message": "Your Comad subscription is now active. It may take a moment for your plan to be reflected across all apps.",
+    "viewSubscription": "View Subscription",
+    "goToBrowse": "Browse Assets"
+  },
   "idleWarning": {
     "title": "Session Expiring",
     "message": "You have been inactive. You will be logged out in {seconds} seconds.",
@@ -15,7 +105,8 @@
     "assets": "Assets",
     "help": "Help",
     "signOut": "Sign out",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "pricing": "Pricing"
   },
   "footer": {
     "copyright": "© {year} Comad",
@@ -23,14 +114,39 @@
     "terms": "Terms of Service"
   },
   "landing": {
-    "tagline": "Organise, browse, and manage your digital assets — images, videos, documents and more.",
+    "heroHeading1": "Your digital assets,",
+    "heroHeading2": "beautifully organised.",
+    "heroDescription": "Comad is a Digital Asset Manager for teams and creators — store, search, and share images, videos, documents, and more.",
     "openBrowser": "Open Asset Browser",
-    "feature1Title": "Organised Categories",
-    "feature1Desc": "Browse assets by hierarchical category trees",
-    "feature2Title": "Fast Search",
-    "feature2Desc": "Find assets instantly by name, keywords, or caption",
-    "feature3Title": "Rich Metadata",
-    "feature3Desc": "Edit captions, keywords, creator info and rights"
+    "seePricing": "See Pricing",
+    "featuresHeading": "Everything you need to manage your media",
+    "ctaText": "Ready to take control of your digital assets?",
+    "features": {
+      "categories": {
+        "title": "Hierarchical Categories",
+        "description": "Organise assets into nested categories. Drag to reparent, create sub-categories, and filter the grid with a click."
+      },
+      "search": {
+        "title": "Full-text Search",
+        "description": "Find any asset instantly by name, keywords, caption, creator, or description — all client-side, no delay."
+      },
+      "metadata": {
+        "title": "Rich Metadata",
+        "description": "Edit captions, keywords, copyright, availability windows, and creator info directly in the details panel."
+      },
+      "upload": {
+        "title": "Flexible Upload",
+        "description": "Upload multiple files at once with shared metadata. Import entire folder structures from a ZIP archive."
+      },
+      "editor": {
+        "title": "In-browser Image Editor",
+        "description": "Crop and rotate JPEG, PNG, and WebP images without leaving the app. Save as a new asset or replace the original."
+      },
+      "privacy": {
+        "title": "Privacy Controls",
+        "description": "Mark assets as private or public. Control who can read, download, or write — per asset."
+      }
+    }
   },
   "login": {
     "tabSignIn": "Sign in",
@@ -112,7 +228,8 @@
     "filteredBySearch": "· \"{query}\"",
     "loadError": "Retry",
     "loadingAssets": "Loading assets…",
-    "selectAssetPrompt": "Select an asset to view and edit its details"
+    "selectAssetPrompt": "Select an asset to view and edit its details",
+    "uploadNoAccessTitle": "DAM access requires a Family subscription or higher"
   },
   "categoryTree": {
     "allAssets": "All Assets",
@@ -139,8 +256,8 @@
     "noAssets": "No assets yet.",
     "paginationShow": "Show",
     "paginationPerPage": "per page · {count} total",
-    "paginationPrev": "‹ Prev",
-    "paginationNext": "Next ›",
+    "paginationPrev": "‹",
+    "paginationNext": "›",
     "unavailable": "UNAVAILABLE",
     "editImage": "Edit image"
   },
@@ -253,14 +370,15 @@
     "fieldKeywordsPlaceholder": "comma-separated",
     "fieldCreator": "Creator",
     "fieldCopyright": "Copyright",
-    "fieldCategories": "Categories",
+    "autoAssignCategory": "Will be added to category: {name}",
     "summaryAllDone": "{count, plural, one {# file uploaded successfully.} other {All # files uploaded successfully.}}",
     "summaryPartial": "{done} of {total} files uploaded. {failed} failed.",
     "buttonClose": "Close",
     "buttonCancel": "Cancel",
     "buttonUpload": "Upload {count, plural, one {# file} other {# files}}",
     "buttonUploading": "Uploading {current}/{total}…",
-    "zipAndPrefix": "ZIP + "
+    "zipAndPrefix": "ZIP + ",
+    "planImagesOnly": "Family plan: only image files can be uploaded. Upgrade to Professional for all file types."
   },
   "modals": {
     "termsTitle": "Terms of Service",
@@ -292,7 +410,7 @@
       "zipTitle": "ZIP file modes",
       "zipBody": "When a ZIP file is detected, a mode selector appears. Choose ZIP only to store the ZIP as a single asset. Choose Contents only (default) to expand the ZIP into a category tree without storing the ZIP itself. Choose ZIP + contents to do both.",
       "categoriesTitle": "Assigning categories on upload",
-      "categoriesBody": "Select one or more categories from the category picker in the shared metadata section. All uploaded assets will be assigned to those categories automatically."
+      "categoriesBody": "If a category is selected in the browser when you open the upload dialog, all uploaded files will be automatically assigned to that category. To assign further categories, select the asset afterwards and use the category controls in the right panel."
     },
     "browsing": {
       "title": "Browsing & Searching",
