@@ -370,7 +370,7 @@
     "fieldKeywordsPlaceholder": "kommagetrennt",
     "fieldCreator": "Ersteller",
     "fieldCopyright": "Urheberrecht",
-    "fieldCategories": "Kategorien",
+    "autoAssignCategory": "Wird zur Kategorie hinzugefügt: {name}",
     "summaryAllDone": "{count, plural, one {# Datei erfolgreich hochgeladen.} other {Alle # Dateien erfolgreich hochgeladen.}}",
     "summaryPartial": "{done} von {total} Dateien hochgeladen. {failed} fehlgeschlagen.",
     "buttonClose": "Schließen",

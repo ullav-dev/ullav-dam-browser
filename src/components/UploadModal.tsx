@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import type { DamAccess } from "@/lib/auth-api";
-import type { Asset, Category, ZipUploadResult } from "@/lib/dam-api";
+import type { Asset, ZipUploadResult } from "@/lib/dam-api";
 import { createAsset, uploadFile, uploadZip, addCategoryToAsset } from "@/lib/dam-api";
 
 const inputCls =
@@ -67,15 +67,18 @@ interface Props {
   token: string;
   username: string;
   damAccess: DamAccess;
-  categories: Category[];
-  onComplete: (assets: Asset[]) => void;
+  /** When set, every uploaded asset (regular files and zip-only ZIPs) is
+   *  automatically assigned to this category after upload. */
+  initialCategoryId?: string;
+  initialCategoryName?: string;
+  onComplete: (assets: Asset[], assignedCategoryId?: string) => void;
   onClose: () => void;
   /** Called when a ZIP is processed, before onComplete, so the parent can
    *  update its category tree and assetCategories map immediately. */
   onZipResult?: (result: ZipUploadResult) => void;
 }
 
-export default function UploadModal({ token, username, damAccess, categories, onComplete, onClose, onZipResult }: Props) {
+export default function UploadModal({ token, username, damAccess, initialCategoryId, initialCategoryName, onComplete, onClose, onZipResult }: Props) {
   const t = useTranslations("uploadModal");
 
   const ZIP_MODE_OPTIONS: { mode: ZipMode; label: string; title: string }[] = [
@@ -93,13 +96,12 @@ export default function UploadModal({ token, username, damAccess, categories, on
   const [keywords, setKeywords] = useState("");
   const [creator] = useState(username);
   const [copyrightNotice, setCopyrightNotice] = useState("");
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
   const [uploading, setUploading] = useState(false);
   const [allDone, setAllDone] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── File helpers ────────────────────────────────────────────────────────────
+  // ── File helpers ─────────────────────────────────────────────────────────────
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const incoming = Array.from(files);
@@ -231,6 +233,9 @@ export default function UploadModal({ token, username, damAccess, categories, on
           );
 
           const final = await uploadFile(asset.id, entry.file, token);
+          if (initialCategoryId) {
+            await addCategoryToAsset(asset.id, initialCategoryId, token);
+          }
 
           setEntries((prev) =>
             prev.map((e, idx) => (idx === i ? { ...e, status: "done", asset: final } : e))
@@ -247,7 +252,7 @@ export default function UploadModal({ token, username, damAccess, categories, on
 
     setUploading(false);
     setAllDone(true);
-    if (uploaded.length > 0) onComplete(uploaded);
+    if (uploaded.length > 0) onComplete(uploaded, initialCategoryId);
   }
 
   function handleBackdrop(e: React.MouseEvent) {
@@ -291,6 +296,13 @@ export default function UploadModal({ token, username, damAccess, categories, on
         {damAccess === "images-only" && (
           <div className="px-6 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-700">
             {t("planImagesOnly")}
+          </div>
+        )}
+
+        {/* Auto-assign category banner */}
+        {initialCategoryId && initialCategoryName && (
+          <div className="px-6 py-2 bg-blue-50 border-b border-blue-200 text-xs text-blue-700">
+            {t("autoAssignCategory", { name: initialCategoryName })}
           </div>
         )}
 
@@ -484,40 +496,6 @@ export default function UploadModal({ token, username, damAccess, categories, on
                 </div>
               </div>
 
-              {categories.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-slate-700">{t("fieldCategories")}</label>
-                  <div className="flex flex-wrap gap-2 p-2 border border-slate-300 rounded-lg min-h-[40px]">
-                    {categories.map((cat) => {
-                      const checked = selectedCategoryIds.includes(cat.id);
-                      return (
-                        <label
-                          key={cat.id}
-                          className={`inline-flex items-center gap-1.5 cursor-pointer text-xs px-2 py-1 rounded-full border transition-colors ${
-                            checked
-                              ? "bg-blue-100 border-blue-300 text-blue-700"
-                              : "bg-slate-50 border-slate-200 text-slate-600 hover:border-blue-200"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            className="hidden"
-                            checked={checked}
-                            onChange={(e) =>
-                              setSelectedCategoryIds((prev) =>
-                                e.target.checked
-                                  ? [...prev, cat.id]
-                                  : prev.filter((id) => id !== cat.id)
-                              )
-                            }
-                          />
-                          {cat.name}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 

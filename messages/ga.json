@@ -370,7 +370,7 @@
     "fieldKeywordsPlaceholder": "deighilte le camóg",
     "fieldCreator": "Cruthaitheoir",
     "fieldCopyright": "Cóipcheart",
-    "fieldCategories": "Catagóirí",
+    "autoAssignCategory": "Cuirfear le catagóir: {name}",
     "summaryAllDone": "{count, plural, one {# chomhad uaslódáilte go rathúil.} other {Gach # chomhad uaslódáilte go rathúil.}}",
     "summaryPartial": "{done} as {total} comhad uaslódáilte. Theip ar {failed}.",
     "buttonClose": "Dún",

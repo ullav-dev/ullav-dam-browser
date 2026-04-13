@@ -370,7 +370,7 @@
     "fieldKeywordsPlaceholder": "comma-separated",
     "fieldCreator": "Creator",
     "fieldCopyright": "Copyright",
-    "fieldCategories": "Categories",
+    "autoAssignCategory": "Will be added to category: {name}",
     "summaryAllDone": "{count, plural, one {# file uploaded successfully.} other {All # files uploaded successfully.}}",
     "summaryPartial": "{done} of {total} files uploaded. {failed} failed.",
     "buttonClose": "Close",

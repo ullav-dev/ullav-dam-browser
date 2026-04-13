@@ -375,7 +375,7 @@ export default function BrowsePage() {
   );
 
   const handleUploadComplete = useCallback(
-    async (uploaded: api.Asset[]) => {
+    async (uploaded: api.Asset[], assignedCategoryId?: string) => {
       setAssets((prev) => [...uploaded.reverse(), ...prev]);
       const first = uploaded[0];
       if (first && token) {
@@ -386,6 +386,14 @@ export default function BrowsePage() {
           setAssetCategories((prev) => {
             const next = new Map(prev);
             next.set(first.id, detail.categories.map((c) => c.id));
+            // Seed the remaining uploaded assets with the assigned category so
+            // they appear in the correct category filter before the background
+            // loader picks them up.
+            if (assignedCategoryId) {
+              for (const asset of uploaded.slice(1)) {
+                next.set(asset.id, [assignedCategoryId]);
+              }
+            }
             return next;
           });
         } catch {
@@ -404,6 +412,11 @@ export default function BrowsePage() {
   const visibleCategories = categories.filter(
     (c) => !c.creator || c.creator === user?.username || c.access_level === "Global"
   );
+
+  const selectedCategory =
+    typeof selectedCategoryId === "string"
+      ? visibleCategories.find((c) => c.id === selectedCategoryId)
+      : undefined;
 
   // Asset count display
   const countLabel = loadingAssets
@@ -649,7 +662,8 @@ export default function BrowsePage() {
           token={token ?? ""}
           username={user?.username ?? ""}
           damAccess={damAccess}
-          categories={visibleCategories}
+          initialCategoryId={selectedCategory?.id}
+          initialCategoryName={selectedCategory?.name}
           onComplete={handleUploadComplete}
           onClose={() => setShowUpload(false)}
           onZipResult={(result) => {
