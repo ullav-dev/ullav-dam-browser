@@ -410,7 +410,7 @@
       "zipTitle": "Móid comhad ZIP",
       "zipBody": "Nuair a bhaintear amach comhad ZIP, feictear roghnóir mód. Roghnaigh ZIP amháin chun an ZIP a stóráil mar shócmhainn aonair. Roghnaigh Ábhar amháin (réamhshocrú) chun an ZIP a leathnú i gcrann catagóirí. Roghnaigh ZIP + ábhar le haghaidh an dá rud.",
       "categoriesTitle": "Catagóirí a shannadh ar uaslódáil",
-      "categoriesBody": "Roghnaigh catagóir amháin nó níos mó ón roghnóir catagóirí sa rannán meiteashonraí comhroinnte. Sannfar gach sócmhainn uaslódáilte do na catagóirí sin go huathoibríoch."
+      "categoriesBody": "Má tá catagóir roghnaithe sa bhrabhsálaí agus dialóg uaslódála á oscailt agat, sannfar gach comhad uaslódáilte don chatagóir sin go huathoibríoch. Chun catagóirí breise a shannadh, roghnaigh an tsócmhainn ina dhiaidh sin agus úsáid na rialuithe catagóire sa phainéal ar dheis."
     },
     "browsing": {
       "title": "Brabhsáil & Cuardach",

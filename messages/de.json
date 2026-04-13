@@ -410,7 +410,7 @@
       "zipTitle": "ZIP-Datei-Modi",
       "zipBody": "Wenn eine ZIP-Datei erkannt wird, erscheint eine Modusauswahl. Wählen Sie Nur ZIP, um die ZIP als einzelnes Asset zu speichern. Wählen Sie Nur Inhalt (Standard), um die ZIP in einen Kategoriebaum zu entpacken. Wählen Sie ZIP + Inhalt für beides.",
       "categoriesTitle": "Kategorien beim Hochladen zuweisen",
-      "categoriesBody": "Wählen Sie im Bereich gemeinsame Metadaten eine oder mehrere Kategorien aus der Kategorieauswahl aus. Alle hochgeladenen Assets werden automatisch diesen Kategorien zugewiesen."
+      "categoriesBody": "Wenn beim Öffnen des Upload-Dialogs eine Kategorie im Browser ausgewählt ist, werden alle hochgeladenen Dateien automatisch dieser Kategorie zugewiesen. Um weitere Kategorien zuzuweisen, wählen Sie das Asset danach aus und verwenden die Kategoriesteuerelemente im rechten Bereich."
     },
     "browsing": {
       "title": "Durchsuchen & Suchen",

@@ -410,7 +410,7 @@
       "zipTitle": "ZIP file modes",
       "zipBody": "When a ZIP file is detected, a mode selector appears. Choose ZIP only to store the ZIP as a single asset. Choose Contents only (default) to expand the ZIP into a category tree without storing the ZIP itself. Choose ZIP + contents to do both.",
       "categoriesTitle": "Assigning categories on upload",
-      "categoriesBody": "Select one or more categories from the category picker in the shared metadata section. All uploaded assets will be assigned to those categories automatically."
+      "categoriesBody": "If a category is selected in the browser when you open the upload dialog, all uploaded files will be automatically assigned to that category. To assign further categories, select the asset afterwards and use the category controls in the right panel."
     },
     "browsing": {
       "title": "Browsing & Searching",
