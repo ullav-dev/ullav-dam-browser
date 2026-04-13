@@ -321,7 +321,7 @@ export default function PickerGrid({
               disabled={safePage === 1}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              ‹ Prev
+              ‹
             </button>
 
             {pageNumbers.map((item, idx) =>
@@ -349,7 +349,7 @@ export default function PickerGrid({
               disabled={safePage === numPages}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              Next ›
+              ›
             </button>
           </div>
         </div>

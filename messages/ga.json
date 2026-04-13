@@ -256,8 +256,8 @@
     "noAssets": "Níl aon sócmhainní fós.",
     "paginationShow": "Taispeáin",
     "paginationPerPage": "in aghaidh an leathanaigh · {count} san iomlán",
-    "paginationPrev": "‹ Roimhe",
-    "paginationNext": "Ar aghaidh ›",
+    "paginationPrev": "‹",
+    "paginationNext": "›",
     "unavailable": "NACH BHFUIL AR FÁIL",
     "editImage": "Cuir íomhá in eagar"
   },

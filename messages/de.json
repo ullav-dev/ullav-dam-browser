@@ -256,8 +256,8 @@
     "noAssets": "Noch keine Assets.",
     "paginationShow": "Anzeigen",
     "paginationPerPage": "pro Seite · {count} gesamt",
-    "paginationPrev": "‹ Zurück",
-    "paginationNext": "Weiter ›",
+    "paginationPrev": "‹",
+    "paginationNext": "›",
     "unavailable": "NICHT VERFÜGBAR",
     "editImage": "Bild bearbeiten"
   },
