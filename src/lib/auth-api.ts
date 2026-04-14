@@ -117,7 +117,8 @@ export function decodeComadSubscription(token: string | null): ComadSubscription
   if (!token) return none;
   const payload = decodePayload(token);
   if (!payload) return none;
-  const comad = payload?.subscriptions && (payload.subscriptions as Record<string, unknown>)["comad"] as { tier?: string; status?: string } | undefined;
+  const subs = (payload.subscriptions ?? {}) as Record<string, { tier?: string; status?: string }>;
+  const comad = subs["comad"];
   if (!comad) return none;
   const status = comad.status ?? null;
   const isActive = isActiveStatus(comad.status);
