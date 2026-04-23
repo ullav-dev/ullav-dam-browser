@@ -8,6 +8,7 @@ import AssetGrid from "@/components/AssetGrid";
 import AssetDetails from "@/components/AssetDetails";
 import UploadModal from "@/components/UploadModal";
 import ResizeHandle from "@/components/ResizeHandle";
+import UsageWidget from "@/components/UsageWidget";
 import * as api from "@/lib/dam-api";
 import { createCategory, updateCategory, deleteCategory } from "@/lib/dam-api";
 import { getDescendantIds } from "@/components/CategoryTree";
@@ -27,6 +28,7 @@ export default function BrowsePage() {
   const [loadingAssets, setLoadingAssets] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [usage, setUsage] = useState<api.UsageInfo | null>(null);
 
   // Panel widths — persisted in localStorage
   const [leftWidth, setLeftWidth] = useState<number>(() => {
@@ -241,18 +243,27 @@ export default function BrowsePage() {
     setLoadingAssets(true);
     setLoadError(null);
     try {
-      const [assetsData, categoriesData] = await Promise.all([
+      const [assetsData, categoriesData, usageData] = await Promise.all([
         api.listAssets(token),
         api.listCategories(token),
+        damAccess !== "none" ? api.getUsage(token) : Promise.resolve(null),
       ]);
       setAssets(assetsData);
       setCategories(categoriesData);
+      setUsage(usageData);
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Failed to load data.");
     } finally {
       setLoadingAssets(false);
     }
-  }, [token]);
+  }, [token, damAccess]);
+
+  const refreshUsage = useCallback(async () => {
+    if (!token || damAccess === "none") return;
+    try {
+      setUsage(await api.getUsage(token));
+    } catch {}
+  }, [token, damAccess]);
 
   useEffect(() => {
     if (token) loadData();
@@ -359,7 +370,8 @@ export default function BrowsePage() {
     });
     loadedAssetIds.current.delete(id);
     setSelectedAsset(null);
-  }, []);
+    refreshUsage();
+  }, [refreshUsage]);
 
   const handleCategoriesChanged = useCallback(
     (cats: api.Category[]) => {
@@ -401,8 +413,9 @@ export default function BrowsePage() {
         }
       }
       setShowUpload(false);
+      refreshUsage();
     },
-    [token]
+    [token, refreshUsage]
   );
 
   if (isLoading) return null;
@@ -518,6 +531,8 @@ export default function BrowsePage() {
             />
           )}
         </div>
+
+        {usage && <UsageWidget usage={usage} />}
       </aside>
       <ResizeHandle onResize={handleLeftResize} />
 

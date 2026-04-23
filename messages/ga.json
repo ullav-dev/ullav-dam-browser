@@ -231,6 +231,12 @@
     "selectAssetPrompt": "Roghnaigh sócmhainn chun a sonraí a fheiceáil agus a chur in eagar",
     "uploadNoAccessTitle": "Teastaíonn suibscríbhinn Teaghlaigh nó níos airde chun an DAM a úsáid"
   },
+  "usageWidget": {
+    "storage": "Stóráil",
+    "assets": "Sócmhainní",
+    "unlimited": "Gan teorainn",
+    "upgrade": "Uasghrádú plean"
+  },
   "categoryTree": {
     "allAssets": "Gach Sócmhainn",
     "dropAdd": "+ Cuir leis",
