@@ -231,6 +231,12 @@
     "selectAssetPrompt": "Select an asset to view and edit its details",
     "uploadNoAccessTitle": "DAM access requires a Family subscription or higher"
   },
+  "usageWidget": {
+    "storage": "Storage",
+    "assets": "Assets",
+    "unlimited": "Unlimited",
+    "upgrade": "Upgrade plan"
+  },
   "categoryTree": {
     "allAssets": "All Assets",
     "dropAdd": "+ Add",

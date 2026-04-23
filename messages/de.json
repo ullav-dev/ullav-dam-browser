@@ -231,6 +231,12 @@
     "selectAssetPrompt": "Asset auswählen, um Details anzuzeigen und zu bearbeiten",
     "uploadNoAccessTitle": "DAM-Zugriff erfordert ein Family-Abonnement oder höher"
   },
+  "usageWidget": {
+    "storage": "Speicher",
+    "assets": "Assets",
+    "unlimited": "Unbegrenzt",
+    "upgrade": "Plan upgraden"
+  },
   "categoryTree": {
     "allAssets": "Alle Assets",
     "dropAdd": "+ Hinzufügen",

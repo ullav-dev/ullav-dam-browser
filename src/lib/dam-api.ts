@@ -195,6 +195,20 @@ export const deleteCategory = (id: string, token: string): Promise<void> =>
     headers: bearerHeaders(token),
   });
 
+// ── Usage ─────────────────────────────────────────────────────────────────────
+
+export interface UsageInfo {
+  used_bytes: number;
+  asset_count: number;
+  storage_limit_bytes: number | null;
+  asset_limit: number | null;
+}
+
+export const getUsage = (token: string): Promise<UsageInfo> =>
+  apiRequest("/usage", { headers: bearerHeaders(token) });
+
+// ── Asset ↔ Category associations ────────────────────────────────────────────
+
 export const addCategoryToAsset = (
   assetId: string,
   categoryId: string,
