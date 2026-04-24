@@ -202,6 +202,8 @@ export interface UsageInfo {
   asset_count: number;
   storage_limit_bytes: number | null;
   asset_limit: number | null;
+  category_count: number;
+  category_limit: number | null;
 }
 
 export const getUsage = (token: string): Promise<UsageInfo> =>

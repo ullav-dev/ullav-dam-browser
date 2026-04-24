@@ -57,7 +57,10 @@ interface Props {
 
 export default function UsageWidget({ usage }: Props) {
   const t = useTranslations("usageWidget");
-  const hasLimits = usage.storage_limit_bytes !== null || usage.asset_limit !== null;
+  const hasLimits =
+    usage.storage_limit_bytes !== null ||
+    usage.asset_limit !== null ||
+    usage.category_limit !== null;
 
   return (
     <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2.5">
@@ -72,6 +75,13 @@ export default function UsageWidget({ usage }: Props) {
         label={t("assets")}
         used={usage.asset_count}
         limit={usage.asset_limit}
+        formatValue={(n) => n.toLocaleString()}
+        unlimitedLabel={t("unlimited")}
+      />
+      <UsageRow
+        label={t("categories")}
+        used={usage.category_count}
+        limit={usage.category_limit}
         formatValue={(n) => n.toLocaleString()}
         unlimitedLabel={t("unlimited")}
       />

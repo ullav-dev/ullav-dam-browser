@@ -77,6 +77,7 @@ function TreeNodeItem({
   assetDrag,
   catMove,
   onAddSubcategory,
+  atCategoryLimit,
   username,
   onEditCategory,
   onDeleteCategory,
@@ -88,6 +89,7 @@ function TreeNodeItem({
   assetDrag: AssetDragCtx;
   catMove: CatMoveCtx;
   onAddSubcategory?: (parentId: string) => void;
+  atCategoryLimit?: boolean;
   username?: string;
   onEditCategory?: (id: string) => void;
   onDeleteCategory?: (id: string) => void;
@@ -268,8 +270,8 @@ function TreeNodeItem({
           </span>
         )}
 
-        {/* Add sub-category button — visible on hover when not dragging */}
-        {!isAssetDragging && !isCatMoving && onAddSubcategory && hovered && (
+        {/* Add sub-category button — visible on hover when not dragging and under limit */}
+        {!isAssetDragging && !isCatMoving && onAddSubcategory && hovered && !atCategoryLimit && (
           <button
             type="button"
             onClick={(e) => {
@@ -321,6 +323,7 @@ function TreeNodeItem({
               assetDrag={assetDrag}
               catMove={catMove}
               onAddSubcategory={onAddSubcategory}
+              atCategoryLimit={atCategoryLimit}
               username={username}
               onEditCategory={onEditCategory}
               onDeleteCategory={onDeleteCategory}
@@ -346,6 +349,8 @@ interface Props {
   onCategoryDrop?: (assetId: string, categoryId: string) => void;
   // Category creation
   onAddSubcategory?: (parentId: string) => void;
+  /** When true, all sub-category creation buttons are hidden. */
+  atCategoryLimit?: boolean;
   // Category move drag-and-drop
   onMoveCategory?: (id: string, newParentId: string | null) => void;
   // Category edit / delete (only shown for owned categories)
@@ -363,6 +368,7 @@ export default function CategoryTree({
   draggingAssetCategoryIds = [],
   onCategoryDrop,
   onAddSubcategory,
+  atCategoryLimit = false,
   onMoveCategory,
   username,
   onEditCategory,
@@ -484,6 +490,7 @@ export default function CategoryTree({
           assetDrag={assetDrag}
           catMove={catMove}
           onAddSubcategory={onAddSubcategory}
+          atCategoryLimit={atCategoryLimit}
           username={username}
           onEditCategory={onEditCategory}
           onDeleteCategory={onDeleteCategory}

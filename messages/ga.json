@@ -220,6 +220,7 @@
   "browse": {
     "categoriesHeading": "Catagóirí",
     "newTopLevelCategoryTitle": "Catagóir nua barrleibhéil",
+    "categoryLimitReached": "Teorainn catagóirí bainte amach — uasghrádaigh do phlean chun tuilleadh a chruthú",
     "categoryNamePlaceholder": "Ainm catagóire",
     "categoryParentNone": "Ar bith (barrleibhéal)",
     "categoryCreating": "Á cruthú…",
@@ -260,6 +261,7 @@
   "usageWidget": {
     "storage": "Stóráil",
     "assets": "Sócmhainní",
+    "categories": "Catagóirí",
     "unlimited": "Gan teorainn",
     "upgrade": "Uasghrádú plean"
   },
