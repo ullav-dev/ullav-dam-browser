@@ -12,6 +12,7 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Sorting** by name, type, date created, or file size (ascending/descending)
 - **Pagination** — configurable page size (10/20/30/50), smart ellipsis page controls
 - **My Assets filter** — toggle to show only assets uploaded by the logged-in user
+- **Multi-select** — hover any asset card to reveal a checkbox; shift-click to range-select; select-all checkbox in the sort bar; bulk Download (single file or ZIP) and bulk Delete from the action bar above the grid
 - **Rich metadata editor** — caption, keywords, copyright, availability window; asset base URL shown as a read-only field
 - **Creator auto-set** — creator field is populated from the logged-in username at upload time and is read-only
 - **Category management** — create top-level and sub-categories inline; drag to reparent categories in the hierarchy; edit and delete your own categories (with recursive child-deletion confirmation)
@@ -31,7 +32,10 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **Subscription-aware upload** — upload button disabled with no subscription; non-image files filtered out on image-only plans; amber banner notifies the user
 - **Admin bypass** — users with the `admin` JWT role get full access unconditionally (client and server)
 - **Localised UI** — English (`en`), German (`de`), Irish (`ga`); language switcher in the nav bar
-- **Help pages** — in-app 7-section guide available in all three locales (`/[locale]/help`)
+- **Help pages** — in-app 9-section guide available in all three locales (`/[locale]/help`)
+- **User dropdown menu** — authenticated nav collapses Account, Help, About, and Sign out into a single username dropdown, keeping the top bar clean as features grow
+- **About dialog** — shows app version (semver from `package.json`), build SHA, signed-in user, and plan tier
+- **Semantic versioning** — `package.json` is the version source of truth; version and git SHA are baked in at build time via `next.config.ts`
 - **Empty initial state** — no category selected and no assets shown on first load
 
 ## Prerequisites

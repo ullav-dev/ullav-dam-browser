@@ -76,7 +76,7 @@ before reaching the DAM server.
 | Component | Purpose |
 |---|---|
 | `CategoryTree` | Hierarchical category browser; builds tree from flat list using `parent_id` |
-| `AssetGrid` | Thumbnail grid; client-side filtering, sorting, and pagination |
+| `AssetGrid` | Thumbnail grid; client-side filtering, sorting, pagination, and multi-select |
 | `AssetDetails` | Right-panel metadata editor; handles save/delete/replace/category assignment |
 | `UploadModal` | Multi-file upload with metadata; ZIP files have a 3-mode selector |
 | `ImageEditorModal` | Full-screen image editor (crop, rotate); Save As New Asset or Replace Current |
@@ -164,6 +164,31 @@ Props: `username?: string` — when provided, enables the "My Assets" toggle pil
 State: `myAssetsOnly: boolean` — when true, filters to assets where `asset.creator === username`. Missing from `useMemo` deps causes stale filter; deps must be `[assets, assetCategories, searchQuery, selectedCategoryId, myAssetsOnly, username]`.
 
 `selectedCategoryId: string | null | undefined` — when `undefined` and no search query, shows the "Select a category or search" empty prompt instead of the grid.
+
+## AssetGrid — multi-select
+
+Selection state lives in `browse/page.tsx` as `selectedAssetIds: Set<string>` and is passed down as props. `AssetGrid` is purely controlled — it never mutates the set itself.
+
+| Prop | Type | Purpose |
+|---|---|---|
+| `selectedAssetIds` | `Set<string>` | Which assets are currently selected |
+| `onToggleSelect` | `(id: string) => void` | Flip a single asset in/out of the set |
+| `onRangeSelect` | `(ids: string[]) => void` | Add a contiguous range (shift-click); additive, never removes |
+| `onSelectAll` | `(pageIds: string[]) => void` | Toggle all assets on the current page |
+
+All three props are optional — omitting them disables the feature (no checkboxes rendered), so the component remains backward-compatible.
+
+**Checkbox**: appears in the top-right corner of the thumbnail on hover; stays visible when the asset is selected. Clicking `e.stopPropagation()` so the card body click (which opens `AssetDetails`) is not triggered.
+
+**Shift-click range**: `AssetGrid` tracks `lastCheckedId` via a `useRef`. On a shift-click, it slices `paged` between the last and current indices and calls `onRangeSelect` with those IDs.
+
+**Select-all checkbox**: shown at the left of the sort bar when `onToggleSelect` is wired up. Its `indeterminate` state is set via a `ref` callback when some-but-not-all page assets are selected.
+
+**Bulk action bar** (in `browse/page.tsx`, above the grid):
+- Appears when `selectedAssetIds.size > 0`
+- **Download**: single asset → plain `<a>` link to `/api/assets/:id/download`; multiple assets → fetches each file with `Authorization: Bearer` header, packages them into a `comad-assets-YYYY-MM-DD.zip` using JSZip, triggers download. Progress shown as `Preparing X/N…`
+- **Delete**: sequential `api.deleteAsset` calls; locked assets are skipped; deleted IDs are removed from state; failed/skipped IDs remain in the selection set. Progress shown as `Deleting X/N…` inside the confirmation modal.
+- **Clear selection**: sets `selectedAssetIds` to an empty `Set`.
 
 ## AssetGrid — asset visibility filtering
 
@@ -257,23 +282,43 @@ The server enforces the same rules independently — client-side checks are UX o
 
 ## Nav bar order
 
-From left to right:
+**Authenticated** (left → right):
 - Logo + "Comad" wordmark (links to `/`)
-- **Assets** link (authenticated only)
-- Username / **Sign Out** (authenticated) or **Pricing** + **Sign In** (unauthenticated)
-- **Help** link
-- **LocaleSwitcher** (far right)
+- **Assets** link
+- **Username ▾** dropdown (Account, Help, About Comad, — Sign out)
+- **LocaleSwitcher**
+
+**Unauthenticated** (left → right):
+- Logo + "Comad" wordmark
+- **Pricing** | **Help** | **Sign in** button
+- **LocaleSwitcher**
+
+## Versioning
+
+`package.json` `version` field is the single source of truth (semver). `next.config.ts` reads it at build time and injects it as `NEXT_PUBLIC_APP_VERSION`. The current git commit SHA is injected as `NEXT_PUBLIC_GIT_SHA` (falls back to `"dev"` if git is unavailable). Bump `version` manually in `package.json` on each release.
+
+## About dialog
+
+`src/components/AboutModal.tsx` — rendered from Nav when the user clicks **About Comad** in the user dropdown. Shows:
+- App name + tagline
+- `v{NEXT_PUBLIC_APP_VERSION}` — version from `package.json`
+- `NEXT_PUBLIC_GIT_SHA` — short commit hash for build traceability
+- Signed-in username
+- Plan tier (Full access / Images only / No active subscription) derived from `damAccess`
+- Links to Help and Account/Subscription pages
 
 ## Help pages
 
-`src/app/[locale]/help/page.tsx` — server component, 7 sections:
+`src/app/[locale]/help/page.tsx` — server component, 9 sections:
 1. Getting Started
-2. Browsing & Searching Assets
-3. Uploading Assets
-4. Managing Assets (editing metadata, replacing files)
-5. Organising with Categories
-6. Privacy & Permissions
-7. Tips & Shortcuts
+2. Uploading Assets
+3. Browsing & Searching
+4. Selecting Multiple Assets
+5. Categories
+6. Asset Details
+7. Editing Images
+8. Visibility & Privacy
+9. Locking & Deleting
 
 All sections are translated in `messages/{en,de,ga}.json` under the `help` namespace. Links to `/browse` use `Link` from `@/i18n/navigation`.
 

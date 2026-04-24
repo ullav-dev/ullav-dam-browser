@@ -104,9 +104,24 @@
   "nav": {
     "assets": "Sócmhainní",
     "help": "Cabhair",
+    "account": "Cuntas",
+    "about": "Faoi Comad",
     "signOut": "Logáil Amach",
     "signIn": "Logáil Isteach",
     "pricing": "Praghsáil"
+  },
+  "about": {
+    "tagline": "Bainistíocht Sócmhainní Digiteacha",
+    "version": "Leagan",
+    "build": "Tógáil",
+    "user": "Sínithe isteach mar",
+    "plan": "Plean",
+    "planFull": "Rochtain iomlán",
+    "planImagesOnly": "Íomhánna amháin",
+    "planNone": "Gan suibscríbhinn ghníomhach",
+    "helpLink": "Cabhair",
+    "accountLink": "Suibscríbhinn a bhainistiú",
+    "close": "Dún"
   },
   "footer": {
     "copyright": "© {year} Comad",
@@ -229,7 +244,18 @@
     "loadError": "Bain triail eile as",
     "loadingAssets": "Sócmhainní á lódáil…",
     "selectAssetPrompt": "Roghnaigh sócmhainn chun a sonraí a fheiceáil agus a chur in eagar",
-    "uploadNoAccessTitle": "Teastaíonn suibscríbhinn Teaghlaigh nó níos airde chun an DAM a úsáid"
+    "uploadNoAccessTitle": "Teastaíonn suibscríbhinn Teaghlaigh nó níos airde chun an DAM a úsáid",
+    "bulkSelected": "{count, plural, one {# shócmhainn roghnaithe} other {# sócmhainn roghnaithe}}",
+    "bulkDownload": "Íoslódáil",
+    "bulkDelete": "Scrios",
+    "bulkClear": "Glan an roghnú",
+    "bulkDeleteConfirmTitle": "{count, plural, one {# shócmhainn a scriosadh?} other {# sócmhainn a scriosadh?}}",
+    "bulkDeleteConfirmMessage": "Ní féidir é seo a chur ar ceal. Léimfear thar shócmhainní glasáilte.",
+    "bulkDeleteConfirm": "Sea, scrios",
+    "bulkDeleteCancel": "Cealaigh",
+    "bulkDeleteDeleting": "Á scriosadh {done}/{total}…",
+    "bulkDeleteSkipped": "Léimadh thar {count, plural, one {# shócmhainn} other {# sócmhainn}} (glasáilte).",
+    "bulkDownloadPreparing": "Ag ullmhú {done}/{total}…"
   },
   "usageWidget": {
     "storage": "Stóráil",
@@ -265,7 +291,9 @@
     "paginationPrev": "‹",
     "paginationNext": "›",
     "unavailable": "NACH BHFUIL AR FÁIL",
-    "editImage": "Cuir íomhá in eagar"
+    "editImage": "Cuir íomhá in eagar",
+    "selectAsset": "Roghnaigh sócmhainn",
+    "selectAllOnPage": "Roghnaigh gach ceann ar an leathanach seo"
   },
   "imageEditor": {
     "title": "Eagarthóir Íomhánna",
@@ -484,6 +512,21 @@
       "writeBody": "Nuair a bhíonn sé cumasaithe, is féidir le húsáideoirí eile meiteashonraí na sócmhainne a chur in eagar. Tabhair é seo d'oibríochtóirí amháin a bhfuil muinín agat astu.",
       "revertTitle": "Sócmhainn a dhéanamh príobháideach arís",
       "revertBody": "Ticeáil an ticbhosca Príobháideach chun an tsócmhainn a dhéanamh príobháideach arís. Glanann sé seo gach bratach rochtana poiblí láithreach — díchumasaítear Léamh, Íoslódáil agus Scríobh go léir."
+    },
+    "multiSelect": {
+      "title": "Sócmhainní Iolracha a Roghnú",
+      "selectTitle": "Sócmhainní a roghnú",
+      "selectBody": "Bog an luch thar cárta sócmhainne chun ticbhosca a nochtadh i gcúinne uachtarach ar dheis na mionsamhla. Cliceáil é chun an tsócmhainn a roghnú — aibhsítear í le teorainn ghorm. Cliceáil arís chun an roghnú a chealú.",
+      "rangeTitle": "Roghnú raoin",
+      "rangeBody": "Cliceáil ticbhosca amháin, ansin coinnigh Shift síos agus cliceáil ceann eile chun gach sócmhainn eatarthu a roghnú ar an leathanach reatha.",
+      "selectAllTitle": "Roghnaigh gach ceann ar an leathanach",
+      "selectAllBody": "Roghnaíonn an ticbhosca ar chlé an bharra sórtála gach sócmhainn ar an leathanach reatha nó cealúíonn sé an roghnú. Má tá cuid acu roghnaithe cheana, cuirtear an chuid eile leo.",
+      "downloadTitle": "Íoslódáil mais",
+      "downloadBody": "Nuair a bhíonn sócmhainní roghnaithe, feictear barra gorm os cionn na greille. Cliceáil Íoslódáil chun iad a shábháil. Íoslódálann sócmhainn aonair go díreach. Pacáistítear sócmhainní iolracha i gcomhad ZIP dar ainm comad-assets-BBBB-MM-LL.zip.",
+      "deleteTitle": "Scriosadh mais",
+      "deleteBody": "Cliceáil Scrios sa bharra gorm. Feictear leid dheimhnithe. Léimtear thar shócmhainní glasáilte go huathoibríoch agus fanann siad roghnaithe ina dhiaidh sin.",
+      "clearTitle": "An roghnú a ghlanadh",
+      "clearBody": "Cliceáil Glan an roghnú sa bharra gorm chun gach rud a dhíroghnú ar an toirt. Is féidir leat sócmhainní aonair a dhíroghnú freisin trí chliceáil ar a ticbhosca arís."
     },
     "locking": {
       "title": "Glasáil & Scriosadh",

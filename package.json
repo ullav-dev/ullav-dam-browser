@@ -1,6 +1,6 @@
 {
   "name": "ullav-dam-browser",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "jszip": "^3.10.1",
     "next": "16.1.6",
     "next-intl": "^4.9.0",
     "react": "19.2.3",

@@ -104,9 +104,24 @@
   "nav": {
     "assets": "Assets",
     "help": "Hilfe",
+    "account": "Konto",
+    "about": "Über Comad",
     "signOut": "Abmelden",
     "signIn": "Anmelden",
     "pricing": "Preise"
+  },
+  "about": {
+    "tagline": "Digital Asset Management",
+    "version": "Version",
+    "build": "Build",
+    "user": "Angemeldet als",
+    "plan": "Plan",
+    "planFull": "Voller Zugriff",
+    "planImagesOnly": "Nur Bilder",
+    "planNone": "Kein aktives Abonnement",
+    "helpLink": "Hilfe",
+    "accountLink": "Abonnement verwalten",
+    "close": "Schließen"
   },
   "footer": {
     "copyright": "© {year} Comad",
@@ -229,7 +244,18 @@
     "loadError": "Erneut versuchen",
     "loadingAssets": "Assets werden geladen…",
     "selectAssetPrompt": "Asset auswählen, um Details anzuzeigen und zu bearbeiten",
-    "uploadNoAccessTitle": "DAM-Zugriff erfordert ein Family-Abonnement oder höher"
+    "uploadNoAccessTitle": "DAM-Zugriff erfordert ein Family-Abonnement oder höher",
+    "bulkSelected": "{count, plural, one {# Asset ausgewählt} other {# Assets ausgewählt}}",
+    "bulkDownload": "Herunterladen",
+    "bulkDelete": "Löschen",
+    "bulkClear": "Auswahl aufheben",
+    "bulkDeleteConfirmTitle": "{count, plural, one {# Asset löschen?} other {# Assets löschen?}}",
+    "bulkDeleteConfirmMessage": "Dies kann nicht rückgängig gemacht werden. Gesperrte Assets werden übersprungen.",
+    "bulkDeleteConfirm": "Ja, löschen",
+    "bulkDeleteCancel": "Abbrechen",
+    "bulkDeleteDeleting": "Lösche {done}/{total}…",
+    "bulkDeleteSkipped": "{count, plural, one {# Asset wurde} other {# Assets wurden}} übersprungen (gesperrt).",
+    "bulkDownloadPreparing": "Vorbereitung {done}/{total}…"
   },
   "usageWidget": {
     "storage": "Speicher",
@@ -265,7 +291,9 @@
     "paginationPrev": "‹",
     "paginationNext": "›",
     "unavailable": "NICHT VERFÜGBAR",
-    "editImage": "Bild bearbeiten"
+    "editImage": "Bild bearbeiten",
+    "selectAsset": "Asset auswählen",
+    "selectAllOnPage": "Alle auf dieser Seite auswählen"
   },
   "imageEditor": {
     "title": "Bildeditor",
@@ -484,6 +512,21 @@
       "writeBody": "Wenn aktiviert, können andere Benutzer die Metadaten des Assets bearbeiten. Gewähren Sie dies nur vertrauenswürdigen Mitarbeitern.",
       "revertTitle": "Ein Asset wieder privat machen",
       "revertBody": "Aktivieren Sie das Kontrollkästchen Privat, um das Asset wieder privat zu machen. Dadurch werden sofort alle öffentlichen Zugriffsflags gelöscht — Lesen, Herunterladen und Schreiben werden alle deaktiviert."
+    },
+    "multiSelect": {
+      "title": "Mehrere Assets auswählen",
+      "selectTitle": "Assets auswählen",
+      "selectBody": "Fahren Sie mit der Maus über eine Asset-Karte, um ein Kontrollkästchen in der oberen rechten Ecke der Miniaturansicht anzuzeigen. Klicken Sie darauf, um das Asset auszuwählen — es wird mit einem blauen Rahmen hervorgehoben. Nochmaliges Klicken hebt die Auswahl auf.",
+      "rangeTitle": "Bereichsauswahl",
+      "rangeBody": "Klicken Sie ein Kontrollkästchen, halten Sie dann Shift gedrückt und klicken Sie ein weiteres, um alle Assets dazwischen auf der aktuellen Seite auszuwählen.",
+      "selectAllTitle": "Alle auf der Seite auswählen",
+      "selectAllBody": "Das Kontrollkästchen links in der Sortierleiste wählt alle Assets auf der aktuellen Seite aus oder hebt die Auswahl auf. Wenn bereits einige ausgewählt sind, werden die restlichen hinzugefügt.",
+      "downloadTitle": "Massendownload",
+      "downloadBody": "Wenn Assets ausgewählt sind, erscheint eine blaue Leiste über dem Raster. Klicken Sie Herunterladen, um sie zu speichern. Ein einzelnes Asset wird direkt heruntergeladen. Mehrere Assets werden als ZIP-Datei comad-assets-JJJJ-MM-TT.zip gebündelt.",
+      "deleteTitle": "Massenlöschung",
+      "deleteBody": "Klicken Sie Löschen in der blauen Leiste. Eine Bestätigungsaufforderung erscheint. Gesperrte Assets werden automatisch übersprungen und bleiben danach ausgewählt, damit Sie sie prüfen können.",
+      "clearTitle": "Auswahl aufheben",
+      "clearBody": "Klicken Sie Auswahl aufheben in der blauen Leiste, um alles auf einmal abzuwählen. Sie können auch einzelne Assets durch erneutes Klicken auf deren Kontrollkästchen abwählen."
     },
     "locking": {
       "title": "Sperren & Löschen",
