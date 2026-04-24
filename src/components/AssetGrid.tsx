@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { Asset } from "@/lib/dam-api";
 import { thumbnailUrl } from "@/lib/dam-api";
 import { useTranslations } from "next-intl";
@@ -45,7 +45,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function typeInfo(raw: string): { label: string; cls: string } {
+export function typeInfo(raw: string): { label: string; cls: string } {
   const t = raw.toLowerCase();
   // Handles both full MIME types (e.g. "image/png") and legacy short names
   if (t.startsWith("image/") || t === "image") {
@@ -147,6 +147,11 @@ interface Props {
   onDragEnd: () => void;
   onAssetCreated?: (asset: Asset, categoryIds: string[]) => void;
   onAssetUpdated?: (asset: Asset) => void;
+  // Multi-select
+  selectedAssetIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onRangeSelect?: (ids: string[]) => void;
+  onSelectAll?: (pageIds: string[]) => void;
 }
 
 export default function AssetGrid({
@@ -163,6 +168,10 @@ export default function AssetGrid({
   onDragEnd,
   onAssetCreated,
   onAssetUpdated,
+  selectedAssetIds,
+  onToggleSelect,
+  onRangeSelect,
+  onSelectAll,
 }: Props) {
   const t = useTranslations("assetGrid");
   const [editingAsset, setEditingAsset] = useState<{ asset: Asset; categoryIds: string[] } | null>(null);
@@ -171,6 +180,8 @@ export default function AssetGrid({
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [myAssetsOnly, setMyAssetsOnly] = useState(false);
+  // Tracks the last asset clicked via checkbox for shift-click range selection
+  const lastCheckedId = useRef<string | null>(null);
 
   const SORT_OPTIONS: { field: SortField; label: string }[] = [
     { field: "name",       label: t("sortName") },
@@ -221,6 +232,28 @@ export default function AssetGrid({
     }
   }
 
+  function handleCheckboxClick(e: React.MouseEvent, asset: Asset) {
+    e.stopPropagation();
+    if (!onToggleSelect) return;
+
+    if (e.shiftKey && lastCheckedId.current && onRangeSelect) {
+      const lastIdx = paged.findIndex((a) => a.id === lastCheckedId.current);
+      const thisIdx = paged.findIndex((a) => a.id === asset.id);
+      if (lastIdx !== -1 && thisIdx !== -1) {
+        const [lo, hi] = lastIdx < thisIdx ? [lastIdx, thisIdx] : [thisIdx, lastIdx];
+        onRangeSelect(paged.slice(lo, hi + 1).map((a) => a.id));
+        lastCheckedId.current = asset.id;
+        return;
+      }
+    }
+
+    onToggleSelect(asset.id);
+    lastCheckedId.current = asset.id;
+  }
+
+  const allPageSelected = paged.length > 0 && paged.every((a) => selectedAssetIds?.has(a.id));
+  const somePageSelected = !allPageSelected && paged.some((a) => selectedAssetIds?.has(a.id));
+
   if (selectedCategoryId === undefined && !searchQuery) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
@@ -250,6 +283,20 @@ export default function AssetGrid({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sort bar */}
       <div className="shrink-0 px-4 py-1.5 border-b border-slate-100 bg-white flex items-center gap-1.5">
+        {/* Select-all on page — only shown when multi-select is wired up */}
+        {onToggleSelect && onSelectAll && (
+          <>
+            <input
+              type="checkbox"
+              title={t("selectAllOnPage")}
+              checked={allPageSelected}
+              ref={(el) => { if (el) el.indeterminate = somePageSelected; }}
+              onChange={() => onSelectAll(paged.map((a) => a.id))}
+              className="rounded border-slate-300 text-blue-600 cursor-pointer"
+            />
+            <span className="w-px h-3 bg-slate-200 mx-0.5" />
+          </>
+        )}
         <span className="text-[11px] text-slate-400 mr-1">{t("sortLabel")}</span>
         {SORT_OPTIONS.map(({ field, label }) => {
           const active = sortField === field;
@@ -290,65 +337,90 @@ export default function AssetGrid({
       {/* Asset grid */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-          {paged.map((asset) => (
-            <div
-              key={asset.id}
-              draggable
-              onClick={() => onSelect(asset)}
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = "copy";
-                e.dataTransfer.setData("text/plain", asset.id);
-                onDragStart(asset.id);
-              }}
-              onDragEnd={onDragEnd}
-              className={`cursor-grab active:cursor-grabbing rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
-                selectedAssetId === asset.id
-                  ? "border-blue-500 ring-2 ring-blue-200 shadow-md"
-                  : "border-slate-200 hover:border-blue-300"
-              }`}
-            >
-              <div className="aspect-square bg-slate-100 relative overflow-hidden">
-                <ThumbnailImage id={asset.id} name={asset.name} assetType={asset.asset_type} updatedAt={asset.updated_at} />
-                {!asset.available && (
-                  <div className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                    {t("unavailable")}
+          {paged.map((asset) => {
+            const isChecked = selectedAssetIds?.has(asset.id) ?? false;
+            return (
+              <div
+                key={asset.id}
+                draggable
+                onClick={() => onSelect(asset)}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "copy";
+                  e.dataTransfer.setData("text/plain", asset.id);
+                  onDragStart(asset.id);
+                }}
+                onDragEnd={onDragEnd}
+                className={`cursor-grab active:cursor-grabbing rounded-xl border overflow-hidden transition-all hover:shadow-md group ${
+                  isChecked
+                    ? "border-blue-500 ring-2 ring-blue-300 shadow-md bg-blue-50/30"
+                    : selectedAssetId === asset.id
+                    ? "border-blue-500 ring-2 ring-blue-200 shadow-md"
+                    : "border-slate-200 hover:border-blue-300"
+                }`}
+              >
+                <div className="aspect-square bg-slate-100 relative overflow-hidden">
+                  <ThumbnailImage id={asset.id} name={asset.name} assetType={asset.asset_type} updatedAt={asset.updated_at} />
+                  {!asset.available && (
+                    <div className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                      {t("unavailable")}
+                    </div>
+                  )}
+                  {asset.asset_type.startsWith("image/") && token && onAssetCreated && onAssetUpdated && (
+                    <button
+                      type="button"
+                      title={t("editImage")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingAsset({ asset, categoryIds: assetCategories.get(asset.id) ?? [] });
+                      }}
+                      className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 bg-white/90 hover:bg-white text-blue-700 rounded-lg p-1 shadow transition-opacity"
+                    >
+                      <IconEditImage />
+                    </button>
+                  )}
+                  {/* Selection checkbox — top-right, shown on hover or when selected */}
+                  {onToggleSelect && (
+                    <button
+                      type="button"
+                      title={t("selectAsset")}
+                      onClick={(e) => handleCheckboxClick(e, asset)}
+                      className={`absolute top-1.5 right-1.5 rounded p-0.5 shadow transition-opacity ${
+                        isChecked
+                          ? "opacity-100 bg-blue-600 text-white"
+                          : "opacity-0 group-hover:opacity-100 bg-white/90 hover:bg-white text-slate-500"
+                      }`}
+                    >
+                      <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                        {isChecked
+                          ? <path d="M2 2h12v12H2V2zm10 3.5L7 11 4.5 8.5l1-1L7 9l4-4 1 1.5z" />
+                          : <path fillRule="evenodd" d="M2 2h12v12H2V2zm1 1v10h10V3H3z" />
+                        }
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <div className="p-2 bg-white">
+                  <p className="text-xs font-medium text-slate-700 truncate mb-1" title={asset.name}>
+                    {asset.name}
+                  </p>
+                  <div className="flex items-center justify-between gap-1">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <AssetTypeBadge type={asset.asset_type} />
+                      {lockedIds.has(asset.id) && (
+                        <span
+                          title="Locked"
+                          className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-600 text-[10px] font-medium px-1 py-0.5 rounded"
+                        >
+                          <IconLock />
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 shrink-0">{formatSize(asset.size)}</span>
                   </div>
-                )}
-                {asset.asset_type.startsWith("image/") && token && onAssetCreated && onAssetUpdated && (
-                  <button
-                    type="button"
-                    title={t("editImage")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingAsset({ asset, categoryIds: assetCategories.get(asset.id) ?? [] });
-                    }}
-                    className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 bg-white/90 hover:bg-white text-blue-700 rounded-lg p-1 shadow transition-opacity"
-                  >
-                    <IconEditImage />
-                  </button>
-                )}
-              </div>
-              <div className="p-2 bg-white">
-                <p className="text-xs font-medium text-slate-700 truncate mb-1" title={asset.name}>
-                  {asset.name}
-                </p>
-                <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1 min-w-0">
-                    <AssetTypeBadge type={asset.asset_type} />
-                    {lockedIds.has(asset.id) && (
-                      <span
-                        title="Locked"
-                        className="inline-flex items-center gap-0.5 bg-amber-100 text-amber-600 text-[10px] font-medium px-1 py-0.5 rounded"
-                      >
-                        <IconLock />
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-slate-400 shrink-0">{formatSize(asset.size)}</span>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
