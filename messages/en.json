@@ -104,9 +104,24 @@
   "nav": {
     "assets": "Assets",
     "help": "Help",
+    "account": "Account",
+    "about": "About Comad",
     "signOut": "Sign out",
     "signIn": "Sign in",
     "pricing": "Pricing"
+  },
+  "about": {
+    "tagline": "Digital Asset Management",
+    "version": "Version",
+    "build": "Build",
+    "user": "Signed in as",
+    "plan": "Plan",
+    "planFull": "Full access",
+    "planImagesOnly": "Images only",
+    "planNone": "No active subscription",
+    "helpLink": "Help",
+    "accountLink": "Manage subscription",
+    "close": "Close"
   },
   "footer": {
     "copyright": "© {year} Comad",
@@ -229,7 +244,18 @@
     "loadError": "Retry",
     "loadingAssets": "Loading assets…",
     "selectAssetPrompt": "Select an asset to view and edit its details",
-    "uploadNoAccessTitle": "DAM access requires a Family subscription or higher"
+    "uploadNoAccessTitle": "DAM access requires a Family subscription or higher",
+    "bulkSelected": "{count, plural, one {# asset selected} other {# assets selected}}",
+    "bulkDownload": "Download",
+    "bulkDelete": "Delete",
+    "bulkClear": "Clear selection",
+    "bulkDeleteConfirmTitle": "Delete {count, plural, one {# asset} other {# assets}}?",
+    "bulkDeleteConfirmMessage": "This cannot be undone. Locked assets will be skipped.",
+    "bulkDeleteConfirm": "Yes, delete",
+    "bulkDeleteCancel": "Cancel",
+    "bulkDeleteDeleting": "Deleting {done}/{total}…",
+    "bulkDeleteSkipped": "{count, plural, one {# asset was} other {# assets were}} skipped (locked).",
+    "bulkDownloadPreparing": "Preparing {done}/{total}…"
   },
   "usageWidget": {
     "storage": "Storage",
@@ -265,7 +291,9 @@
     "paginationPrev": "‹",
     "paginationNext": "›",
     "unavailable": "UNAVAILABLE",
-    "editImage": "Edit image"
+    "editImage": "Edit image",
+    "selectAsset": "Select asset",
+    "selectAllOnPage": "Select all on this page"
   },
   "imageEditor": {
     "title": "Image Editor",
@@ -484,6 +512,21 @@
       "writeBody": "When enabled, other users can edit the asset's metadata. Grant this only to collaborators you trust.",
       "revertTitle": "Making an asset private again",
       "revertBody": "Check the Private checkbox to make the asset private again. This immediately clears all public access flags — Read, Download, and Write are all disabled."
+    },
+    "multiSelect": {
+      "title": "Selecting Multiple Assets",
+      "selectTitle": "Selecting assets",
+      "selectBody": "Hover over any asset card to reveal a checkbox in the top-right corner of the thumbnail. Click the checkbox to select that asset — it highlights with a blue border. Click it again to deselect.",
+      "rangeTitle": "Range selection",
+      "rangeBody": "Click one checkbox, then hold Shift and click another to select every asset between them on the current page. This works across rows in the grid.",
+      "selectAllTitle": "Select all on page",
+      "selectAllBody": "The checkbox at the left of the sort bar selects or deselects all assets on the current page. If some but not all are already selected, clicking it selects the rest.",
+      "downloadTitle": "Bulk download",
+      "downloadBody": "When assets are selected, a blue bar appears above the grid. Click Download to save them. A single selected asset downloads directly. Multiple assets are packaged into a ZIP file named comad-assets-YYYY-MM-DD.zip and downloaded as one file.",
+      "deleteTitle": "Bulk delete",
+      "deleteBody": "Click Delete in the blue bar to delete all selected assets. A confirmation prompt appears before anything is removed. Locked assets are automatically skipped and remain selected afterwards so you can review them.",
+      "clearTitle": "Clearing the selection",
+      "clearBody": "Click Clear selection in the blue bar to deselect everything at once. You can also deselect individual assets by clicking their checkbox again, or change pages — the selection is preserved across pages."
     },
     "locking": {
       "title": "Locking & Deleting",
