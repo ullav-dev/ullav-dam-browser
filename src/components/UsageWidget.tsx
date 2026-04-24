@@ -34,7 +34,7 @@ function UsageRow({ label, used, limit, formatValue, unlimitedLabel }: RowProps)
       <div className="flex justify-between items-baseline gap-2">
         <span className="text-xs font-medium text-slate-600 shrink-0">{label}</span>
         <span className="text-xs text-slate-500 tabular-nums truncate text-right">
-          {unlimited ? unlimitedLabel : `${formatValue(used)} / ${formatValue(limit!)}`}
+          {`${formatValue(used)} / ${unlimited ? unlimitedLabel : formatValue(limit!)}`}
         </span>
       </div>
       <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">

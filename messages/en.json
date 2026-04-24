@@ -384,7 +384,7 @@
     "buttonUpload": "Upload {count, plural, one {# file} other {# files}}",
     "buttonUploading": "Uploading {current}/{total}…",
     "zipAndPrefix": "ZIP + ",
-    "planImagesOnly": "Family plan: only image files can be uploaded. Upgrade to Professional for all file types."
+    "planImagesOnly": "Family plan: image files (PNG, JPEG, WebP, etc.) are supported. Non-image files are automatically excluded. Upgrade to Professional for all file types."
   },
   "modals": {
     "termsTitle": "Terms of Service",
