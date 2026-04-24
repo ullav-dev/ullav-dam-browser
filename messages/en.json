@@ -220,6 +220,7 @@
   "browse": {
     "categoriesHeading": "Categories",
     "newTopLevelCategoryTitle": "New top-level category",
+    "categoryLimitReached": "Category limit reached — upgrade your plan to create more",
     "categoryNamePlaceholder": "Category name",
     "categoryParentNone": "None (top level)",
     "categoryCreating": "Creating…",
@@ -260,6 +261,7 @@
   "usageWidget": {
     "storage": "Storage",
     "assets": "Assets",
+    "categories": "Categories",
     "unlimited": "Unlimited",
     "upgrade": "Upgrade plan"
   },

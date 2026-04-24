@@ -220,6 +220,7 @@
   "browse": {
     "categoriesHeading": "Kategorien",
     "newTopLevelCategoryTitle": "Neue Hauptkategorie",
+    "categoryLimitReached": "Kategorienlimit erreicht — upgraden Sie Ihren Plan, um mehr zu erstellen",
     "categoryNamePlaceholder": "Kategoriename",
     "categoryParentNone": "Keine (Hauptebene)",
     "categoryCreating": "Erstelle…",
@@ -260,6 +261,7 @@
   "usageWidget": {
     "storage": "Speicher",
     "assets": "Assets",
+    "categories": "Kategorien",
     "unlimited": "Unbegrenzt",
     "upgrade": "Plan upgraden"
   },

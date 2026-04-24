@@ -10,9 +10,10 @@ import UploadModal from "@/components/UploadModal";
 import ResizeHandle from "@/components/ResizeHandle";
 import UsageWidget from "@/components/UsageWidget";
 import * as api from "@/lib/dam-api";
-import { createCategory, updateCategory, deleteCategory } from "@/lib/dam-api";
+import { createCategory, updateCategory, deleteCategory, downloadUrl } from "@/lib/dam-api";
 import { getDescendantIds } from "@/components/CategoryTree";
 import { useTranslations } from "next-intl";
+import JSZip from "jszip";
 
 export default function BrowsePage() {
   const { user, token, damAccess, isLoading } = useAuth();
@@ -29,6 +30,12 @@ export default function BrowsePage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [usage, setUsage] = useState<api.UsageInfo | null>(null);
+
+  // Multi-select
+  const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ done: number; total: number } | null>(null);
+  const [bulkDownloadProgress, setBulkDownloadProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Panel widths — persisted in localStorage
   const [leftWidth, setLeftWidth] = useState<number>(() => {
@@ -122,6 +129,7 @@ export default function BrowsePage() {
             token
           );
           setCategories((prev) => [...prev, created]);
+          api.getUsage(token).then(setUsage).catch(() => {});
         }
         setShowCatForm(false);
         setEditingCatId(null);
@@ -178,6 +186,7 @@ export default function BrowsePage() {
       if (selectedCategoryId && deletedSet.has(selectedCategoryId)) {
         setSelectedCategoryId(undefined);
       }
+      api.getUsage(token).then(setUsage).catch(() => {});
     } catch (err) {
       setCatError(err instanceof Error ? err.message : "Failed to delete category.");
     } finally {
@@ -374,6 +383,122 @@ export default function BrowsePage() {
     refreshUsage();
   }, [refreshUsage]);
 
+  // ── Multi-select ─────────────────────────────────────────────────────────────
+
+  const handleToggleSelect = useCallback((id: string) => {
+    setSelectedAssetIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleRangeSelect = useCallback((ids: string[]) => {
+    setSelectedAssetIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback((pageIds: string[]) => {
+    setSelectedAssetIds((prev) => {
+      const allSelected = pageIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }, []);
+
+  const handleClearSelection = useCallback(() => setSelectedAssetIds(new Set()), []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!token) return;
+    const ids = [...selectedAssetIds];
+    const toDelete = ids.filter((id) => !lockedIds.has(id));
+    const skipped = ids.length - toDelete.length;
+    setBulkDeleteProgress({ done: 0, total: toDelete.length });
+    const failed: string[] = [];
+    for (let i = 0; i < toDelete.length; i++) {
+      try {
+        await api.deleteAsset(toDelete[i], token);
+      } catch {
+        failed.push(toDelete[i]);
+      }
+      setBulkDeleteProgress({ done: i + 1, total: toDelete.length });
+    }
+    const deleted = toDelete.filter((id) => !failed.includes(id));
+    setAssets((prev) => prev.filter((a) => !deleted.includes(a.id)));
+    setAssetCategories((prev) => {
+      const next = new Map(prev);
+      deleted.forEach((id) => { next.delete(id); loadedAssetIds.current.delete(id); });
+      return next;
+    });
+    if (selectedAsset && deleted.includes(selectedAsset.id)) setSelectedAsset(null);
+    setSelectedAssetIds(new Set([...failed, ...ids.filter((id) => lockedIds.has(id))]));
+    setBulkDeleteProgress(null);
+    setShowBulkDeleteConfirm(false);
+    refreshUsage();
+    if (skipped > 0 || failed.length > 0) {
+      const count = skipped + failed.length;
+      alert(t("bulkDeleteSkipped", { count }));
+    }
+  }, [token, selectedAssetIds, lockedIds, selectedAsset, refreshUsage, t]);
+
+  const handleBulkDownload = useCallback(async () => {
+    if (!token) return;
+    const ids = [...selectedAssetIds];
+
+    // Single asset — use a plain anchor link (same as AssetDetails)
+    if (ids.length === 1) {
+      const a = document.createElement("a");
+      a.href = downloadUrl(ids[0]);
+      a.download = "";
+      a.click();
+      return;
+    }
+
+    // Multiple assets — fetch and zip
+    setBulkDownloadProgress({ done: 0, total: ids.length });
+    const zip = new JSZip();
+    const usedNames = new Map<string, number>();
+
+    for (let i = 0; i < ids.length; i++) {
+      const asset = assets.find((a) => a.id === ids[i]);
+      try {
+        const res = await fetch(downloadUrl(ids[i]), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        // Derive extension from the response Content-Type or the asset's MIME type
+        const ct = res.headers.get("content-type") ?? asset?.asset_type ?? "";
+        const ext = ct.split("/")[1]?.split(";")[0]?.split("+")[0] ?? "bin";
+        const baseName = asset?.name ?? ids[i];
+        const candidate = `${baseName}.${ext}`;
+        const count = (usedNames.get(candidate) ?? 0) + 1;
+        usedNames.set(candidate, count);
+        const fileName = count === 1 ? candidate : `${baseName} (${count}).${ext}`;
+        zip.file(fileName, blob);
+      } catch {
+        // skip failed assets silently — they'll be absent from the ZIP
+      }
+      setBulkDownloadProgress({ done: i + 1, total: ids.length });
+    }
+
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    const date = new Date().toISOString().slice(0, 10);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(zipBlob);
+    a.download = `comad-assets-${date}.zip`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setBulkDownloadProgress(null);
+  }, [token, selectedAssetIds, assets]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const handleCategoriesChanged = useCallback(
     (cats: api.Category[]) => {
       if (!selectedAsset) return;
@@ -432,6 +557,11 @@ export default function BrowsePage() {
       ? visibleCategories.find((c) => c.id === selectedCategoryId)
       : undefined;
 
+  const atCategoryLimit =
+    usage !== null &&
+    usage.category_limit !== null &&
+    usage.category_count >= usage.category_limit;
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left: Category tree */}
@@ -441,9 +571,10 @@ export default function BrowsePage() {
             {t("categoriesHeading")}
           </p>
           <button
-            onClick={() => openCatForm(null)}
-            title={t("newTopLevelCategoryTitle")}
-            className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 text-sm leading-none transition-colors"
+            onClick={atCategoryLimit ? undefined : () => openCatForm(null)}
+            title={atCategoryLimit ? t("categoryLimitReached") : t("newTopLevelCategoryTitle")}
+            disabled={atCategoryLimit}
+            className="w-5 h-5 flex items-center justify-center rounded text-sm leading-none transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-slate-400 hover:text-blue-600 hover:bg-blue-100"
           >
             +
           </button>
@@ -520,8 +651,9 @@ export default function BrowsePage() {
               }
               onCategoryDrop={handleCategoryDrop}
               onAddSubcategory={openCatForm}
+              atCategoryLimit={atCategoryLimit}
               onMoveCategory={handleMoveCategory}
-              username={user?.username}
+              userId={user?.id}
               onEditCategory={openEditCatForm}
               onDeleteCategory={handleRequestDeleteCat}
             />
@@ -562,6 +694,40 @@ export default function BrowsePage() {
           </button>
         </div>
 
+        {/* Bulk action bar */}
+        {selectedAssetIds.size > 0 && (
+          <div className="shrink-0 px-4 py-2 bg-blue-50 border-b border-blue-200 flex items-center gap-3">
+            <span className="text-sm font-medium text-blue-800 mr-1">
+              {t("bulkSelected", { count: selectedAssetIds.size })}
+            </span>
+            <button
+              type="button"
+              onClick={handleBulkDownload}
+              disabled={!!bulkDownloadProgress}
+              className="px-3 py-1 rounded-lg text-xs font-medium bg-white border border-blue-300 text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition-colors"
+            >
+              {bulkDownloadProgress
+                ? t("bulkDownloadPreparing", { done: bulkDownloadProgress.done, total: bulkDownloadProgress.total })
+                : t("bulkDownload")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBulkDeleteConfirm(true)}
+              disabled={!!bulkDeleteProgress}
+              className="px-3 py-1 rounded-lg text-xs font-medium bg-white border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+            >
+              {t("bulkDelete")}
+            </button>
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="ml-auto text-xs text-slate-500 hover:text-slate-700 transition-colors"
+            >
+              {t("bulkClear")}
+            </button>
+          </div>
+        )}
+
         {loadError ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8">
             <p className="text-sm text-red-600">{loadError}</p>
@@ -588,6 +754,10 @@ export default function BrowsePage() {
             onDragEnd={handleDragEnd}
             onAssetCreated={handleAssetCreated}
             onAssetUpdated={handleAssetUpdated}
+            selectedAssetIds={selectedAssetIds}
+            onToggleSelect={handleToggleSelect}
+            onRangeSelect={handleRangeSelect}
+            onSelectAll={handleSelectAll}
           />
         )}
       </div>
@@ -663,6 +833,38 @@ export default function BrowsePage() {
           </div>
         );
       })()}
+
+      {/* Bulk delete confirmation modal */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4">
+            <h2 className="text-base font-semibold text-slate-800 mb-2">
+              {t("bulkDeleteConfirmTitle", { count: selectedAssetIds.size })}
+            </h2>
+            <p className="text-sm text-slate-600 mb-4">{t("bulkDeleteConfirmMessage")}</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                disabled={!!bulkDeleteProgress}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                {t("bulkDeleteCancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={!!bulkDeleteProgress}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white transition-colors"
+              >
+                {bulkDeleteProgress
+                  ? t("bulkDeleteDeleting", { done: bulkDeleteProgress.done, total: bulkDeleteProgress.total })
+                  : t("bulkDeleteConfirm")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showUpload && (
         <UploadModal

@@ -19,13 +19,14 @@ function barColour(pct: number): string {
 
 interface RowProps {
   label: string;
-  used: number;
+  used: number | undefined;
   limit: number | null;
   formatValue: (n: number) => string;
   unlimitedLabel: string;
 }
 
 function UsageRow({ label, used, limit, formatValue, unlimitedLabel }: RowProps) {
+  if (used === undefined) return null;
   const unlimited = limit === null;
   const pct = unlimited ? 0 : limit === 0 ? 1 : Math.min(1, used / limit);
 
@@ -57,7 +58,10 @@ interface Props {
 
 export default function UsageWidget({ usage }: Props) {
   const t = useTranslations("usageWidget");
-  const hasLimits = usage.storage_limit_bytes !== null || usage.asset_limit !== null;
+  const hasLimits =
+    usage.storage_limit_bytes !== null ||
+    usage.asset_limit !== null ||
+    usage.category_limit !== null;
 
   return (
     <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2.5">
@@ -72,6 +76,13 @@ export default function UsageWidget({ usage }: Props) {
         label={t("assets")}
         used={usage.asset_count}
         limit={usage.asset_limit}
+        formatValue={(n) => n.toLocaleString()}
+        unlimitedLabel={t("unlimited")}
+      />
+      <UsageRow
+        label={t("categories")}
+        used={usage.category_count}
+        limit={usage.category_limit}
         formatValue={(n) => n.toLocaleString()}
         unlimitedLabel={t("unlimited")}
       />

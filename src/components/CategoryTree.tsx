@@ -77,7 +77,8 @@ function TreeNodeItem({
   assetDrag,
   catMove,
   onAddSubcategory,
-  username,
+  atCategoryLimit,
+  userId,
   onEditCategory,
   onDeleteCategory,
   depth = 0,
@@ -88,11 +89,13 @@ function TreeNodeItem({
   assetDrag: AssetDragCtx;
   catMove: CatMoveCtx;
   onAddSubcategory?: (parentId: string) => void;
-  username?: string;
+  atCategoryLimit?: boolean;
+  userId?: string;
   onEditCategory?: (id: string) => void;
   onDeleteCategory?: (id: string) => void;
   depth?: number;
 }) {
+
   const t = useTranslations("categoryTree");
   const [expanded, setExpanded] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -268,8 +271,8 @@ function TreeNodeItem({
           </span>
         )}
 
-        {/* Add sub-category button — visible on hover when not dragging */}
-        {!isAssetDragging && !isCatMoving && onAddSubcategory && hovered && (
+        {/* Add sub-category button — visible on hover when not dragging and under limit */}
+        {!isAssetDragging && !isCatMoving && onAddSubcategory && hovered && !atCategoryLimit && (
           <button
             type="button"
             onClick={(e) => {
@@ -284,7 +287,7 @@ function TreeNodeItem({
         )}
 
         {/* Edit / Delete buttons — visible on hover for categories owned by the current user */}
-        {!isAssetDragging && !isCatMoving && username && node.creator === username && hovered && (
+        {!isAssetDragging && !isCatMoving && userId && node.owner_id === userId && hovered && (
           <>
             {onEditCategory && (
               <button
@@ -321,7 +324,8 @@ function TreeNodeItem({
               assetDrag={assetDrag}
               catMove={catMove}
               onAddSubcategory={onAddSubcategory}
-              username={username}
+              atCategoryLimit={atCategoryLimit}
+              userId={userId}
               onEditCategory={onEditCategory}
               onDeleteCategory={onDeleteCategory}
               depth={depth + 1}
@@ -346,10 +350,12 @@ interface Props {
   onCategoryDrop?: (assetId: string, categoryId: string) => void;
   // Category creation
   onAddSubcategory?: (parentId: string) => void;
+  /** When true, all sub-category creation buttons are hidden. */
+  atCategoryLimit?: boolean;
   // Category move drag-and-drop
   onMoveCategory?: (id: string, newParentId: string | null) => void;
   // Category edit / delete (only shown for owned categories)
-  username?: string;
+  userId?: string;
   onEditCategory?: (id: string) => void;
   onDeleteCategory?: (id: string) => void;
 }
@@ -363,8 +369,9 @@ export default function CategoryTree({
   draggingAssetCategoryIds = [],
   onCategoryDrop,
   onAddSubcategory,
+  atCategoryLimit = false,
   onMoveCategory,
-  username,
+  userId,
   onEditCategory,
   onDeleteCategory,
 }: Props) {
@@ -484,7 +491,8 @@ export default function CategoryTree({
           assetDrag={assetDrag}
           catMove={catMove}
           onAddSubcategory={onAddSubcategory}
-          username={username}
+          atCategoryLimit={atCategoryLimit}
+          userId={userId}
           onEditCategory={onEditCategory}
           onDeleteCategory={onDeleteCategory}
           depth={0}

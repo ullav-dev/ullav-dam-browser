@@ -38,6 +38,17 @@ export default async function HelpPage() {
         </Cards>
       </Section>
 
+      <Section title={t("multiSelect.title")} icon="☑️">
+        <Cards>
+          <Card title={t("multiSelect.selectTitle")} body={t("multiSelect.selectBody")} />
+          <Card title={t("multiSelect.rangeTitle")} body={t("multiSelect.rangeBody")} />
+          <Card title={t("multiSelect.selectAllTitle")} body={t("multiSelect.selectAllBody")} />
+          <Card title={t("multiSelect.downloadTitle")} body={t("multiSelect.downloadBody")} />
+          <Card title={t("multiSelect.deleteTitle")} body={t("multiSelect.deleteBody")} />
+          <Card title={t("multiSelect.clearTitle")} body={t("multiSelect.clearBody")} />
+        </Cards>
+      </Section>
+
       <Section title={t("categories.title")} icon="🗂️">
         <Cards>
           <Card title={t("categories.createTitle")} body={t("categories.createBody")} />
