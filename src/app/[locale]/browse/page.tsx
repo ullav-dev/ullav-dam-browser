@@ -243,14 +243,15 @@ export default function BrowsePage() {
     setLoadingAssets(true);
     setLoadError(null);
     try {
-      const [assetsData, categoriesData, usageData] = await Promise.all([
+      const [assetsData, categoriesData] = await Promise.all([
         api.listAssets(token),
         api.listCategories(token),
-        damAccess !== "none" ? api.getUsage(token) : Promise.resolve(null),
       ]);
       setAssets(assetsData);
       setCategories(categoriesData);
-      setUsage(usageData);
+      if (damAccess !== "none") {
+        api.getUsage(token).then(setUsage).catch(() => {});
+      }
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Failed to load data.");
     } finally {
@@ -431,11 +432,6 @@ export default function BrowsePage() {
       ? visibleCategories.find((c) => c.id === selectedCategoryId)
       : undefined;
 
-  // Asset count display
-  const countLabel = loadingAssets
-    ? t("loading")
-    : `${t("assetCount", { count: assets.length })}${selectedCategoryId ? ` ${t("filteredByCategory")}` : ""}${searchQuery ? ` ${t("filteredBySearch", { query: searchQuery })}` : ""}`;
-
   return (
     <div className="flex h-full overflow-hidden">
       {/* Left: Category tree */}
@@ -564,10 +560,6 @@ export default function BrowsePage() {
           >
             ↺
           </button>
-        </div>
-
-        <div className="px-4 py-2 border-b border-slate-100 bg-white shrink-0">
-          <p className="text-xs text-slate-400">{countLabel}</p>
         </div>
 
         {loadError ? (

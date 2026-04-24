@@ -384,7 +384,7 @@
     "buttonUpload": "{count, plural, one {# chomhad a uaslódáil} other {# chomhad a uaslódáil}}",
     "buttonUploading": "Ag uaslódáil {current}/{total}…",
     "zipAndPrefix": "ZIP + ",
-    "planImagesOnly": "Plean Teaghlaigh: ní féidir ach comhaid íomhá a uaslódáil. Uasghrádaigh go gairmiúil le haghaidh gach cineál comhaid."
+    "planImagesOnly": "Plean Teaghlaigh: tacaítear le comhaid íomhá (PNG, JPEG, WebP, srl.). Eisiatar comhaid neamh-íomhá go huathoibríoch. Uasghrádaigh go gairmiúil le haghaidh gach cineál comhaid."
   },
   "modals": {
     "termsTitle": "Téarmaí Seirbhíse",

@@ -384,7 +384,7 @@
     "buttonUpload": "{count, plural, one {# Datei hochladen} other {# Dateien hochladen}}",
     "buttonUploading": "Hochladen {current}/{total}…",
     "zipAndPrefix": "ZIP + ",
-    "planImagesOnly": "Family-Plan: Nur Bilddateien können hochgeladen werden. Upgraden Sie auf Professional für alle Dateitypen."
+    "planImagesOnly": "Family-Plan: Bilddateien (PNG, JPEG, WebP usw.) werden unterstützt. Nicht-Bilddateien werden automatisch ausgeschlossen. Upgraden Sie auf Professional für alle Dateitypen."
   },
   "modals": {
     "termsTitle": "Nutzungsbedingungen",

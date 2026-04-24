@@ -110,8 +110,13 @@ export default function UploadModal({ token, username, damAccess, initialCategor
       const newEntries: FileEntry[] = incoming
         .filter((f) => {
           if (existingNames.has(f.name)) return false;
-          // Family plan: only images allowed (ZIP also blocked — would contain mixed types)
-          if (damAccess === "images-only" && !f.type.startsWith("image/")) return false;
+          // Family plan: only images allowed (ZIP also blocked — would contain mixed types).
+          // Check both MIME type and extension because f.type can be empty in some drag-and-drop contexts.
+          if (damAccess === "images-only") {
+            const imageByType = f.type.startsWith("image/");
+            const imageByExt = /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|heic|avif|ico)$/i.test(f.name);
+            if (!imageByType && !imageByExt) return false;
+          }
           return true;
         })
         .map((f) => {
