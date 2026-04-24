@@ -129,6 +129,7 @@ export default function BrowsePage() {
             token
           );
           setCategories((prev) => [...prev, created]);
+          api.getUsage(token).then(setUsage).catch(() => {});
         }
         setShowCatForm(false);
         setEditingCatId(null);
@@ -185,6 +186,7 @@ export default function BrowsePage() {
       if (selectedCategoryId && deletedSet.has(selectedCategoryId)) {
         setSelectedCategoryId(undefined);
       }
+      api.getUsage(token).then(setUsage).catch(() => {});
     } catch (err) {
       setCatError(err instanceof Error ? err.message : "Failed to delete category.");
     } finally {
@@ -651,7 +653,7 @@ export default function BrowsePage() {
               onAddSubcategory={openCatForm}
               atCategoryLimit={atCategoryLimit}
               onMoveCategory={handleMoveCategory}
-              username={user?.username}
+              userId={user?.id}
               onEditCategory={openEditCatForm}
               onDeleteCategory={handleRequestDeleteCat}
             />

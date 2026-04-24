@@ -38,6 +38,7 @@ export interface Category {
   description: string | null;
   parent_id: string | null;
   creator: string | null;
+  owner_id: string;
   access_level: string;
   created_at: string;
   updated_at: string;

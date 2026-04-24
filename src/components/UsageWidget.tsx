@@ -19,13 +19,14 @@ function barColour(pct: number): string {
 
 interface RowProps {
   label: string;
-  used: number;
+  used: number | undefined;
   limit: number | null;
   formatValue: (n: number) => string;
   unlimitedLabel: string;
 }
 
 function UsageRow({ label, used, limit, formatValue, unlimitedLabel }: RowProps) {
+  if (used === undefined) return null;
   const unlimited = limit === null;
   const pct = unlimited ? 0 : limit === 0 ? 1 : Math.min(1, used / limit);
 
