@@ -11,8 +11,7 @@
     "start": "next start --port 3002",
     "lint": "eslint",
     "test": "jest",
-    "docker": "docker build -t ullav-dam-browser .",
-    "predocker": "docker run --rm -v \"$(pwd)\":/app -w /app node:22-alpine npm install --package-lock-only"
+    "docker": "docker build -t ullav-dam-browser ."
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
