@@ -121,6 +121,8 @@
     "planNone": "No active subscription",
     "helpLink": "Help",
     "accountLink": "Manage subscription",
+    "support": "Support",
+    "contact": "Contact",
     "close": "Close"
   },
   "footer": {
@@ -540,6 +542,15 @@
       "deleteBody": "Click Delete in the action bar. A confirmation prompt appears — click Yes, delete to permanently remove the asset. Deletion cannot be undone. Locked assets cannot be deleted.",
       "downloadTitle": "Downloading an asset",
       "downloadBody": "Click Download in the action bar to save the original file to your device. The asset URL shown in the details panel can also be copied and shared."
+    },
+    "contactUs": {
+      "title": "Contact Us",
+      "supportTitle": "Support",
+      "supportBody": "For technical issues, account questions, or anything not working as expected, email us at support@ullav.com. Please include steps to reproduce the problem, what you expected to happen, what actually happened, and any screenshots that help explain the issue.",
+      "contactTitle": "General Enquiries",
+      "contactBody": "For general questions, partnerships, or press enquiries, get in touch at info@ullav.com.",
+      "accountTitle": "Account Deletion & Feature Requests",
+      "accountBody": "To request deletion of your account and all associated data, or to suggest a new feature, email support@ullav.com. Please include your username in account-related requests."
     }
   }
 }

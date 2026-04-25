@@ -121,6 +121,8 @@
     "planNone": "Gan suibscríbhinn ghníomhach",
     "helpLink": "Cabhair",
     "accountLink": "Suibscríbhinn a bhainistiú",
+    "support": "Tacaíocht",
+    "contact": "Teagmháil",
     "close": "Dún"
   },
   "footer": {
@@ -540,6 +542,15 @@
       "deleteBody": "Cliceáil Scrios sa bharra gníomh. Feictear leid dheimhnithe — cliceáil Sea, scrios chun an tsócmhainn a bhaint go buan. Ní féidir scriosadh a chealú. Ní féidir sócmhainní glasáilte a scriosadh.",
       "downloadTitle": "Sócmhainn a íoslódáil",
       "downloadBody": "Cliceáil Íoslódáil sa bharra gníomh chun an comhad bunaidh a shábháil ar do ghléas. Is féidir URL na sócmhainne a thaispeántar sa phainéal sonraí a chóipeáil agus a roinnt freisin."
+    },
+    "contactUs": {
+      "title": "Déan Teagmháil Linn",
+      "supportTitle": "Tacaíocht",
+      "supportBody": "Le haghaidh fadhbanna teicniúla, ceisteanna cuntais, nó aon rud nach bhfuil ag obair mar a bhíothas ag súil leis, seol ríomhphost chugainn ag support@ullav.com. Le do thoil, áirigh na céimeanna chun an fhadhb a atáirgeadh, cad a bhí súil agat a tharlódh, cad a tharla i ndáiríre, agus aon gabhálacha scáileáin a chabhraíonn leis an bhfadhb a mhíniú.",
+      "contactTitle": "Fiosrúcháin Ghinearálta",
+      "contactBody": "Le haghaidh ceisteanna ginearálta, comhpháirtíochtaí, nó fiosrúcháin preasa, déan teagmháil linn ag info@ullav.com.",
+      "accountTitle": "Scriosadh Cuntais & Moltaí Gnéithe",
+      "accountBody": "Chun scriosadh do chuntais agus na sonraí go léir a bhaineann leis a iarraidh, nó chun gné nua a mholadh, seol ríomhphost chuig support@ullav.com. Le do thoil, áirigh d'ainm úsáideora in iarratais a bhaineann le do chuntas."
     }
   }
 }

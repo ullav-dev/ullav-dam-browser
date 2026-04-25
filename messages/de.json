@@ -121,6 +121,8 @@
     "planNone": "Kein aktives Abonnement",
     "helpLink": "Hilfe",
     "accountLink": "Abonnement verwalten",
+    "support": "Support",
+    "contact": "Kontakt",
     "close": "Schließen"
   },
   "footer": {
@@ -540,6 +542,15 @@
       "deleteBody": "Klicken Sie in der Aktionsleiste auf Löschen. Eine Bestätigungsaufforderung erscheint — klicken Sie auf Ja, löschen, um das Asset dauerhaft zu entfernen. Das Löschen kann nicht rückgängig gemacht werden.",
       "downloadTitle": "Ein Asset herunterladen",
       "downloadBody": "Klicken Sie in der Aktionsleiste auf Herunterladen, um die Originaldatei auf Ihr Gerät zu speichern. Die im Detailbereich angezeigte Asset-URL kann auch kopiert und geteilt werden."
+    },
+    "contactUs": {
+      "title": "Kontakt",
+      "supportTitle": "Support",
+      "supportBody": "Bei technischen Problemen, Fragen zu Ihrem Konto oder wenn etwas nicht wie erwartet funktioniert, schreiben Sie uns an support@ullav.com. Bitte beschreiben Sie die Schritte zur Reproduktion des Problems, was Sie erwartet haben, was tatsächlich passiert ist, und fügen Sie Screenshots bei, die das Problem veranschaulichen.",
+      "contactTitle": "Allgemeine Anfragen",
+      "contactBody": "Für allgemeine Fragen, Partnerschaften oder Presseanfragen wenden Sie sich an info@ullav.com.",
+      "accountTitle": "Kontolöschung & Feature-Anfragen",
+      "accountBody": "Um die Löschung Ihres Kontos und aller zugehörigen Daten zu beantragen oder um ein neues Feature vorzuschlagen, schreiben Sie an support@ullav.com. Bitte geben Sie Ihren Benutzernamen bei kontobezogenen Anfragen an."
     }
   }
 }
