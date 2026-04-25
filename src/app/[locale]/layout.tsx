@@ -37,7 +37,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
             <Nav />
-            <main className="flex-1 overflow-hidden">{children}</main>
+            <main className="flex-1 overflow-auto">{children}</main>
             <Footer />
           </AuthProvider>
         </NextIntlClientProvider>
