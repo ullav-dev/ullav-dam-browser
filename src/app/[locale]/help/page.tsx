@@ -104,6 +104,14 @@ export default async function HelpPage() {
         </Cards>
       </Section>
 
+      <Section title={t("contactUs.title")} icon="✉️">
+        <Cards>
+          <ContactCard title={t("contactUs.supportTitle")} body={t("contactUs.supportBody")} email="support@ullav.com" color="text-blue-700" />
+          <ContactCard title={t("contactUs.contactTitle")} body={t("contactUs.contactBody")} email="info@ullav.com" color="text-blue-700" />
+          <ContactCard title={t("contactUs.accountTitle")} body={t("contactUs.accountBody")} email="support@ullav.com" color="text-blue-700" />
+        </Cards>
+      </Section>
+
       <div className="rounded-2xl bg-blue-50 border border-blue-200 px-6 py-5 flex items-center justify-between gap-4">
         <p className="text-blue-800 text-sm">{t("cta")}</p>
         <Link
@@ -156,6 +164,16 @@ function Card({ title, body }: { title: string; body: string }) {
     <div className="bg-white rounded-xl border border-slate-200 p-4">
       <p className="font-semibold text-slate-800 text-sm mb-1">{title}</p>
       <p className="text-slate-500 text-sm leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
+function ContactCard({ title, body, email, color }: { title: string; body: string; email: string; color: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-4">
+      <p className="font-semibold text-slate-800 text-sm mb-1">{title}</p>
+      <p className="text-slate-500 text-sm leading-relaxed mb-2">{body}</p>
+      <a href={`mailto:${email}`} className={`text-sm font-medium ${color} hover:underline`}>{email}</a>
     </div>
   );
 }
