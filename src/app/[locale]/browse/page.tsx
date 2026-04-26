@@ -472,9 +472,12 @@ export default function BrowsePage() {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
-        // Derive extension from the response Content-Type or the asset's MIME type
-        const ct = res.headers.get("content-type") ?? asset?.asset_type ?? "";
-        const ext = ct.split("/")[1]?.split(";")[0]?.split("+")[0] ?? "bin";
+        // Prefer the asset's stored MIME type; the download response often sends
+        // application/octet-stream which would produce a useless ".octet-stream" extension.
+        const mimeType = asset?.asset_type || res.headers.get("content-type") || "";
+        const subtype = mimeType.split("/")[1]?.split(";")[0]?.split("+")[0] ?? "bin";
+        const extNorm: Record<string, string> = { jpeg: "jpg", "octet-stream": "bin", plain: "txt" };
+        const ext = extNorm[subtype] ?? subtype;
         const baseName = asset?.name ?? ids[i];
         const candidate = `${baseName}.${ext}`;
         const count = (usedNames.get(candidate) ?? 0) + 1;
