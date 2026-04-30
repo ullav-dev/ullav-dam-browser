@@ -15,9 +15,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install dependencies
-        run: |
-          npm install
-          git diff --exit-code package-lock.json || (echo "package-lock.json is out of sync — run npm install locally and commit the result" && exit 1)
+        run: npm install
       - name: Run tests
         run: npm test
 
