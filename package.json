@@ -11,7 +11,8 @@
     "start": "next start --port 3002",
     "lint": "eslint",
     "test": "jest",
-    "docker": "docker build -t ullav-dam-browser ."
+    "docker": "docker build -t ullav-dam-browser .",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
