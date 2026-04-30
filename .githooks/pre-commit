@@ -1,0 +1,7 @@
+#!/bin/sh
+# If package.json is staged, regenerate package-lock.json and stage it too.
+if git diff --cached --name-only | grep -q '^package\.json$'; then
+  echo "package.json changed — updating package-lock.json..."
+  npm install --package-lock-only --ignore-scripts
+  git add package-lock.json
+fi
