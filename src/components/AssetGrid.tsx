@@ -141,6 +141,7 @@ interface Props {
   selectedAssetId: string | null;
   lockedIds: Set<string>;
   username?: string;
+  userId?: string;
   token?: string;
   onSelect: (asset: Asset) => void;
   onDragStart: (assetId: string) => void;
@@ -162,6 +163,7 @@ export default function AssetGrid({
   selectedAssetId,
   lockedIds,
   username,
+  userId,
   token,
   onSelect,
   onDragStart,
@@ -197,8 +199,8 @@ export default function AssetGrid({
     // undefined = nothing selected; only show results when a search is active
     if (selectedCategoryId === undefined && !searchQuery) return false;
     // Hide private assets owned by other users
-    if (asset.is_private && asset.creator !== username) return false;
-    if (myAssetsOnly && username && asset.creator !== username) return false;
+    if (asset.is_private && asset.owner_id !== userId) return false;
+    if (myAssetsOnly && userId && asset.owner_id !== userId) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const matches =

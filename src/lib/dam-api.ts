@@ -17,6 +17,7 @@ export interface Asset {
   caption: string | null;
   keywords: string | null;
   creator: string | null;
+  owner_id: string;
   copyright_notice: string | null;
   available: boolean;
   available_until: string | null;
