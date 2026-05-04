@@ -37,6 +37,32 @@ export default function BrowsePage() {
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ done: number; total: number } | null>(null);
   const [bulkDownloadProgress, setBulkDownloadProgress] = useState<{ done: number; total: number } | null>(null);
 
+  // Auto-refresh interval — persisted in localStorage (null = off)
+  const AUTO_REFRESH_OPTIONS = [
+    { label: t("autoRefreshOff"), value: null },
+    { label: "30s", value: 30_000 },
+    { label: "1m", value: 60_000 },
+    { label: "5m", value: 300_000 },
+    { label: "10m", value: 600_000 },
+  ] as const;
+
+  const [autoRefreshMs, setAutoRefreshMs] = useState<number | null>(() => {
+    try {
+      const raw = localStorage.getItem("dam_auto_refresh_ms");
+      if (raw === null) return null;
+      const n = parseInt(raw, 10);
+      return AUTO_REFRESH_OPTIONS.some((o) => o.value === n) ? n : null;
+    } catch { return null; }
+  });
+
+  const handleAutoRefreshChange = useCallback((value: number | null) => {
+    setAutoRefreshMs(value);
+    try {
+      if (value === null) localStorage.removeItem("dam_auto_refresh_ms");
+      else localStorage.setItem("dam_auto_refresh_ms", String(value));
+    } catch {}
+  }, []);
+
   // Panel widths — persisted in localStorage
   const [leftWidth, setLeftWidth] = useState<number>(() => {
     try { return parseInt(localStorage.getItem("dam_left_panel_width") ?? "", 10) || 224; } catch { return 224; }
@@ -247,10 +273,18 @@ export default function BrowsePage() {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, user, router]);
 
-  const loadData = useCallback(async () => {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // silent=true keeps the grid mounted (no loadingAssets spinner) so thumbnails survive.
+  // Use silent when assets are already visible; use non-silent only on first load.
+  const loadData = useCallback(async (silent = false) => {
     if (!token) return;
-    setLoadingAssets(true);
-    setLoadError(null);
+    if (silent) {
+      setIsRefreshing(true);
+    } else {
+      setLoadingAssets(true);
+      setLoadError(null);
+    }
     try {
       const [assetsData, categoriesData] = await Promise.all([
         api.listAssets(token),
@@ -262,9 +296,10 @@ export default function BrowsePage() {
         api.getUsage(token).then(setUsage).catch(() => {});
       }
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Failed to load data.");
+      if (!silent) setLoadError(err instanceof Error ? err.message : "Failed to load data.");
     } finally {
-      setLoadingAssets(false);
+      if (silent) setIsRefreshing(false);
+      else setLoadingAssets(false);
     }
   }, [token, damAccess]);
 
@@ -278,6 +313,12 @@ export default function BrowsePage() {
   useEffect(() => {
     if (token) loadData();
   }, [token, loadData]);
+
+  useEffect(() => {
+    if (!autoRefreshMs || !token) return;
+    const id = setInterval(() => { loadData(true); }, autoRefreshMs);
+    return () => clearInterval(id);
+  }, [autoRefreshMs, token, loadData]);
 
   // Background-load categories for all assets in batches of 5, with retry on failure
   useEffect(() => {
@@ -688,13 +729,31 @@ export default function BrowsePage() {
           >
             <span>+</span> {t("uploadButton")}
           </button>
-          <button
-            onClick={loadData}
-            title={t("refreshTitle")}
-            className="border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-2.5 py-2 rounded-lg transition-colors shrink-0"
-          >
-            ↺
-          </button>
+          <div className="flex items-center shrink-0 rounded-lg border border-slate-300 overflow-hidden">
+            <button
+              onClick={() => loadData(assets.length > 0)}
+              title={t("refreshTitle")}
+              disabled={isRefreshing}
+              className={`text-slate-600 hover:bg-slate-50 text-sm font-medium px-2.5 py-2 transition-colors border-r border-slate-300 disabled:opacity-50 ${isRefreshing ? "animate-spin" : ""}`}
+            >
+              ↺
+            </button>
+            <select
+              value={autoRefreshMs ?? "off"}
+              onChange={(e) => handleAutoRefreshChange(e.target.value === "off" ? null : Number(e.target.value))}
+              title={t("autoRefreshTitle")}
+              className="text-xs text-slate-600 bg-white pr-1 pl-1.5 py-2 focus:outline-none cursor-pointer"
+            >
+              {AUTO_REFRESH_OPTIONS.map((o) => (
+                <option key={o.value ?? "off"} value={o.value ?? "off"}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            {autoRefreshMs !== null && (
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5 shrink-0" title={t("autoRefreshActive")} />
+            )}
+          </div>
         </div>
 
         {/* Bulk action bar */}
@@ -734,7 +793,7 @@ export default function BrowsePage() {
         {loadError ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8">
             <p className="text-sm text-red-600">{loadError}</p>
-            <button onClick={loadData} className="text-sm text-blue-700 hover:underline">
+            <button onClick={() => loadData()} className="text-sm text-blue-700 hover:underline">
               {t("loadError")}
             </button>
           </div>
@@ -751,6 +810,7 @@ export default function BrowsePage() {
             selectedAssetId={selectedAsset?.id ?? null}
             lockedIds={lockedIds}
             username={user?.username}
+            userId={user?.id}
             token={token ?? ""}
             onSelect={handleSelectAsset}
             onDragStart={handleDragStart}
