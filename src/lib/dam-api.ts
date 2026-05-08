@@ -138,6 +138,10 @@ export const uploadFile = (id: string, file: File, token: string): Promise<Asset
 export const thumbnailUrl = (id: string): string => `/api/assets/${id}/thumbnail`;
 export const downloadUrl = (id: string): string => `/api/assets/${id}/download`;
 
+export const refreshThumbnail = (id: string, token: string): Promise<void> =>
+  apiRequest(`/api/assets/${id}/thumbnail`, { method: "DELETE", headers: bearerHeaders(token) })
+    .then(() => undefined);
+
 // ── ZIP import ────────────────────────────────────────────────────────────────
 
 export interface ZipUploadResult {
