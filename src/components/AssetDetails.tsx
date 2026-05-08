@@ -271,8 +271,10 @@ export default function AssetDetails({
     setSaveError(null);
     try {
       await refreshThumbnail(asset.id, token);
+      const newVersion = new Date().toISOString();
       setThumbFailed(false);
-      setThumbVersion(Date.now().toString());
+      setThumbVersion(newVersion);
+      onUpdated({ ...asset, updated_at: newVersion });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t("errorRefreshThumbnail"));
     } finally {
