@@ -10,6 +10,7 @@ import {
   removeCategoryFromAsset,
   uploadFile,
   downloadUrl,
+  refreshThumbnail,
 } from "@/lib/dam-api";
 
 const inputCls =
@@ -69,6 +70,16 @@ function IconReplace() {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
       <polyline points="17 8 12 3 7 8"/>
       <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  );
+}
+
+function IconRefresh() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <polyline points="23 4 23 10 17 10"/>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
     </svg>
   );
 }
@@ -144,6 +155,8 @@ export default function AssetDetails({
 
   // Thumbnail state
   const [thumbFailed, setThumbFailed] = useState(false);
+  const [thumbVersion, setThumbVersion] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Replace file input ref
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
@@ -170,11 +183,13 @@ export default function AssetDetails({
     setDraggingCatId(null);
     setRemoveZoneOver(false);
     setThumbFailed(false);
+    setThumbVersion(null);
   }, [asset.id]);
 
   // Reset thumb error state when the file is replaced (updated_at changes without id change)
   useEffect(() => {
     setThumbFailed(false);
+    setThumbVersion(null);
   }, [asset.updated_at]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -248,6 +263,20 @@ export default function AssetDetails({
     } finally {
       setReplacing(false);
       if (replaceFileInputRef.current) replaceFileInputRef.current.value = "";
+    }
+  }
+
+  async function handleRefreshThumbnail() {
+    setRefreshing(true);
+    setSaveError(null);
+    try {
+      await refreshThumbnail(asset.id, token);
+      setThumbFailed(false);
+      setThumbVersion(Date.now().toString());
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : t("errorRefreshThumbnail"));
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -339,7 +368,7 @@ export default function AssetDetails({
             <span className="text-xs text-slate-400 font-medium">{t("noPreview")}</span>
           ) : (
             <img
-              src={`/api/assets/${asset.id}/thumbnail?v=${encodeURIComponent(asset.updated_at)}`}
+              src={`/api/assets/${asset.id}/thumbnail?v=${encodeURIComponent(thumbVersion ?? asset.updated_at)}`}
               alt={asset.name}
               className="max-w-full max-h-full object-contain pointer-events-none"
               onError={() => setThumbFailed(true)}
@@ -683,6 +712,21 @@ export default function AssetDetails({
             <IconReplace />
             <span className="text-[10px] font-medium">
               {replacing ? t("replacingFile") : t("actionReplace")}
+            </span>
+          </button>
+
+          <div className="w-px bg-slate-200 my-1" />
+
+          {/* Refresh thumbnail */}
+          <button
+            onClick={handleRefreshThumbnail}
+            disabled={refreshing}
+            title={t("actionRefreshThumbnailTitle")}
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <IconRefresh />
+            <span className="text-[10px] font-medium">
+              {refreshing ? t("refreshingThumbnail") : t("actionRefreshThumbnail")}
             </span>
           </button>
 
