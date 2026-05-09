@@ -592,8 +592,14 @@ export default function BrowsePage() {
 
   // Only show categories the user owns, or that are globally accessible,
   // or that have no creator set (legacy data created before access control was added).
+  // Check owner_id (UUID) as the authoritative ownership field alongside creator (username)
+  // so that categories whose creator field is stale or missing are never incorrectly hidden.
   const visibleCategories = categories.filter(
-    (c) => !c.creator || c.creator === user?.username || c.access_level === "Global"
+    (c) =>
+      !c.creator ||
+      c.creator === user?.username ||
+      c.owner_id === user?.id ||
+      c.access_level === "Global"
   );
 
   const selectedCategory =
