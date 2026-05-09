@@ -139,7 +139,7 @@ export const thumbnailUrl = (id: string): string => `/api/assets/${id}/thumbnail
 export const downloadUrl = (id: string): string => `/api/assets/${id}/download`;
 
 export const refreshThumbnail = (id: string, token: string): Promise<void> =>
-  apiRequest(`/api/assets/${id}/thumbnail`, { method: "DELETE", headers: bearerHeaders(token) })
+  apiRequest(`/assets/${id}/thumbnail`, { method: "DELETE", headers: bearerHeaders(token) })
     .then(() => undefined);
 
 // ── ZIP import ────────────────────────────────────────────────────────────────
