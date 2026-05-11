@@ -5,7 +5,7 @@ import { routing } from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
 
-export function proxy(request: NextRequest) {
+function route(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl;
 
   // Proxy /api/* → ullav-dam-server (strips /api prefix)
@@ -24,7 +24,15 @@ export function proxy(request: NextRequest) {
     );
   }
 
-  return intlMiddleware(request);
+  return intlMiddleware(request) as NextResponse;
+}
+
+export function proxy(request: NextRequest) {
+  const response = route(request);
+  const portalUrl =
+    process.env.PORTAL_URL ?? "https://setanta-portal.ullav.com http://localhost:3003";
+  response.headers.set("Content-Security-Policy", `frame-ancestors 'self' ${portalUrl}`);
+  return response;
 }
 
 export const config = {
