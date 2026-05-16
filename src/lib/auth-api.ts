@@ -126,6 +126,21 @@ export function decodeComadSubscription(token: string | null): ComadSubscription
   return { tier, status, isActive };
 }
 
+/**
+ * Returns true if the user's Comad subscription allows team creation
+ * (team or enterprise tier, active status).
+ */
+export function canCreateTeam(token: string | null): boolean {
+  if (!token) return false;
+  const payload = decodePayload(token);
+  if (!payload) return false;
+  const roles = (payload.roles ?? []) as string[];
+  if (roles.includes("admin")) return true;
+  const subs = (payload.subscriptions ?? {}) as Record<string, { tier?: string; status?: string }>;
+  const comad = subs["comad"];
+  return !!(comad && isActiveStatus(comad.status) && (comad.tier === "team" || comad.tier === "enterprise"));
+}
+
 export const login = (email: string, password: string): Promise<LoginResponse> =>
   authRequest("/auth/login", {
     method: "POST",
