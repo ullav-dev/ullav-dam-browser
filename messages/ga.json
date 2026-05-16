@@ -385,7 +385,16 @@
     "errorDelete": "Theip ar scriosadh.",
     "errorReplace": "Theip ar ionadú comhaid.",
     "errorAddCategory": "Theip ar chatagóir a chur leis.",
-    "errorRemoveCategory": "Theip ar chatagóir a bhaint."
+    "errorRemoveCategory": "Theip ar chatagóir a bhaint.",
+    "tabDetails": "Sonraí",
+    "tabExif": "EXIF",
+    "tabIptc": "IPTC",
+    "tabXmp": "XMP",
+    "metadataLoading": "Meiteashonraí á lódáil…",
+    "metadataNone": "Níl aon mheiteashonraí ar fáil don chuid seo.",
+    "metadataNoNormalized": "Níl aon réimsí aitheanta. Cumasaigh 'Taispeáin amhshonraí' chun sonraí leabaithe a fheiceáil.",
+    "metadataExtractedAt": "Eastóscadh:",
+    "showRaw": "Taispeáin amhshonraí"
   },
   "uploadModal": {
     "title": "Sócmhainní a uaslódáil",

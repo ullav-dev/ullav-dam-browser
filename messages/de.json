@@ -385,7 +385,16 @@
     "errorDelete": "Löschen fehlgeschlagen.",
     "errorReplace": "Datei ersetzen fehlgeschlagen.",
     "errorAddCategory": "Kategorie konnte nicht hinzugefügt werden.",
-    "errorRemoveCategory": "Kategorie konnte nicht entfernt werden."
+    "errorRemoveCategory": "Kategorie konnte nicht entfernt werden.",
+    "tabDetails": "Details",
+    "tabExif": "EXIF",
+    "tabIptc": "IPTC",
+    "tabXmp": "XMP",
+    "metadataLoading": "Metadaten werden geladen…",
+    "metadataNone": "Keine Metadaten für diesen Bereich verfügbar.",
+    "metadataNoNormalized": "Keine erkannten Felder. 'Rohdaten anzeigen' aktivieren, um eingebettete Daten zu sehen.",
+    "metadataExtractedAt": "Extrahiert:",
+    "showRaw": "Rohdaten anzeigen"
   },
   "uploadModal": {
     "title": "Assets hochladen",

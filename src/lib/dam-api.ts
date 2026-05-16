@@ -201,6 +201,19 @@ export const deleteCategory = (id: string, token: string): Promise<void> =>
     headers: bearerHeaders(token),
   });
 
+// ── Asset metadata (EXIF / IPTC / XMP) ───────────────────────────────────────
+
+export interface AssetMetadata {
+  asset_id: string;
+  exif: Record<string, unknown> | null;
+  iptc: Record<string, unknown> | null;
+  xmp: Record<string, unknown> | null;
+  extracted_at: string;
+}
+
+export const getAssetMetadata = (id: string, token: string): Promise<AssetMetadata> =>
+  apiRequest(`/assets/${id}/metadata`, { headers: bearerHeaders(token) });
+
 // ── Usage ─────────────────────────────────────────────────────────────────────
 
 export interface UsageInfo {

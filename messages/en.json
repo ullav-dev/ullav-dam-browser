@@ -385,7 +385,16 @@
     "errorDelete": "Delete failed.",
     "errorReplace": "File replace failed.",
     "errorAddCategory": "Failed to add category.",
-    "errorRemoveCategory": "Failed to remove category."
+    "errorRemoveCategory": "Failed to remove category.",
+    "tabDetails": "Details",
+    "tabExif": "EXIF",
+    "tabIptc": "IPTC",
+    "tabXmp": "XMP",
+    "metadataLoading": "Loading metadata…",
+    "metadataNone": "No metadata available for this section.",
+    "metadataNoNormalized": "No recognised fields. Enable 'Show raw' to view embedded data.",
+    "metadataExtractedAt": "Extracted:",
+    "showRaw": "Show raw"
   },
   "uploadModal": {
     "title": "Upload Assets",

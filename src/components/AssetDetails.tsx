@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import type { AssetWithCategories, Category, Asset } from "@/lib/dam-api";
+import type { AssetWithCategories, Category, Asset, AssetMetadata } from "@/lib/dam-api";
 import {
   updateAsset,
   deleteAsset,
@@ -11,6 +11,7 @@ import {
   uploadFile,
   downloadUrl,
   refreshThumbnail,
+  getAssetMetadata,
 } from "@/lib/dam-api";
 
 const inputCls =
@@ -84,6 +85,43 @@ function IconRefresh() {
   );
 }
 
+// ── Metadata table ────────────────────────────────────────────────────────────
+
+function MetadataTable({
+  data,
+  showRaw,
+  noNormalizedLabel,
+}: {
+  data: Record<string, unknown>;
+  showRaw: boolean;
+  noNormalizedLabel: string;
+}) {
+  const entries = showRaw
+    ? Object.entries(data)
+    : Object.entries(data).filter(([k]) => k !== "_raw");
+  if (entries.length === 0) {
+    return <p className="text-xs text-slate-400 italic">{noNormalizedLabel}</p>;
+  }
+  return (
+    <div className="divide-y divide-slate-100">
+      {entries.map(([key, value]) => (
+        <div key={key} className="flex gap-2 py-1.5 text-xs">
+          <span className="text-slate-500 font-medium shrink-0 w-2/5 break-words">
+            {key.replace(/_/g, " ")}
+          </span>
+          <span className="text-slate-700 min-w-0 break-words font-mono">
+            {value === null || value === undefined
+              ? "—"
+              : typeof value === "object"
+              ? JSON.stringify(value)
+              : String(value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Field helper ──────────────────────────────────────────────────────────────
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -123,6 +161,24 @@ export default function AssetDetails({
   onDragEnd,
 }: Props) {
   const t = useTranslations("assetDetails");
+
+  // Tab state
+  type Tab = "details" | "exif" | "iptc" | "xmp";
+  const [activeTab, setActiveTab] = useState<Tab>("details");
+  const [metadata, setMetadata] = useState<AssetMetadata | null | "loading">("loading");
+
+  // Raw data toggle — persisted globally in localStorage
+  const [showRaw, setShowRaw] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("dam_show_raw_metadata") === "true"
+  );
+  function toggleShowRaw() {
+    setShowRaw((prev) => {
+      const next = !prev;
+      localStorage.setItem("dam_show_raw_metadata", String(next));
+      return next;
+    });
+  }
+
   // Form state
   const [name, setName] = useState(asset.name);
   const [description, setDescription] = useState(asset.description ?? "");
@@ -161,7 +217,7 @@ export default function AssetDetails({
   // Replace file input ref
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset form when the selected asset changes
+  // Reset form and fetch metadata when the selected asset changes
   useEffect(() => {
     setName(asset.name);
     setDescription(asset.description ?? "");
@@ -184,7 +240,12 @@ export default function AssetDetails({
     setRemoveZoneOver(false);
     setThumbFailed(false);
     setThumbVersion(null);
-  }, [asset.id]);
+    setActiveTab("details");
+    setMetadata("loading");
+    getAssetMetadata(asset.id, token)
+      .then(setMetadata)
+      .catch(() => setMetadata(null));
+  }, [asset.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset thumb error state when the file is replaced (updated_at changes without id change)
   useEffect(() => {
@@ -258,6 +319,11 @@ export default function AssetDetails({
       onUpdated(updated);
       setReplaceSuccess(true);
       setTimeout(() => setReplaceSuccess(false), 3000);
+      // Refresh metadata for the new file without resetting the tab
+      setMetadata("loading");
+      getAssetMetadata(asset.id, token)
+        .then(setMetadata)
+        .catch(() => setMetadata(null));
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t("errorReplace"));
     } finally {
@@ -351,8 +417,89 @@ export default function AssetDetails({
         </div>
       </div>
 
+      {/* ── Tab bar ── */}
+      {(() => {
+        const hasExif = metadata !== "loading" && metadata?.exif != null;
+        const hasIptc = metadata !== "loading" && metadata?.iptc != null;
+        const hasXmp  = metadata !== "loading" && metadata?.xmp  != null;
+        const tabs: { id: Tab; label: string; enabled: boolean }[] = [
+          { id: "details", label: t("tabDetails"), enabled: true },
+          { id: "exif",    label: t("tabExif"),    enabled: hasExif },
+          { id: "iptc",    label: t("tabIptc"),    enabled: hasIptc },
+          { id: "xmp",     label: t("tabXmp"),     enabled: hasXmp  },
+        ];
+        return (
+          <div className="flex border-b border-slate-200 shrink-0 bg-white">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                disabled={!tab.enabled}
+                onClick={() => tab.enabled && setActiveTab(tab.id)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors border-b-2 ${
+                  activeTab === tab.id
+                    ? "border-blue-700 text-blue-700"
+                    : tab.enabled
+                    ? "border-transparent text-slate-500 hover:text-slate-800"
+                    : "border-transparent text-slate-300 cursor-not-allowed"
+                }`}
+              >
+                {tab.label}
+                {metadata === "loading" && tab.id !== "details" && (
+                  <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
+                )}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+        {/* ── Metadata tabs (EXIF / IPTC / XMP) ── */}
+        {activeTab !== "details" && (() => {
+          const section = activeTab === "exif" ? metadata !== "loading" && metadata?.exif
+            : activeTab === "iptc" ? metadata !== "loading" && metadata?.iptc
+            : metadata !== "loading" && metadata?.xmp;
+          const extractedAt = metadata !== "loading" && metadata?.extracted_at;
+          return (
+            <div className="space-y-3">
+              {metadata === "loading" ? (
+                <p className="text-xs text-slate-400">{t("metadataLoading")}</p>
+              ) : section ? (
+                <>
+                  <MetadataTable
+                    data={section as Record<string, unknown>}
+                    showRaw={showRaw}
+                    noNormalizedLabel={t("metadataNoNormalized")}
+                  />
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showRaw}
+                        onChange={toggleShowRaw}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      {t("showRaw")}
+                    </label>
+                    {extractedAt && (
+                      <span className="text-xs text-slate-400">
+                        {t("metadataExtractedAt")} {new Date(extractedAt).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-slate-400">{t("metadataNone")}</p>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Details tab content ── */}
+        {activeTab === "details" && <>
 
         {/* Thumbnail preview — draggable onto category tree */}
         <div
@@ -656,6 +803,8 @@ export default function AssetDetails({
             </p>
           </div>
         </div>
+
+        </>}
       </div>
 
       {/* ── Action bar (fixed at bottom) ── */}
