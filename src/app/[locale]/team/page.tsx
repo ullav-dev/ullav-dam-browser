@@ -10,8 +10,9 @@ import ReactMarkdown from "react-markdown";
 import TeamAvatar from "@/components/TeamAvatar";
 import TeamMemberList from "@/components/TeamMemberList";
 import CreateTeamModal from "@/components/CreateTeamModal";
+import TeamCustomFields from "@/components/TeamCustomFields";
 
-type Tab = "members" | "purpose";
+type Tab = "members" | "purpose" | "customFields";
 
 export default function TeamPage() {
   const { token, user } = useAuth();
@@ -86,6 +87,8 @@ export default function TeamPage() {
   }
 
   const isOwner = team?.owner.username === user?.username;
+  const isLeader = team?.leader?.username === user?.username;
+  const isAdmin = isOwner || isLeader;
 
   if (loading) {
     return (
@@ -188,7 +191,7 @@ export default function TeamPage() {
 
       {/* Tab nav */}
       <div className="flex gap-1 border-b border-slate-200">
-        {(["members", "purpose"] as Tab[]).map((name) => (
+        {(["members", "purpose", "customFields"] as Tab[]).map((name) => (
           <button
             key={name}
             onClick={() => setTab(name)}
@@ -206,6 +209,10 @@ export default function TeamPage() {
       {/* Tab content */}
       {tab === "members" && (
         <TeamMemberList team={team} onChanged={() => loadTeam(team.id)} />
+      )}
+
+      {tab === "customFields" && (
+        <TeamCustomFields teamId={team.id} token={token!} isAdmin={isAdmin} />
       )}
 
       {tab === "purpose" && (

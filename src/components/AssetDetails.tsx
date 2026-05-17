@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import type { AssetWithCategories, Category, Asset, AssetMetadata } from "@/lib/dam-api";
+import type { AssetWithCategories, Category, Asset, AssetMetadata, CustomFieldSchema } from "@/lib/dam-api";
 import {
   updateAsset,
   deleteAsset,
@@ -12,7 +12,9 @@ import {
   downloadUrl,
   refreshThumbnail,
   getAssetMetadata,
+  listCustomFieldSchemas,
 } from "@/lib/dam-api";
+import { useTeam } from "@/contexts/TeamContext";
 
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -122,6 +124,20 @@ function MetadataTable({
   );
 }
 
+// ── DateTime helpers ──────────────────────────────────────────────────────────
+
+function isoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function localInputToIso(local: string): string | null {
+  if (!local) return null;
+  return new Date(local).toISOString();
+}
+
 // ── Field helper ──────────────────────────────────────────────────────────────
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -161,6 +177,7 @@ export default function AssetDetails({
   onDragEnd,
 }: Props) {
   const t = useTranslations("assetDetails");
+  const { teams } = useTeam();
 
   // Tab state
   type Tab = "details" | "exif" | "iptc" | "xmp";
@@ -194,6 +211,12 @@ export default function AssetDetails({
   const [publicRead, setPublicRead] = useState(asset.public_read);
   const [publicDownload, setPublicDownload] = useState(asset.public_download);
   const [publicWrite, setPublicWrite] = useState(asset.public_write);
+
+  // Team + custom fields state
+  const [teamId, setTeamId] = useState(asset.team_id ?? "");
+  const [schemas, setSchemas] = useState<CustomFieldSchema[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const prevTeamIdRef = useRef(asset.team_id ?? "");
 
   // Operation state
   const [saving, setSaving] = useState(false);
@@ -231,6 +254,19 @@ export default function AssetDetails({
     setPublicRead(asset.public_read);
     setPublicDownload(asset.public_download);
     setPublicWrite(asset.public_write);
+
+    // Reset team + custom fields
+    const tid = asset.team_id ?? "";
+    setTeamId(tid);
+    prevTeamIdRef.current = tid;
+    const cfv: Record<string, string> = {};
+    if (asset.custom_fields) {
+      for (const [k, v] of Object.entries(asset.custom_fields)) {
+        cfv[k] = v === null || v === undefined ? "" : String(v);
+      }
+    }
+    setCustomFieldValues(cfv);
+
     setSaveError(null);
     setSaveSuccess(false);
     setReplaceSuccess(false);
@@ -246,6 +282,19 @@ export default function AssetDetails({
       .then(setMetadata)
       .catch(() => setMetadata(null));
   }, [asset.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load schemas when team changes
+  useEffect(() => {
+    if (!teamId) {
+      setSchemas([]);
+      return;
+    }
+    let cancelled = false;
+    listCustomFieldSchemas(teamId, token)
+      .then((s) => { if (!cancelled) setSchemas(s); })
+      .catch(() => { if (!cancelled) setSchemas([]); });
+    return () => { cancelled = true; };
+  }, [teamId, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset thumb error state when the file is replaced (updated_at changes without id change)
   useEffect(() => {
@@ -266,6 +315,31 @@ export default function AssetDetails({
     setSaveError(null);
     setSaveSuccess(false);
     try {
+      // Build custom field payload — filter to current schema keys and convert types
+      let customFieldsPayload: Record<string, unknown> | undefined;
+      if (teamId) {
+        const filtered: Record<string, unknown> = {};
+        for (const schema of schemas) {
+          const raw = customFieldValues[schema.key] ?? "";
+          if (raw === "") {
+            filtered[schema.key] = null;
+          } else if (schema.field_type === "Boolean") {
+            filtered[schema.key] = raw === "true";
+          } else if (schema.field_type === "Integer") {
+            const n = parseInt(raw, 10);
+            filtered[schema.key] = isNaN(n) ? null : n;
+          } else if (schema.field_type === "Float") {
+            const n = parseFloat(raw);
+            filtered[schema.key] = isNaN(n) ? null : n;
+          } else if (schema.field_type === "DateTime") {
+            filtered[schema.key] = localInputToIso(raw);
+          } else {
+            filtered[schema.key] = raw || null;
+          }
+        }
+        customFieldsPayload = filtered;
+      }
+
       const updated = await updateAsset(
         asset.id,
         {
@@ -281,6 +355,7 @@ export default function AssetDetails({
           public_read: publicRead,
           public_download: publicDownload,
           public_write: publicWrite,
+          ...(teamId ? { team_id: teamId, custom_fields: customFieldsPayload! } : {}),
         },
         token
       );
@@ -682,6 +757,86 @@ export default function AssetDetails({
               </div>
             )}
           </div>
+
+          {/* Team assignment */}
+          {teams.length > 0 && (
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("fieldTeam")}</p>
+              <select
+                value={teamId}
+                onChange={(e) => {
+                  const newTeamId = e.target.value;
+                  if (newTeamId !== teamId) {
+                    setCustomFieldValues({});
+                    prevTeamIdRef.current = newTeamId;
+                  }
+                  setTeamId(newTeamId);
+                }}
+                className={inputCls}
+              >
+                <option value="">{t("fieldTeamNone")}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+
+              {/* Custom field inputs */}
+              {teamId && schemas.length > 0 && (
+                <div className="space-y-3 pt-1">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("customFieldsLabel")}</p>
+                  {schemas.map((schema) => {
+                    const val = customFieldValues[schema.key] ?? "";
+                    const fieldLabel = (
+                      <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                        {schema.name}{schema.required && <span className="text-red-500 ml-0.5">*</span>}
+                      </span>
+                    );
+                    if (schema.field_type === "Boolean") {
+                      return (
+                        <div key={schema.key} className="flex items-center gap-2">
+                          <input
+                            id={`cf_${schema.key}`}
+                            type="checkbox"
+                            checked={val === "true"}
+                            onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [schema.key]: e.target.checked ? "true" : "false" }))}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <label htmlFor={`cf_${schema.key}`} className="text-sm text-slate-700">
+                            {schema.name}{schema.required && <span className="text-red-500 ml-0.5">*</span>}
+                          </label>
+                        </div>
+                      );
+                    }
+                    if (schema.field_type === "DateTime") {
+                      return (
+                        <div key={schema.key} className="space-y-1">
+                          {fieldLabel}
+                          <input
+                            type="datetime-local"
+                            value={isoToLocalInput(val)}
+                            onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [schema.key]: e.target.value }))}
+                            className={inputCls}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={schema.key} className="space-y-1">
+                        {fieldLabel}
+                        <input
+                          type={schema.field_type === "Integer" || schema.field_type === "Float" ? "number" : "text"}
+                          step={schema.field_type === "Float" ? "any" : schema.field_type === "Integer" ? "1" : undefined}
+                          value={val}
+                          onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [schema.key]: e.target.value }))}
+                          className={inputCls}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {saveError && (
             <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
