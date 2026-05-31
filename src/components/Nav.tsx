@@ -61,9 +61,12 @@ export default function Nav() {
             <nav className="flex items-center gap-4">
               {!isLoading && user ? (
                 <>
-                  {/* Primary nav link */}
+                  {/* Primary nav links */}
                   <Link href="/browse" className={navLink("/browse")}>
                     {t("assets")}
+                  </Link>
+                  <Link href="/team" className={navLink("/team")}>
+                    {t("team")}
                   </Link>
 
                   {/* User dropdown */}

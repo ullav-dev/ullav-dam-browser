@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import type { AssetWithCategories, Category, Asset } from "@/lib/dam-api";
+import type { AssetWithCategories, Category, Asset, AssetMetadata, CustomFieldSchema } from "@/lib/dam-api";
 import {
   updateAsset,
   deleteAsset,
@@ -11,7 +11,10 @@ import {
   uploadFile,
   downloadUrl,
   refreshThumbnail,
+  getAssetMetadata,
+  listCustomFieldSchemas,
 } from "@/lib/dam-api";
+import { useTeam } from "@/contexts/TeamContext";
 
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -84,6 +87,57 @@ function IconRefresh() {
   );
 }
 
+// ── Metadata table ────────────────────────────────────────────────────────────
+
+function MetadataTable({
+  data,
+  showRaw,
+  noNormalizedLabel,
+}: {
+  data: Record<string, unknown>;
+  showRaw: boolean;
+  noNormalizedLabel: string;
+}) {
+  const entries = showRaw
+    ? Object.entries(data)
+    : Object.entries(data).filter(([k]) => k !== "_raw");
+  if (entries.length === 0) {
+    return <p className="text-xs text-slate-400 italic">{noNormalizedLabel}</p>;
+  }
+  return (
+    <div className="divide-y divide-slate-100">
+      {entries.map(([key, value]) => (
+        <div key={key} className="flex gap-2 py-1.5 text-xs">
+          <span className="text-slate-500 font-medium shrink-0 w-2/5 break-words">
+            {key.replace(/_/g, " ")}
+          </span>
+          <span className="text-slate-700 min-w-0 break-words font-mono">
+            {value === null || value === undefined
+              ? "—"
+              : typeof value === "object"
+              ? JSON.stringify(value)
+              : String(value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── DateTime helpers ──────────────────────────────────────────────────────────
+
+function isoToLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function localInputToIso(local: string): string | null {
+  if (!local) return null;
+  return new Date(local).toISOString();
+}
+
 // ── Field helper ──────────────────────────────────────────────────────────────
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -123,6 +177,25 @@ export default function AssetDetails({
   onDragEnd,
 }: Props) {
   const t = useTranslations("assetDetails");
+  const { teams } = useTeam();
+
+  // Tab state
+  type Tab = "details" | "exif" | "iptc" | "xmp";
+  const [activeTab, setActiveTab] = useState<Tab>("details");
+  const [metadata, setMetadata] = useState<AssetMetadata | null | "loading">("loading");
+
+  // Raw data toggle — persisted globally in localStorage
+  const [showRaw, setShowRaw] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("dam_show_raw_metadata") === "true"
+  );
+  function toggleShowRaw() {
+    setShowRaw((prev) => {
+      const next = !prev;
+      localStorage.setItem("dam_show_raw_metadata", String(next));
+      return next;
+    });
+  }
+
   // Form state
   const [name, setName] = useState(asset.name);
   const [description, setDescription] = useState(asset.description ?? "");
@@ -138,6 +211,12 @@ export default function AssetDetails({
   const [publicRead, setPublicRead] = useState(asset.public_read);
   const [publicDownload, setPublicDownload] = useState(asset.public_download);
   const [publicWrite, setPublicWrite] = useState(asset.public_write);
+
+  // Team + custom fields state
+  const [teamId, setTeamId] = useState(asset.team_id ?? "");
+  const [schemas, setSchemas] = useState<CustomFieldSchema[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const prevTeamIdRef = useRef(asset.team_id ?? "");
 
   // Operation state
   const [saving, setSaving] = useState(false);
@@ -161,7 +240,7 @@ export default function AssetDetails({
   // Replace file input ref
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset form when the selected asset changes
+  // Reset form and fetch metadata when the selected asset changes
   useEffect(() => {
     setName(asset.name);
     setDescription(asset.description ?? "");
@@ -175,6 +254,19 @@ export default function AssetDetails({
     setPublicRead(asset.public_read);
     setPublicDownload(asset.public_download);
     setPublicWrite(asset.public_write);
+
+    // Reset team + custom fields
+    const tid = asset.team_id ?? "";
+    setTeamId(tid);
+    prevTeamIdRef.current = tid;
+    const cfv: Record<string, string> = {};
+    if (asset.custom_fields) {
+      for (const [k, v] of Object.entries(asset.custom_fields)) {
+        cfv[k] = v === null || v === undefined ? "" : String(v);
+      }
+    }
+    setCustomFieldValues(cfv);
+
     setSaveError(null);
     setSaveSuccess(false);
     setReplaceSuccess(false);
@@ -184,7 +276,25 @@ export default function AssetDetails({
     setRemoveZoneOver(false);
     setThumbFailed(false);
     setThumbVersion(null);
-  }, [asset.id]);
+    setActiveTab("details");
+    setMetadata("loading");
+    getAssetMetadata(asset.id, token)
+      .then(setMetadata)
+      .catch(() => setMetadata(null));
+  }, [asset.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load schemas when team changes
+  useEffect(() => {
+    if (!teamId) {
+      setSchemas([]);
+      return;
+    }
+    let cancelled = false;
+    listCustomFieldSchemas(teamId, token)
+      .then((s) => { if (!cancelled) setSchemas(s); })
+      .catch(() => { if (!cancelled) setSchemas([]); });
+    return () => { cancelled = true; };
+  }, [teamId, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset thumb error state when the file is replaced (updated_at changes without id change)
   useEffect(() => {
@@ -205,6 +315,31 @@ export default function AssetDetails({
     setSaveError(null);
     setSaveSuccess(false);
     try {
+      // Build custom field payload — filter to current schema keys and convert types
+      let customFieldsPayload: Record<string, unknown> | undefined;
+      if (teamId) {
+        const filtered: Record<string, unknown> = {};
+        for (const schema of schemas) {
+          const raw = customFieldValues[schema.key] ?? "";
+          if (raw === "") {
+            filtered[schema.key] = null;
+          } else if (schema.field_type === "Boolean") {
+            filtered[schema.key] = raw === "true";
+          } else if (schema.field_type === "Integer") {
+            const n = parseInt(raw, 10);
+            filtered[schema.key] = isNaN(n) ? null : n;
+          } else if (schema.field_type === "Float") {
+            const n = parseFloat(raw);
+            filtered[schema.key] = isNaN(n) ? null : n;
+          } else if (schema.field_type === "DateTime") {
+            filtered[schema.key] = localInputToIso(raw);
+          } else {
+            filtered[schema.key] = raw || null;
+          }
+        }
+        customFieldsPayload = filtered;
+      }
+
       const updated = await updateAsset(
         asset.id,
         {
@@ -220,6 +355,7 @@ export default function AssetDetails({
           public_read: publicRead,
           public_download: publicDownload,
           public_write: publicWrite,
+          ...(teamId ? { team_id: teamId, custom_fields: customFieldsPayload! } : {}),
         },
         token
       );
@@ -258,6 +394,11 @@ export default function AssetDetails({
       onUpdated(updated);
       setReplaceSuccess(true);
       setTimeout(() => setReplaceSuccess(false), 3000);
+      // Refresh metadata for the new file without resetting the tab
+      setMetadata("loading");
+      getAssetMetadata(asset.id, token)
+        .then(setMetadata)
+        .catch(() => setMetadata(null));
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t("errorReplace"));
     } finally {
@@ -351,8 +492,89 @@ export default function AssetDetails({
         </div>
       </div>
 
+      {/* ── Tab bar ── */}
+      {(() => {
+        const hasExif = metadata !== "loading" && metadata?.exif != null;
+        const hasIptc = metadata !== "loading" && metadata?.iptc != null;
+        const hasXmp  = metadata !== "loading" && metadata?.xmp  != null;
+        const tabs: { id: Tab; label: string; enabled: boolean }[] = [
+          { id: "details", label: t("tabDetails"), enabled: true },
+          { id: "exif",    label: t("tabExif"),    enabled: hasExif },
+          { id: "iptc",    label: t("tabIptc"),    enabled: hasIptc },
+          { id: "xmp",     label: t("tabXmp"),     enabled: hasXmp  },
+        ];
+        return (
+          <div className="flex border-b border-slate-200 shrink-0 bg-white">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                disabled={!tab.enabled}
+                onClick={() => tab.enabled && setActiveTab(tab.id)}
+                className={`flex-1 py-2 text-xs font-medium transition-colors border-b-2 ${
+                  activeTab === tab.id
+                    ? "border-blue-700 text-blue-700"
+                    : tab.enabled
+                    ? "border-transparent text-slate-500 hover:text-slate-800"
+                    : "border-transparent text-slate-300 cursor-not-allowed"
+                }`}
+              >
+                {tab.label}
+                {metadata === "loading" && tab.id !== "details" && (
+                  <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
+                )}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+        {/* ── Metadata tabs (EXIF / IPTC / XMP) ── */}
+        {activeTab !== "details" && (() => {
+          const section = activeTab === "exif" ? metadata !== "loading" && metadata?.exif
+            : activeTab === "iptc" ? metadata !== "loading" && metadata?.iptc
+            : metadata !== "loading" && metadata?.xmp;
+          const extractedAt = metadata !== "loading" && metadata?.extracted_at;
+          return (
+            <div className="space-y-3">
+              {metadata === "loading" ? (
+                <p className="text-xs text-slate-400">{t("metadataLoading")}</p>
+              ) : section ? (
+                <>
+                  <MetadataTable
+                    data={section as Record<string, unknown>}
+                    showRaw={showRaw}
+                    noNormalizedLabel={t("metadataNoNormalized")}
+                  />
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showRaw}
+                        onChange={toggleShowRaw}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      {t("showRaw")}
+                    </label>
+                    {extractedAt && (
+                      <span className="text-xs text-slate-400">
+                        {t("metadataExtractedAt")} {new Date(extractedAt).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-slate-400">{t("metadataNone")}</p>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ── Details tab content ── */}
+        {activeTab === "details" && <>
 
         {/* Thumbnail preview — draggable onto category tree */}
         <div
@@ -536,6 +758,86 @@ export default function AssetDetails({
             )}
           </div>
 
+          {/* Team assignment */}
+          {teams.length > 0 && (
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("fieldTeam")}</p>
+              <select
+                value={teamId}
+                onChange={(e) => {
+                  const newTeamId = e.target.value;
+                  if (newTeamId !== teamId) {
+                    setCustomFieldValues({});
+                    prevTeamIdRef.current = newTeamId;
+                  }
+                  setTeamId(newTeamId);
+                }}
+                className={inputCls}
+              >
+                <option value="">{t("fieldTeamNone")}</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+
+              {/* Custom field inputs */}
+              {teamId && schemas.length > 0 && (
+                <div className="space-y-3 pt-1">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{t("customFieldsLabel")}</p>
+                  {schemas.map((schema) => {
+                    const val = customFieldValues[schema.key] ?? "";
+                    const fieldLabel = (
+                      <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                        {schema.name}{schema.required && <span className="text-red-500 ml-0.5">*</span>}
+                      </span>
+                    );
+                    if (schema.field_type === "Boolean") {
+                      return (
+                        <div key={schema.key} className="flex items-center gap-2">
+                          <input
+                            id={`cf_${schema.key}`}
+                            type="checkbox"
+                            checked={val === "true"}
+                            onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [schema.key]: e.target.checked ? "true" : "false" }))}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <label htmlFor={`cf_${schema.key}`} className="text-sm text-slate-700">
+                            {schema.name}{schema.required && <span className="text-red-500 ml-0.5">*</span>}
+                          </label>
+                        </div>
+                      );
+                    }
+                    if (schema.field_type === "DateTime") {
+                      return (
+                        <div key={schema.key} className="space-y-1">
+                          {fieldLabel}
+                          <input
+                            type="datetime-local"
+                            value={isoToLocalInput(val)}
+                            onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [schema.key]: e.target.value }))}
+                            className={inputCls}
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={schema.key} className="space-y-1">
+                        {fieldLabel}
+                        <input
+                          type={schema.field_type === "Integer" || schema.field_type === "Float" ? "number" : "text"}
+                          step={schema.field_type === "Float" ? "any" : schema.field_type === "Integer" ? "1" : undefined}
+                          value={val}
+                          onChange={(e) => setCustomFieldValues((prev) => ({ ...prev, [schema.key]: e.target.value }))}
+                          className={inputCls}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {saveError && (
             <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               {saveError}
@@ -656,6 +958,8 @@ export default function AssetDetails({
             </p>
           </div>
         </div>
+
+        </>}
       </div>
 
       {/* ── Action bar (fixed at bottom) ── */}

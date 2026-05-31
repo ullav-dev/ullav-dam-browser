@@ -25,6 +25,21 @@ export interface Asset {
   public_read: boolean;
   public_download: boolean;
   public_write: boolean;
+  team_id: string | null;
+  custom_fields: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type CustomFieldType = "String" | "Boolean" | "Integer" | "Float" | "DateTime";
+
+export interface CustomFieldSchema {
+  id: string;
+  team_id: string;
+  key: string;
+  name: string;
+  field_type: CustomFieldType;
+  required: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -110,6 +125,8 @@ export const updateAsset = (
     public_read: boolean;
     public_download: boolean;
     public_write: boolean;
+    team_id: string;
+    custom_fields: Record<string, unknown>;
   }>,
   token: string
 ): Promise<Asset> =>
@@ -201,6 +218,19 @@ export const deleteCategory = (id: string, token: string): Promise<void> =>
     headers: bearerHeaders(token),
   });
 
+// ── Asset metadata (EXIF / IPTC / XMP) ───────────────────────────────────────
+
+export interface AssetMetadata {
+  asset_id: string;
+  exif: Record<string, unknown> | null;
+  iptc: Record<string, unknown> | null;
+  xmp: Record<string, unknown> | null;
+  extracted_at: string;
+}
+
+export const getAssetMetadata = (id: string, token: string): Promise<AssetMetadata> =>
+  apiRequest(`/assets/${id}/metadata`, { headers: bearerHeaders(token) });
+
 // ── Usage ─────────────────────────────────────────────────────────────────────
 
 export interface UsageInfo {
@@ -233,6 +263,44 @@ export const removeCategoryFromAsset = (
   token: string
 ): Promise<void> =>
   apiRequest(`/assets/${assetId}/categories/${categoryId}`, {
+    method: "DELETE",
+    headers: bearerHeaders(token),
+  });
+
+// ── Custom field schemas ───────────────────────────────────────────────────────
+
+export const listCustomFieldSchemas = (teamId: string, token: string): Promise<CustomFieldSchema[]> =>
+  apiRequest(`/teams/${teamId}/custom-field-schemas`, { headers: bearerHeaders(token) });
+
+export const createCustomFieldSchema = (
+  teamId: string,
+  body: { key: string; name: string; field_type: CustomFieldType; required?: boolean },
+  token: string
+): Promise<CustomFieldSchema> =>
+  apiRequest(`/teams/${teamId}/custom-field-schemas`, {
+    method: "POST",
+    headers: bearerHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+
+export const updateCustomFieldSchema = (
+  teamId: string,
+  schemaId: string,
+  body: { name?: string; required?: boolean },
+  token: string
+): Promise<CustomFieldSchema> =>
+  apiRequest(`/teams/${teamId}/custom-field-schemas/${schemaId}`, {
+    method: "PUT",
+    headers: bearerHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+
+export const deleteCustomFieldSchema = (
+  teamId: string,
+  schemaId: string,
+  token: string
+): Promise<void> =>
+  apiRequest(`/teams/${teamId}/custom-field-schemas/${schemaId}`, {
     method: "DELETE",
     headers: bearerHeaders(token),
   });
