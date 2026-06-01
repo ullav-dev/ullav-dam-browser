@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTranslations } from "next-intl";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import AboutModal from "@/components/AboutModal";
+import UserAvatar, { userDisplayName } from "@/components/UserAvatar";
 
 export default function Nav() {
   const pathname = usePathname();
@@ -74,11 +75,12 @@ export default function Nav() {
                     <button
                       type="button"
                       onClick={() => setDropdownOpen((v) => !v)}
-                      className="flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                      className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
                       aria-haspopup="true"
                       aria-expanded={dropdownOpen}
                     >
-                      <span className="hidden sm:block">{user.username}</span>
+                      <UserAvatar user={user} size="md" />
+                      <span className="hidden sm:block">{userDisplayName(user)}</span>
                       {/* Chevron */}
                       <svg
                         viewBox="0 0 16 16"
