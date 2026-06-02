@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
 import AssetGrid from "@/components/AssetGrid";
@@ -15,9 +16,10 @@ import { getDescendantIds } from "@/components/CategoryTree";
 import { useTranslations } from "next-intl";
 import JSZip from "jszip";
 
-export default function BrowsePage() {
+function BrowsePageInner() {
   const { user, token, damAccess, isLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations("browse");
 
   const [assets, setAssets] = useState<api.Asset[]>([]);
@@ -313,6 +315,23 @@ export default function BrowsePage() {
   useEffect(() => {
     if (token) loadData();
   }, [token, loadData]);
+
+  // Apply select_asset / select_category deep-link params once after initial load
+  const deepLinkApplied = useRef(false);
+  useEffect(() => {
+    if (deepLinkApplied.current || !token || loadingAssets) return;
+    const selectAsset    = searchParams.get("select_asset");
+    const selectCategory = searchParams.get("select_category");
+    if (!selectAsset && !selectCategory) return;
+    deepLinkApplied.current = true;
+    if (selectCategory) {
+      setSelectedCategoryId(selectCategory);
+    }
+    if (selectAsset) {
+      if (!selectCategory) setSelectedCategoryId(null); // show All Assets so the asset is visible
+      api.getAsset(selectAsset, token).then(setSelectedAsset).catch(() => {});
+    }
+  }, [token, loadingAssets, searchParams]);
 
   useEffect(() => {
     if (!autoRefreshMs || !token) return;
@@ -957,5 +976,13 @@ export default function BrowsePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense>
+      <BrowsePageInner />
+    </Suspense>
   );
 }

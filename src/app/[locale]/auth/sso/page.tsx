@@ -31,7 +31,14 @@ function SsoHandler() {
       };
       if (!session.token || !session.user || !session.roles) throw new Error("invalid");
       setSession(session);
-      router.replace("/browse");
+      // Forward any deep-link params through the SSO redirect
+      const forward = new URLSearchParams();
+      const selectAsset    = searchParams.get("select_asset");
+      const selectCategory = searchParams.get("select_category");
+      if (selectAsset)    forward.set("select_asset",    selectAsset);
+      if (selectCategory) forward.set("select_category", selectCategory);
+      const qs = forward.toString();
+      router.replace(qs ? `/browse?${qs}` : "/browse");
     } catch {
       router.replace("/login");
     }
