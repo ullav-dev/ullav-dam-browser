@@ -316,6 +316,10 @@ function BrowsePageInner() {
     if (token) loadData();
   }, [token, loadData]);
 
+  // Deep-link: when select_asset is set, show only that one asset in the grid.
+  // Cleared when the user picks a category or types a search.
+  const [deepLinkAssetId, setDeepLinkAssetId] = useState<string | null>(null);
+
   // Apply select_asset / select_category deep-link params once after initial load
   const deepLinkApplied = useRef(false);
   useEffect(() => {
@@ -328,7 +332,8 @@ function BrowsePageInner() {
       setSelectedCategoryId(selectCategory);
     }
     if (selectAsset) {
-      if (!selectCategory) setSelectedCategoryId(null); // show All Assets so the asset is visible
+      setDeepLinkAssetId(selectAsset);
+      setSelectedCategoryId(undefined); // leave grid in "nothing selected" state until asset loads
       api.getAsset(selectAsset, token).then(setSelectedAsset).catch(() => {});
     }
   }, [token, loadingAssets, searchParams]);
@@ -713,7 +718,7 @@ function BrowsePageInner() {
             <CategoryTree
               categories={visibleCategories}
               selectedId={selectedCategoryId}
-              onSelect={setSelectedCategoryId}
+              onSelect={(id) => { setDeepLinkAssetId(null); setSelectedCategoryId(id); }}
               draggingAssetId={draggingAssetId}
               draggingAssetCategoryIds={
                 draggingAssetId ? (assetCategories.get(draggingAssetId) ?? []) : []
@@ -742,7 +747,7 @@ function BrowsePageInner() {
               type="search"
               placeholder={t("searchPlaceholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setDeepLinkAssetId(null); setSearchQuery(e.target.value); }}
               className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -828,7 +833,7 @@ function BrowsePageInner() {
           </div>
         ) : (
           <AssetGrid
-            assets={assets}
+            assets={deepLinkAssetId ? assets.filter((a) => a.id === deepLinkAssetId) : assets}
             assetCategories={assetCategories}
             selectedCategoryId={selectedCategoryId}
             searchQuery={searchQuery}
