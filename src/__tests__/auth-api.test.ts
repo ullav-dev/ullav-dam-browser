@@ -222,16 +222,15 @@ describe("getDamAccess", () => {
   });
 
   it('returns "none" for individual active subscription', () => {
-    // Individual plan has no DAM access
     expect(getDamAccess(clannJwt("individual", "active"))).toBe("none");
   });
 
-  it('returns "images-only" for family active subscription', () => {
-    expect(getDamAccess(clannJwt("family", "active"))).toBe("images-only");
+  it('returns "full" for family active subscription', () => {
+    expect(getDamAccess(clannJwt("family", "active"))).toBe("full");
   });
 
-  it('returns "images-only" for family trialing subscription', () => {
-    expect(getDamAccess(clannJwt("family", "trialing"))).toBe("images-only");
+  it('returns "full" for family trialing subscription', () => {
+    expect(getDamAccess(clannJwt("family", "trialing"))).toBe("full");
   });
 
   it('returns "full" for professional active subscription', () => {
@@ -273,8 +272,8 @@ function bothJwt(comadTier: string, comadStatus: string, clannTier: string, clan
 }
 
 describe("getDamAccess (comad subscription)", () => {
-  it('returns "images-only" for comad individual active', () => {
-    expect(getDamAccess(comadJwt("individual", "active"))).toBe("images-only");
+  it('returns "full" for comad individual active', () => {
+    expect(getDamAccess(comadJwt("individual", "active"))).toBe("full");
   });
 
   it('returns "full" for comad team active', () => {
@@ -297,8 +296,8 @@ describe("getDamAccess (comad subscription)", () => {
     expect(getDamAccess(bothJwt("team", "active", "individual", "active"))).toBe("full");
   });
 
-  it('falls back to clann when comad is absent — clann family gives images-only', () => {
-    expect(getDamAccess(clannJwt("family", "active"))).toBe("images-only");
+  it('falls back to clann when comad is absent — clann family gives full', () => {
+    expect(getDamAccess(clannJwt("family", "active"))).toBe("full");
   });
 
   it('uses highest access — comad individual + clann professional gives full', () => {

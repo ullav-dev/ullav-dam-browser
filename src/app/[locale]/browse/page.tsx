@@ -963,7 +963,6 @@ function BrowsePageInner() {
         <UploadModal
           token={token ?? ""}
           username={user?.username ?? ""}
-          damAccess={damAccess}
           initialCategoryId={selectedCategory?.id}
           initialCategoryName={selectedCategory?.name}
           onComplete={handleUploadComplete}
