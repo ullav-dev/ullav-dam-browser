@@ -333,7 +333,7 @@ function BrowsePageInner() {
     }
     if (selectAsset) {
       setDeepLinkAssetId(selectAsset);
-      setSelectedCategoryId(undefined); // leave grid in "nothing selected" state until asset loads
+      setSelectedCategoryId(null); // null = All Assets, so the grid renders
       api.getAsset(selectAsset, token).then(setSelectedAsset).catch(() => {});
     }
   }, [token, loadingAssets, searchParams]);
