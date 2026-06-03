@@ -91,26 +91,21 @@ export function getDamAccess(token: string | null): DamAccess {
   // Comad standalone subscription access
   const comad = subs["comad"];
   const comadAccess: DamAccess = comad && isActiveStatus(comad.status)
-    ? comad.tier === "team" || comad.tier === "enterprise"
+    ? comad.tier === "team" || comad.tier === "enterprise" || comad.tier === "individual"
       ? "full"
-      : comad.tier === "individual"
-      ? "images-only"
       : "none"
     : "none";
 
   // Clann bundled DAM access
   const clann = subs["clann"];
   const clannAccess: DamAccess = clann && isActiveStatus(clann.status)
-    ? clann.tier === "professional" || clann.tier === "enterprise"
+    ? clann.tier === "professional" || clann.tier === "enterprise" || clann.tier === "family"
       ? "full"
-      : clann.tier === "family"
-      ? "images-only"
       : "none"
     : "none";
 
   // Return the highest access level from either subscription.
   if (comadAccess === "full" || clannAccess === "full") return "full";
-  if (comadAccess === "images-only" || clannAccess === "images-only") return "images-only";
   return "none";
 }
 

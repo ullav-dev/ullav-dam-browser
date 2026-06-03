@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
 import AssetGrid from "@/components/AssetGrid";
@@ -15,9 +16,10 @@ import { getDescendantIds } from "@/components/CategoryTree";
 import { useTranslations } from "next-intl";
 import JSZip from "jszip";
 
-export default function BrowsePage() {
+function BrowsePageInner() {
   const { user, token, damAccess, isLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations("browse");
 
   const [assets, setAssets] = useState<api.Asset[]>([]);
@@ -313,6 +315,28 @@ export default function BrowsePage() {
   useEffect(() => {
     if (token) loadData();
   }, [token, loadData]);
+
+  // Deep-link: when select_asset is set, show only that one asset in the grid.
+  // Cleared when the user picks a category or types a search.
+  const [deepLinkAssetId, setDeepLinkAssetId] = useState<string | null>(null);
+
+  // Apply select_asset / select_category deep-link params once after initial load
+  const deepLinkApplied = useRef(false);
+  useEffect(() => {
+    if (deepLinkApplied.current || !token || loadingAssets) return;
+    const selectAsset    = searchParams.get("select_asset");
+    const selectCategory = searchParams.get("select_category");
+    if (!selectAsset && !selectCategory) return;
+    deepLinkApplied.current = true;
+    if (selectCategory) {
+      setSelectedCategoryId(selectCategory);
+    }
+    if (selectAsset) {
+      setDeepLinkAssetId(selectAsset);
+      setSelectedCategoryId(null); // null = All Assets, so the grid renders
+      api.getAsset(selectAsset, token).then(setSelectedAsset).catch(() => {});
+    }
+  }, [token, loadingAssets, searchParams]);
 
   useEffect(() => {
     if (!autoRefreshMs || !token) return;
@@ -694,7 +718,7 @@ export default function BrowsePage() {
             <CategoryTree
               categories={visibleCategories}
               selectedId={selectedCategoryId}
-              onSelect={setSelectedCategoryId}
+              onSelect={(id) => { setDeepLinkAssetId(null); setSelectedCategoryId(id); }}
               draggingAssetId={draggingAssetId}
               draggingAssetCategoryIds={
                 draggingAssetId ? (assetCategories.get(draggingAssetId) ?? []) : []
@@ -723,7 +747,7 @@ export default function BrowsePage() {
               type="search"
               placeholder={t("searchPlaceholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setDeepLinkAssetId(null); setSearchQuery(e.target.value); }}
               className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -809,7 +833,7 @@ export default function BrowsePage() {
           </div>
         ) : (
           <AssetGrid
-            assets={assets}
+            assets={deepLinkAssetId ? assets.filter((a) => a.id === deepLinkAssetId) : assets}
             assetCategories={assetCategories}
             selectedCategoryId={selectedCategoryId}
             searchQuery={searchQuery}
@@ -939,7 +963,6 @@ export default function BrowsePage() {
         <UploadModal
           token={token ?? ""}
           username={user?.username ?? ""}
-          damAccess={damAccess}
           initialCategoryId={selectedCategory?.id}
           initialCategoryName={selectedCategory?.name}
           onComplete={handleUploadComplete}
@@ -957,5 +980,13 @@ export default function BrowsePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense>
+      <BrowsePageInner />
+    </Suspense>
   );
 }

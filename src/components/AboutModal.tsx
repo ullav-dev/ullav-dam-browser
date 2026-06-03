@@ -16,12 +16,7 @@ export default function AboutModal({ user, damAccess, onClose }: Props) {
   const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
   const gitSha = process.env.NEXT_PUBLIC_GIT_SHA ?? "dev";
 
-  const planLabel =
-    damAccess === "full"
-      ? t("planFull")
-      : damAccess === "images-only"
-      ? t("planImagesOnly")
-      : t("planNone");
+  const planLabel = damAccess === "full" ? t("planFull") : t("planNone");
 
   return (
     <div

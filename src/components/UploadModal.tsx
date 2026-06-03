@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import type { DamAccess } from "@/lib/auth-api";
 import type { Asset, ZipUploadResult } from "@/lib/dam-api";
 import { createAsset, uploadFile, uploadZip, addCategoryToAsset } from "@/lib/dam-api";
 
@@ -66,7 +65,6 @@ function StatusIcon({ status }: { status: FileStatus }) {
 interface Props {
   token: string;
   username: string;
-  damAccess: DamAccess;
   /** When set, every uploaded asset (regular files and zip-only ZIPs) is
    *  automatically assigned to this category after upload. */
   initialCategoryId?: string;
@@ -78,7 +76,7 @@ interface Props {
   onZipResult?: (result: ZipUploadResult) => void;
 }
 
-export default function UploadModal({ token, username, damAccess, initialCategoryId, initialCategoryName, onComplete, onClose, onZipResult }: Props) {
+export default function UploadModal({ token, username, initialCategoryId, initialCategoryName, onComplete, onClose, onZipResult }: Props) {
   const t = useTranslations("uploadModal");
 
   const ZIP_MODE_OPTIONS: { mode: ZipMode; label: string; title: string }[] = [
@@ -108,17 +106,7 @@ export default function UploadModal({ token, username, damAccess, initialCategor
     setEntries((prev) => {
       const existingNames = new Set(prev.map((e) => e.file.name));
       const newEntries: FileEntry[] = incoming
-        .filter((f) => {
-          if (existingNames.has(f.name)) return false;
-          // Family plan: only images allowed (ZIP also blocked — would contain mixed types).
-          // Check both MIME type and extension because f.type can be empty in some drag-and-drop contexts.
-          if (damAccess === "images-only") {
-            const imageByType = f.type.startsWith("image/");
-            const imageByExt = /\.(png|jpe?g|gif|webp|svg|bmp|tiff?|heic|avif|ico)$/i.test(f.name);
-            if (!imageByType && !imageByExt) return false;
-          }
-          return true;
-        })
+        .filter((f) => !existingNames.has(f.name))
         .map((f) => {
           const { name, mimeType } = deriveNameAndMime(f);
           return { file: f, name, mimeType, status: "pending",
@@ -126,7 +114,7 @@ export default function UploadModal({ token, username, damAccess, initialCategor
         });
       return [...prev, ...newEntries];
     });
-  }, [damAccess]);
+  }, []);
 
   function removeEntry(idx: number) {
     setEntries((prev) => prev.filter((_, i) => i !== idx));
@@ -296,13 +284,6 @@ export default function UploadModal({ token, username, damAccess, initialCategor
             </button>
           )}
         </div>
-
-        {/* Plan restriction banner */}
-        {damAccess === "images-only" && (
-          <div className="px-6 py-2 bg-amber-50 border-b border-amber-200 text-xs text-amber-700">
-            {t("planImagesOnly")}
-          </div>
-        )}
 
         {/* Auto-assign category banner */}
         {initialCategoryId && initialCategoryName && (
