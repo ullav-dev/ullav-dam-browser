@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import type { Asset, ZipUploadResult } from "@/lib/dam-api";
 import { createAsset, uploadFile, uploadZip, addCategoryToAsset } from "@/lib/dam-api";
@@ -38,6 +38,8 @@ interface FileEntry {
   zipResult?: ZipUploadResult;
   /** Only set for ZIP files. */
   zipMode?: ZipMode;
+  /** Object URL for client-side image preview; must be revoked when entry is removed. */
+  previewUrl?: string;
 }
 
 function deriveNameAndMime(f: File): { name: string; mimeType: string } {
@@ -109,16 +111,32 @@ export default function UploadModal({ token, username, initialCategoryId, initia
         .filter((f) => !existingNames.has(f.name))
         .map((f) => {
           const { name, mimeType } = deriveNameAndMime(f);
+          const previewUrl = mimeType.startsWith("image/") ? URL.createObjectURL(f) : undefined;
           return { file: f, name, mimeType, status: "pending",
-                   zipMode: isZip(f) ? "contents-only" as ZipMode : undefined };
+                   zipMode: isZip(f) ? "contents-only" as ZipMode : undefined,
+                   previewUrl };
         });
       return [...prev, ...newEntries];
     });
   }, []);
 
   function removeEntry(idx: number) {
-    setEntries((prev) => prev.filter((_, i) => i !== idx));
+    setEntries((prev) => {
+      const entry = prev[idx];
+      if (entry?.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
   }
+
+  // Revoke all object URLs when the modal unmounts.
+  useEffect(() => {
+    return () => {
+      setEntries((prev) => {
+        prev.forEach((e) => { if (e.previewUrl) URL.revokeObjectURL(e.previewUrl); });
+        return prev;
+      });
+    };
+  }, []);
 
   function updateName(idx: number, name: string) {
     setEntries((prev) => prev.map((e, i) => (i === idx ? { ...e, name } : e)));
@@ -342,7 +360,16 @@ export default function UploadModal({ token, username, initialCategoryId, initia
                   <div key={idx} className="flex flex-col px-3 py-2 bg-white gap-1">
                     {/* Main row */}
                     <div className="flex items-center gap-2">
-                      <StatusIcon status={entry.status} />
+                      {entry.previewUrl ? (
+                        <img
+                          src={entry.previewUrl}
+                          alt=""
+                          className="shrink-0 w-8 h-8 rounded object-cover bg-slate-100"
+                        />
+                      ) : (
+                        <StatusIcon status={entry.status} />
+                      )}
+                      {entry.previewUrl && <StatusIcon status={entry.status} />}
 
                       {/* Editable name */}
                       <input
