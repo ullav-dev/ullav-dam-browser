@@ -89,7 +89,12 @@
     "profileSave": "Save",
     "profileSaving": "Saving…",
     "profileSaved": "Saved",
-    "profileSaveError": "Failed to save profile. Please try again."
+    "profileSaveError": "Failed to save profile. Please try again.",
+    "avatarLabel": "Avatar URL",
+    "avatarClear": "Remove avatar",
+    "avatarUseGravatar": "Use Gravatar",
+    "avatarGravatarLoading": "Loading…",
+    "avatarHttpsRequired": "Avatar URL must start with https://"
   },
   "subscriptionSuccess": {
     "heading": "You're subscribed!",

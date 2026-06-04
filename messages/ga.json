@@ -89,7 +89,12 @@
     "profileSave": "Sábháil",
     "profileSaving": "Ag sábháil…",
     "profileSaved": "Sábháilte",
-    "profileSaveError": "Theip ar shábháil próifíle."
+    "profileSaveError": "Theip ar shábháil próifíle.",
+    "avatarLabel": "URL an Avatair",
+    "avatarClear": "Bain an t-avatar",
+    "avatarUseGravatar": "Úsáid Gravatar",
+    "avatarGravatarLoading": "Á lódáil…",
+    "avatarHttpsRequired": "Ní mór don URL avatar tosú le https://"
   },
   "subscriptionSuccess": {
     "heading": "Tá tú liostáilte!",

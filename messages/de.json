@@ -89,7 +89,12 @@
     "profileSave": "Speichern",
     "profileSaving": "Speichern…",
     "profileSaved": "Gespeichert",
-    "profileSaveError": "Profil konnte nicht gespeichert werden."
+    "profileSaveError": "Profil konnte nicht gespeichert werden.",
+    "avatarLabel": "Avatar-URL",
+    "avatarClear": "Avatar entfernen",
+    "avatarUseGravatar": "Gravatar verwenden",
+    "avatarGravatarLoading": "Wird geladen…",
+    "avatarHttpsRequired": "Die Avatar-URL muss mit https:// beginnen."
   },
   "subscriptionSuccess": {
     "heading": "Sie sind abonniert!",

@@ -196,7 +196,7 @@ export const changePassword = (
   });
 
 export const updateProfile = (
-  fields: { first_name?: string | null; last_name?: string | null },
+  fields: { first_name?: string | null; last_name?: string | null; avatar_url?: string | null },
   bearerToken: string
 ): Promise<AuthUser> =>
   authRequest("/users/me", {

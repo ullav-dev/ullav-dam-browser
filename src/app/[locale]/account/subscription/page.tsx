@@ -10,6 +10,7 @@ import {
   updateProfile,
   type SubscriptionInfo,
 } from "@/lib/auth-api";
+import UserAvatar from "@/components/UserAvatar";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,16 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+async function gravatarUrl(email: string): Promise<string> {
+  const normalised = email.toLowerCase().trim();
+  const encoded = new TextEncoder().encode(normalised);
+  const hashBuf = await crypto.subtle.digest("SHA-256", encoded);
+  const hex = Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `https://www.gravatar.com/avatar/${hex}?s=200&d=mp`;
+}
+
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
@@ -54,6 +65,8 @@ export default function SubscriptionPage() {
   // Profile state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [gravatarLoading, setGravatarLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -66,6 +79,7 @@ export default function SubscriptionPage() {
     if (user) {
       setFirstName(user.first_name ?? "");
       setLastName(user.last_name ?? "");
+      setAvatarUrl(user.avatar_url ?? "");
     }
   }, [user]);
 
@@ -76,9 +90,26 @@ export default function SubscriptionPage() {
       .catch((err) => setFetchError(err instanceof Error ? err.message : t("loadError")));
   }, [token, t]);
 
+  async function handleUseGravatar() {
+    if (!user) return;
+    setGravatarLoading(true);
+    try {
+      setAvatarUrl(await gravatarUrl(user.email));
+    } finally {
+      setGravatarLoading(false);
+    }
+  }
+
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
     if (!token || !user) return;
+
+    const trimmedUrl = avatarUrl.trim();
+    if (trimmedUrl && !trimmedUrl.startsWith("https://")) {
+      setProfileError(t("avatarHttpsRequired"));
+      return;
+    }
+
     setProfileSaving(true);
     setProfileError(null);
     setProfileSaved(false);
@@ -87,6 +118,7 @@ export default function SubscriptionPage() {
         {
           first_name: firstName.trim() || null,
           last_name: lastName.trim() || null,
+          avatar_url: trimmedUrl || null,
         },
         token
       );
@@ -105,6 +137,14 @@ export default function SubscriptionPage() {
   const isPaid = sub && sub.plan !== "individual";
   const isTrialing = sub?.status === "trialing";
 
+  // Preview user with current form values so the avatar updates live.
+  const previewUser = {
+    username: user.username,
+    first_name: firstName || null,
+    last_name: lastName || null,
+    avatar_url: avatarUrl || null,
+  };
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="flex items-center gap-3 mb-6">
@@ -122,7 +162,49 @@ export default function SubscriptionPage() {
           <p className="font-semibold text-slate-800">{t("profileHeading")}</p>
           <p className="text-xs text-slate-400 mt-0.5">{user.username} · {user.email}</p>
         </div>
-        <form onSubmit={handleProfileSave} className="px-6 py-5 space-y-4">
+        <form onSubmit={handleProfileSave} className="px-6 py-5 space-y-5">
+
+          {/* Avatar row */}
+          <div className="flex items-start gap-4">
+            {/* Live preview — key on avatarUrl remounts to reset internal broken state */}
+            <div className="shrink-0">
+              <UserAvatar key={avatarUrl} user={previewUser} size="lg" />
+            </div>
+
+            {/* Avatar URL input + gravatar */}
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-sm font-medium text-slate-700">{t("avatarLabel")}</label>
+              <div className="flex gap-2">
+                <input
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  className={inputCls}
+                  placeholder="https://…"
+                  type="url"
+                />
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl("")}
+                    className="shrink-0 text-xs text-slate-400 hover:text-red-500 transition-colors px-2"
+                    title={t("avatarClear")}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleUseGravatar}
+                disabled={gravatarLoading}
+                className="self-start text-xs text-blue-600 hover:text-blue-800 hover:underline transition-colors disabled:opacity-50 mt-0.5"
+              >
+                {gravatarLoading ? t("avatarGravatarLoading") : t("avatarUseGravatar")}
+              </button>
+            </div>
+          </div>
+
+          {/* Name fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-slate-700">{t("profileFirstName")}</label>
@@ -143,6 +225,7 @@ export default function SubscriptionPage() {
               />
             </div>
           </div>
+
           {profileError && (
             <p className="text-sm text-red-600">{profileError}</p>
           )}

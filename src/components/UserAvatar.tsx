@@ -18,6 +18,7 @@ const SIZE: Record<string, string> = {
   xs: "w-5 h-5 text-[9px]",
   sm: "w-8 h-8 text-xs",
   md: "w-6 h-6 text-[10px]",
+  lg: "w-16 h-16 text-xl",
 };
 
 interface Props {
