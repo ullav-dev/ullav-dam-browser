@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
 import type { UsageInfo } from "@/lib/dam-api";
 
 function formatBytes(bytes: number): string {
@@ -58,10 +57,6 @@ interface Props {
 
 export default function UsageWidget({ usage }: Props) {
   const t = useTranslations("usageWidget");
-  const hasLimits =
-    usage.storage_limit_bytes !== null ||
-    usage.asset_limit !== null ||
-    usage.category_limit !== null;
 
   return (
     <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2.5">
@@ -86,16 +81,6 @@ export default function UsageWidget({ usage }: Props) {
         formatValue={(n) => n.toLocaleString()}
         unlimitedLabel={t("unlimited")}
       />
-      {hasLimits && (
-        <div className="pt-0.5">
-          <Link
-            href="/pricing"
-            className="text-xs text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-          >
-            {t("upgrade")} →
-          </Link>
-        </div>
-      )}
     </div>
   );
 }

@@ -74,14 +74,27 @@
     "periodEnd": "Zeitraumende",
     "memberSince": "Mitglied seit",
     "trialEnds": "Testphase endet {date}",
-    "upgradePlan": "Plan upgraden",
     "manageBilling": "Abrechnung verwalten",
     "changePlan": "Plan wechseln",
     "redirecting": "Weiterleiten…",
     "loadError": "Abonnementdetails konnten nicht geladen werden.",
     "portalError": "Abrechnungsportal konnte nicht geöffnet werden.",
     "helpText": "Fragen zu Ihrem Abonnement?",
-    "helpLink": "Hilfe aufrufen"
+    "helpLink": "Hilfe aufrufen",
+    "profileHeading": "Ihr Profil",
+    "profileFirstName": "Vorname",
+    "profileFirstNamePlaceholder": "Vorname",
+    "profileLastName": "Nachname",
+    "profileLastNamePlaceholder": "Nachname",
+    "profileSave": "Speichern",
+    "profileSaving": "Speichern…",
+    "profileSaved": "Gespeichert",
+    "profileSaveError": "Profil konnte nicht gespeichert werden.",
+    "avatarLabel": "Avatar-URL",
+    "avatarClear": "Avatar entfernen",
+    "avatarUseGravatar": "Gravatar verwenden",
+    "avatarGravatarLoading": "Wird geladen…",
+    "avatarHttpsRequired": "Die Avatar-URL muss mit https:// beginnen."
   },
   "subscriptionSuccess": {
     "heading": "Sie sind abonniert!",
@@ -268,8 +281,7 @@
     "storage": "Speicher",
     "assets": "Assets",
     "categories": "Kategorien",
-    "unlimited": "Unbegrenzt",
-    "upgrade": "Plan upgraden"
+    "unlimited": "Unbegrenzt"
   },
   "categoryTree": {
     "allAssets": "Alle Assets",

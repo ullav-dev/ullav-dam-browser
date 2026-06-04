@@ -74,14 +74,27 @@
     "periodEnd": "Period end",
     "memberSince": "Member since",
     "trialEnds": "Trial ends {date}",
-    "upgradePlan": "Upgrade plan",
     "manageBilling": "Manage billing",
     "changePlan": "Change plan",
     "redirecting": "Redirecting…",
     "loadError": "Failed to load subscription details.",
     "portalError": "Could not open billing portal. Please try again.",
     "helpText": "Questions about your subscription?",
-    "helpLink": "Visit Help"
+    "helpLink": "Visit Help",
+    "profileHeading": "Your profile",
+    "profileFirstName": "First name",
+    "profileFirstNamePlaceholder": "First name",
+    "profileLastName": "Last name",
+    "profileLastNamePlaceholder": "Last name",
+    "profileSave": "Save",
+    "profileSaving": "Saving…",
+    "profileSaved": "Saved",
+    "profileSaveError": "Failed to save profile. Please try again.",
+    "avatarLabel": "Avatar URL",
+    "avatarClear": "Remove avatar",
+    "avatarUseGravatar": "Use Gravatar",
+    "avatarGravatarLoading": "Loading…",
+    "avatarHttpsRequired": "Avatar URL must start with https://"
   },
   "subscriptionSuccess": {
     "heading": "You're subscribed!",
@@ -268,8 +281,7 @@
     "storage": "Storage",
     "assets": "Assets",
     "categories": "Categories",
-    "unlimited": "Unlimited",
-    "upgrade": "Upgrade plan"
+    "unlimited": "Unlimited"
   },
   "categoryTree": {
     "allAssets": "All Assets",
