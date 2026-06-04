@@ -40,7 +40,7 @@ const TeamContext = createContext<TeamState>({
 });
 
 export function TeamProvider({ children }: { children: React.ReactNode }) {
-  const { token, user } = useAuth();
+  const { token, user, refresh } = useAuth();
   const [teams, setTeams] = useState<TeamSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -65,10 +65,10 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
   const createTeam = useCallback(
     async (payload: CreateTeamPayload): Promise<Team> => {
       const team = await apiCreateTeam(token!, payload);
-      await reload();
+      await Promise.all([reload(), refresh()]);
       return team;
     },
-    [token, reload]
+    [token, reload, refresh]
   );
 
   const updateTeam = useCallback(
