@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import type { AuthUser, DamAccess, LoginResponse } from "@/lib/auth-api";
-import { login as apiLogin, getDamAccess } from "@/lib/auth-api";
+import { login as apiLogin, refreshToken as apiRefreshToken, getDamAccess } from "@/lib/auth-api";
 
 interface AuthState {
   user: AuthUser | null;
@@ -14,6 +14,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
   setSession: (session: { token: string; user: AuthUser; roles: string[] }) => void;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthState>({
   login: async () => { throw new Error("AuthProvider not mounted"); },
   logout: () => {},
   setSession: () => {},
+  refresh: async () => {},
 });
 
 const STORAGE_KEY = "dam_auth";
@@ -153,6 +155,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return resp;
   }, [setSession]);
 
+  const refresh = useCallback(async (): Promise<void> => {
+    if (!token) return;
+    const resp = await apiRefreshToken(token);
+    setSession({ user: resp.user, token: resp.token, roles: resp.roles });
+  }, [token, setSession]);
+
   // ── Idle timeout ────────────────────────────────────────────────────────────
 
   const startTimers = useCallback(() => {
@@ -205,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <AuthContext.Provider value={{ user, token, roles, damAccess, isLoading, login, logout, setSession }}>
+    <AuthContext.Provider value={{ user, token, roles, damAccess, isLoading, login, logout, setSession, refresh }}>
       {children}
       {idleWarning && (
         <IdleWarningModal onStay={startTimers} onLogout={logout} />

@@ -177,6 +177,12 @@ export const confirmPasswordReset = (token: string, new_password: string): Promi
     body: JSON.stringify({ token, new_password }),
   });
 
+export const refreshToken = (bearerToken: string): Promise<LoginResponse> =>
+  authRequest("/auth/refresh", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${bearerToken}` },
+  });
+
 export const changePassword = (
   userId: string,
   newPassword: string,

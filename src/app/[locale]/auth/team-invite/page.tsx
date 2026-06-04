@@ -9,7 +9,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 function TeamInviteInner() {
-  const { token, user, isLoading: authLoading } = useAuth();
+  const { token, user, isLoading: authLoading, refresh } = useAuth();
   const { reload } = useTeam();
   const t = useTranslations("team");
   const searchParams = useSearchParams();
@@ -45,7 +45,7 @@ function TeamInviteInner() {
     setError(null);
     try {
       await acceptInvitation(token, inviteToken!);
-      await reload();
+      await Promise.all([reload(), refresh()]);
       setStatus("accepted");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
