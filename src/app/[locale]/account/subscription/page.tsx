@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getSubscription,
-  createPortalSession,
+  updateProfile,
   type SubscriptionInfo,
 } from "@/lib/auth-api";
 
@@ -38,21 +38,36 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const inputCls =
+  "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SubscriptionPage() {
   const t = useTranslations("subscription");
-  const { user, token, isLoading } = useAuth();
+  const { user, token, roles, setSession, isLoading } = useAuth();
   const router = useRouter();
 
   const [sub, setSub] = useState<SubscriptionInfo | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
-  const [portalError, setPortalError] = useState<string | null>(null);
+
+  // Profile state
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
   }, [isLoading, user, router]);
+
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.first_name ?? "");
+      setLastName(user.last_name ?? "");
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!token) return;
@@ -61,16 +76,27 @@ export default function SubscriptionPage() {
       .catch((err) => setFetchError(err instanceof Error ? err.message : t("loadError")));
   }, [token, t]);
 
-  async function handlePortal() {
-    if (!token) return;
-    setPortalError(null);
-    setPortalLoading(true);
+  async function handleProfileSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token || !user) return;
+    setProfileSaving(true);
+    setProfileError(null);
+    setProfileSaved(false);
     try {
-      const { url } = await createPortalSession(token);
-      window.location.href = url;
+      const updated = await updateProfile(
+        {
+          first_name: firstName.trim() || null,
+          last_name: lastName.trim() || null,
+        },
+        token
+      );
+      setSession({ token, user: updated, roles });
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
     } catch (err) {
-      setPortalError(err instanceof Error ? err.message : t("portalError"));
-      setPortalLoading(false);
+      setProfileError(err instanceof Error ? err.message : t("profileSaveError"));
+    } finally {
+      setProfileSaving(false);
     }
   }
 
@@ -89,6 +115,51 @@ export default function SubscriptionPage() {
 
       <h1 className="text-2xl font-bold text-slate-900 mb-1">{t("heading")}</h1>
       <p className="text-sm text-slate-500 mb-8">{t("subheading")}</p>
+
+      {/* Profile card */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <p className="font-semibold text-slate-800">{t("profileHeading")}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{user.username} · {user.email}</p>
+        </div>
+        <form onSubmit={handleProfileSave} className="px-6 py-5 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-slate-700">{t("profileFirstName")}</label>
+              <input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className={inputCls}
+                placeholder={t("profileFirstNamePlaceholder")}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-slate-700">{t("profileLastName")}</label>
+              <input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className={inputCls}
+                placeholder={t("profileLastNamePlaceholder")}
+              />
+            </div>
+          </div>
+          {profileError && (
+            <p className="text-sm text-red-600">{profileError}</p>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={profileSaving}
+              className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
+            >
+              {profileSaving ? t("profileSaving") : t("profileSave")}
+            </button>
+            {profileSaved && (
+              <span className="text-sm text-emerald-600">{t("profileSaved")}</span>
+            )}
+          </div>
+        </form>
+      </div>
 
       {fetchError && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm mb-6">
@@ -128,36 +199,20 @@ export default function SubscriptionPage() {
           </div>
 
           {/* Actions */}
-          <div className="px-6 py-5 flex flex-col sm:flex-row gap-3">
-            {!isPaid && (
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+          {isPaid && (
+            <div className="px-6 py-5 flex flex-col sm:flex-row gap-3">
+              <button
+                disabled
+                className="inline-flex items-center justify-center bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
               >
-                {t("upgradePlan")}
-              </Link>
-            )}
-            {isPaid && (
-              <>
-                <button
-                  disabled
-                  className="inline-flex items-center justify-center bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
-                >
-                  {t("manageBilling")}
-                </button>
-                <button
-                  disabled
-                  className="inline-flex items-center justify-center border border-slate-300 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
-                >
-                  {t("changePlan")}
-                </button>
-              </>
-            )}
-          </div>
-
-          {portalError && (
-            <div className="px-6 pb-5">
-              <p className="text-sm text-red-600">{portalError}</p>
+                {t("manageBilling")}
+              </button>
+              <button
+                disabled
+                className="inline-flex items-center justify-center border border-slate-300 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+              >
+                {t("changePlan")}
+              </button>
             </div>
           )}
         </div>

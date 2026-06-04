@@ -74,14 +74,22 @@
     "periodEnd": "Deireadh tréimhse",
     "memberSince": "Ball ó",
     "trialEnds": "Críochnaíonn an triail {date}",
-    "upgradePlan": "Uasghrádaigh plean",
     "manageBilling": "Bainistigh billeáil",
     "changePlan": "Athraigh plean",
     "redirecting": "Ag atreorú…",
     "loadError": "Theip ar lódáil sonraí suibscríbhinne.",
     "portalError": "Níorbh fhéidir tairseach billeála a oscailt.",
     "helpText": "Ceisteanna faoi do shuibscríbhinn?",
-    "helpLink": "Cuairt ar Cabhair"
+    "helpLink": "Cuairt ar Cabhair",
+    "profileHeading": "Do phróifíl",
+    "profileFirstName": "Céadainm",
+    "profileFirstNamePlaceholder": "Céadainm",
+    "profileLastName": "Sloinne",
+    "profileLastNamePlaceholder": "Sloinne",
+    "profileSave": "Sábháil",
+    "profileSaving": "Ag sábháil…",
+    "profileSaved": "Sábháilte",
+    "profileSaveError": "Theip ar shábháil próifíle."
   },
   "subscriptionSuccess": {
     "heading": "Tá tú liostáilte!",
@@ -268,8 +276,7 @@
     "storage": "Stóráil",
     "assets": "Sócmhainní",
     "categories": "Catagóirí",
-    "unlimited": "Gan teorainn",
-    "upgrade": "Uasghrádú plean"
+    "unlimited": "Gan teorainn"
   },
   "categoryTree": {
     "allAssets": "Gach Sócmhainn",

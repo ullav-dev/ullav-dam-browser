@@ -195,6 +195,16 @@ export const changePassword = (
     body: JSON.stringify({ new_password: newPassword, current_password: currentPassword }),
   });
 
+export const updateProfile = (
+  fields: { first_name?: string | null; last_name?: string | null },
+  bearerToken: string
+): Promise<AuthUser> =>
+  authRequest("/users/me", {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${bearerToken}` },
+    body: JSON.stringify(fields),
+  });
+
 // ── Subscription API ──────────────────────────────────────────────────────────
 
 export interface SubscriptionInfo {
