@@ -140,18 +140,17 @@ export default function SubscriptionPage() {
             {isPaid && (
               <>
                 <button
-                  onClick={handlePortal}
-                  disabled={portalLoading}
-                  className="inline-flex items-center justify-center bg-slate-800 hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+                  disabled
+                  className="inline-flex items-center justify-center bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
                 >
-                  {portalLoading ? t("redirecting") : t("manageBilling")}
+                  {t("manageBilling")}
                 </button>
-                <Link
-                  href="/pricing"
-                  className="inline-flex items-center justify-center border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+                <button
+                  disabled
+                  className="inline-flex items-center justify-center border border-slate-300 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
                 >
                   {t("changePlan")}
-                </Link>
+                </button>
               </>
             )}
           </div>
