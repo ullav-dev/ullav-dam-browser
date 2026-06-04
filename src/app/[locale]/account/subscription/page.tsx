@@ -46,7 +46,7 @@ async function gravatarUrl(email: string): Promise<string> {
   const hex = Array.from(new Uint8Array(hashBuf))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  return `https://www.gravatar.com/avatar/${hex}?s=200&d=mp`;
+  return `https://gravatar.com/avatar/${hex}?s=200&d=identicon`;
 }
 
 const inputCls =
