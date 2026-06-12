@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import CategoryTree from "@/components/CategoryTree";
 import AssetGrid from "@/components/AssetGrid";
+import type { SortField, SortDir } from "@/components/AssetGrid";
 import AssetDetails from "@/components/AssetDetails";
 import UploadModal from "@/components/UploadModal";
 import ResizeHandle from "@/components/ResizeHandle";
@@ -22,11 +23,20 @@ function BrowsePageInner() {
   const searchParams = useSearchParams();
   const t = useTranslations("browse");
 
-  const [assets, setAssets] = useState<api.Asset[]>([]);
+  // ── Asset page state (server-driven) ─────────────────────────────────────────
+  const [assets, setAssets] = useState<api.AssetWithCategories[]>([]);
+  const [totalAssets, setTotalAssets] = useState(0);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [myAssetsOnly, setMyAssetsOnly] = useState(false);
+
+  // ── Other state ───────────────────────────────────────────────────────────────
   const [categories, setCategories] = useState<api.Category[]>([]);
-  const [assetCategories, setAssetCategories] = useState<Map<string, string[]>>(new Map());
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedAsset, setSelectedAsset] = useState<api.AssetWithCategories | null>(null);
   const [loadingAssets, setLoadingAssets] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -39,7 +49,7 @@ function BrowsePageInner() {
   const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ done: number; total: number } | null>(null);
   const [bulkDownloadProgress, setBulkDownloadProgress] = useState<{ done: number; total: number } | null>(null);
 
-  // Auto-refresh interval — persisted in localStorage (null = off)
+  // Auto-refresh
   const AUTO_REFRESH_OPTIONS = [
     { label: t("autoRefreshOff"), value: null },
     { label: "30s", value: 30_000 },
@@ -65,7 +75,7 @@ function BrowsePageInner() {
     } catch {}
   }, []);
 
-  // Panel widths — persisted in localStorage
+  // Panel widths
   const [leftWidth, setLeftWidth] = useState<number>(() => {
     try { return parseInt(localStorage.getItem("dam_left_panel_width") ?? "", 10) || 224; } catch { return 224; }
   });
@@ -89,7 +99,7 @@ function BrowsePageInner() {
     });
   }, []);
 
-  // Lock state — persisted in localStorage
+  // Lock state
   const [lockedIds, setLockedIds] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem("dam_locked_assets");
@@ -108,7 +118,7 @@ function BrowsePageInner() {
     });
   }, []);
 
-  // Category creation / edit form
+  // Category form
   const [showCatForm, setShowCatForm] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState("");
@@ -132,7 +142,7 @@ function BrowsePageInner() {
     setEditingCatId(catId);
     setNewCatName(cat.name);
     setNewCatParentId(cat.parent_id ?? "");
-    setNewCatAccessLevel(cat.access_level ?? "private");
+    setNewCatAccessLevel(cat.access_level ?? "Private");
     setCatError(null);
     setShowCatForm(true);
   }, [categories]);
@@ -173,7 +183,7 @@ function BrowsePageInner() {
     [token, editingCatId, newCatName, newCatParentId, newCatAccessLevel, user?.username]
   );
 
-  // Category delete confirmation
+  // Category delete
   const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
   const [deletingCat, setDeletingCat] = useState(false);
 
@@ -184,7 +194,6 @@ function BrowsePageInner() {
   const handleConfirmDeleteCat = useCallback(async () => {
     if (!token || !deletingCatId) return;
     setDeletingCat(true);
-    // Collect all IDs to delete (BFS order), then reverse for deepest-first
     const allIds = (() => {
       const result: string[] = [];
       const queue = [deletingCatId];
@@ -203,14 +212,13 @@ function BrowsePageInner() {
       }
       const deletedSet = new Set(allIds);
       setCategories((prev) => prev.filter((c) => !deletedSet.has(c.id)));
-      setAssetCategories((prev) => {
-        const next = new Map(prev);
-        for (const [assetId, catIds] of next.entries()) {
-          const filtered = catIds.filter((cid) => !deletedSet.has(cid));
-          if (filtered.length !== catIds.length) next.set(assetId, filtered);
-        }
-        return next;
-      });
+      // Remove deleted category IDs from inline asset data
+      setAssets((prev) =>
+        prev.map((a) => ({
+          ...a,
+          categories: a.categories.filter((c) => !deletedSet.has(c.id)),
+        }))
+      );
       if (selectedCategoryId && deletedSet.has(selectedCategoryId)) {
         setSelectedCategoryId(undefined);
       }
@@ -239,9 +247,7 @@ function BrowsePageInner() {
       try {
         const updated = await updateCategory(id, { parent_id: newParentId }, token);
         setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      } catch {
-        // Non-critical
-      }
+      } catch {}
     },
     [token]
   );
@@ -251,76 +257,108 @@ function BrowsePageInner() {
       if (!token) return;
       try {
         await api.addCategoryToAsset(assetId, categoryId, token);
-        setAssetCategories((prev) => {
-          const next = new Map(prev);
-          next.set(assetId, [...(next.get(assetId) ?? []), categoryId]);
-          return next;
-        });
+        const cat = categories.find((c) => c.id === categoryId);
+        setAssets((prev) =>
+          prev.map((a) => {
+            if (a.id !== assetId) return a;
+            if (a.categories.some((c) => c.id === categoryId)) return a;
+            return { ...a, categories: cat ? [...a.categories, cat] : a.categories };
+          })
+        );
         setSelectedAsset((prev) => {
           if (!prev || prev.id !== assetId) return prev;
-          const cat = categories.find((c) => c.id === categoryId);
-          if (!cat) return prev;
-          return { ...prev, categories: [...prev.categories, cat] };
+          if (prev.categories.some((c) => c.id === categoryId)) return prev;
+          return cat ? { ...prev, categories: [...prev.categories, cat] } : prev;
         });
-      } catch {
-        // Already assigned — silently ignore
-      }
+      } catch {}
     },
     [token, categories]
   );
 
-  const loadedAssetIds = useRef(new Set<string>());
+  // ── Auth redirect ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, user, router]);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // ── Search debounce (300 ms) ──────────────────────────────────────────────────
 
-  // silent=true keeps the grid mounted (no loadingAssets spinner) so thumbnails survive.
-  // Use silent when assets are already visible; use non-silent only on first load.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // ── Reset to page 1 when filter / sort / page-size changes ───────────────────
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategoryId, debouncedSearch, myAssetsOnly, sortField, sortDir, perPage]);
+
+  // ── Load categories once on login ─────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!token) return;
+    api.listCategories(token).then(setCategories).catch(() => {});
+    if (damAccess !== "none") api.getUsage(token).then(setUsage).catch(() => {});
+  }, [token, damAccess]);
+
+  // ── Fetch asset page whenever query params change ─────────────────────────────
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
   const loadData = useCallback(async (silent = false) => {
     if (!token) return;
-    if (silent) {
-      setIsRefreshing(true);
-    } else {
-      setLoadingAssets(true);
-      setLoadError(null);
+
+    const idle = selectedCategoryId === undefined && !debouncedSearch;
+    if (idle) {
+      setAssets([]);
+      setTotalAssets(0);
+      setLoadingAssets(false);
+      return;
     }
+
+    // Cancel any in-flight fetch
+    fetchAbortRef.current?.abort();
+    fetchAbortRef.current = new AbortController();
+
+    if (silent) setIsRefreshing(true);
+    else { setLoadingAssets(true); setLoadError(null); }
+
     try {
-      const [assetsData, categoriesData] = await Promise.all([
-        api.listAssets(token),
-        api.listCategories(token),
-      ]);
-      setAssets(assetsData);
-      setCategories(categoriesData);
-      if (damAccess !== "none") {
-        api.getUsage(token).then(setUsage).catch(() => {});
-      }
-    } catch (err) {
-      if (!silent) setLoadError(err instanceof Error ? err.message : "Failed to load data.");
+      const data = await api.listAssets(token, {
+        categoryId: typeof selectedCategoryId === "string" ? selectedCategoryId : undefined,
+        q: debouncedSearch || undefined,
+        myAssets: myAssetsOnly || undefined,
+        sortField,
+        sortDir,
+        page,
+        perPage,
+      });
+      setAssets(data.items);
+      setTotalAssets(data.total);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      if (!silent) setLoadError(err instanceof Error ? err.message : "Failed to load assets.");
     } finally {
       if (silent) setIsRefreshing(false);
       else setLoadingAssets(false);
     }
-  }, [token, damAccess]);
-
-  const refreshUsage = useCallback(async () => {
-    if (!token || damAccess === "none") return;
-    try {
-      setUsage(await api.getUsage(token));
-    } catch {}
-  }, [token, damAccess]);
+  }, [token, selectedCategoryId, debouncedSearch, myAssetsOnly, sortField, sortDir, page, perPage]);
 
   useEffect(() => {
-    if (token) loadData();
-  }, [token, loadData]);
+    loadData();
+  }, [loadData]);
 
-  // Deep-link: when select_asset is set, show only that one asset in the grid.
-  // Cleared when the user picks a category or types a search.
-  const [deepLinkAssetId, setDeepLinkAssetId] = useState<string | null>(null);
+  // Auto-refresh
+  useEffect(() => {
+    if (!autoRefreshMs || !token) return;
+    const id = setInterval(() => loadData(true), autoRefreshMs);
+    return () => clearInterval(id);
+  }, [autoRefreshMs, token, loadData]);
 
-  // Apply select_asset / select_category deep-link params once after initial load
+  // ── Deep-link: open asset in details panel ────────────────────────────────────
+
   const deepLinkApplied = useRef(false);
   useEffect(() => {
     if (deepLinkApplied.current || !token || loadingAssets) return;
@@ -328,89 +366,30 @@ function BrowsePageInner() {
     const selectCategory = searchParams.get("select_category");
     if (!selectAsset && !selectCategory) return;
     deepLinkApplied.current = true;
-    if (selectCategory) {
-      setSelectedCategoryId(selectCategory);
-    }
+    if (selectCategory) setSelectedCategoryId(selectCategory);
     if (selectAsset) {
-      setDeepLinkAssetId(selectAsset);
-      setSelectedCategoryId(null); // null = All Assets, so the grid renders
+      setSelectedCategoryId(null);
       api.getAsset(selectAsset, token).then(setSelectedAsset).catch(() => {});
     }
   }, [token, loadingAssets, searchParams]);
 
-  useEffect(() => {
-    if (!autoRefreshMs || !token) return;
-    const id = setInterval(() => { loadData(true); }, autoRefreshMs);
-    return () => clearInterval(id);
-  }, [autoRefreshMs, token, loadData]);
-
-  // Background-load categories for all assets in batches of 5, with retry on failure
-  useEffect(() => {
-    if (!token || assets.length === 0) return;
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-    async function loadCats(retryCount = 0): Promise<void> {
-      const toLoad = assets.filter((a) => !loadedAssetIds.current.has(a.id));
-      if (toLoad.length === 0 || cancelled) return;
-
-      for (let i = 0; i < toLoad.length; i += 5) {
-        if (cancelled) return;
-        const chunk = toLoad.slice(i, i + 5);
-        await Promise.all(
-          chunk.map(async (asset) => {
-            if (loadedAssetIds.current.has(asset.id)) return;
-            try {
-              const detail = await api.getAsset(asset.id, token!);
-              if (cancelled) return;
-              loadedAssetIds.current.add(asset.id);
-              setAssetCategories((prev) => {
-                const next = new Map(prev);
-                next.set(asset.id, detail.categories.map((c) => c.id));
-                return next;
-              });
-            } catch {
-              // Not marked as loaded — will retry below (up to 2 more times)
-            }
-          })
-        );
-      }
-
-      // Retry failed assets after a delay (up to 2 retries total)
-      if (!cancelled && retryCount < 2 && assets.some((a) => !loadedAssetIds.current.has(a.id))) {
-        retryTimer = setTimeout(() => { if (!cancelled) loadCats(retryCount + 1); }, 3000);
-      }
-    }
-
-    loadCats();
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-    };
-  }, [assets, token]);
+  // ── Asset event handlers ──────────────────────────────────────────────────────
 
   const handleSelectAsset = useCallback(
-    async (asset: api.Asset) => {
+    async (asset: api.AssetWithCategories) => {
+      setSelectedAsset(asset);
       if (!token) return;
       try {
         const detail = await api.getAsset(asset.id, token);
         setSelectedAsset(detail);
-        loadedAssetIds.current.add(asset.id);
-        setAssetCategories((prev) => {
-          const next = new Map(prev);
-          next.set(asset.id, detail.categories.map((c) => c.id));
-          return next;
-        });
-      } catch {
-        setSelectedAsset({ ...asset, categories: [] });
-      }
+      } catch {}
     },
     [token]
   );
 
   const handleAssetUpdated = useCallback(
     async (updated: api.Asset) => {
-      setAssets((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      setAssets((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
       if (token) {
         try {
           const detail = await api.getAsset(updated.id, token);
@@ -424,31 +403,39 @@ function BrowsePageInner() {
   );
 
   const handleAssetCreated = useCallback(
-    (newAsset: api.Asset, categoryIds: string[]) => {
-      setAssets((prev) => [newAsset, ...prev]);
-      setAssetCategories((prev) => {
-        const next = new Map(prev);
-        next.set(newAsset.id, categoryIds);
-        return next;
-      });
-      loadedAssetIds.current.add(newAsset.id);
+    (_asset: api.Asset, _categoryIds: string[]) => {
+      // Silent reload so the new asset appears in correct sort order
+      loadData(true);
     },
-    [],
+    [loadData]
   );
 
   const handleAssetDeleted = useCallback((id: string) => {
     setAssets((prev) => prev.filter((a) => a.id !== id));
-    setAssetCategories((prev) => {
-      const next = new Map(prev);
-      next.delete(id);
-      return next;
-    });
-    loadedAssetIds.current.delete(id);
+    setTotalAssets((n) => Math.max(0, n - 1));
     setSelectedAsset(null);
-    refreshUsage();
-  }, [refreshUsage]);
+    if (token && damAccess !== "none") api.getUsage(token).then(setUsage).catch(() => {});
+  }, [token, damAccess]);
 
-  // ── Multi-select ─────────────────────────────────────────────────────────────
+  const refreshUsage = useCallback(async () => {
+    if (!token || damAccess === "none") return;
+    try { setUsage(await api.getUsage(token)); } catch {}
+  }, [token, damAccess]);
+
+  // ── Categories changed on selected asset ─────────────────────────────────────
+
+  const handleCategoriesChanged = useCallback(
+    (cats: api.Category[]) => {
+      if (!selectedAsset) return;
+      setAssets((prev) =>
+        prev.map((a) => (a.id === selectedAsset.id ? { ...a, categories: cats } : a))
+      );
+      setSelectedAsset((prev) => (prev ? { ...prev, categories: cats } : null));
+    },
+    [selectedAsset]
+  );
+
+  // ── Multi-select ──────────────────────────────────────────────────────────────
 
   const handleToggleSelect = useCallback((id: string) => {
     setSelectedAssetIds((prev) => {
@@ -495,19 +482,14 @@ function BrowsePageInner() {
     }
     const deleted = toDelete.filter((id) => !failed.includes(id));
     setAssets((prev) => prev.filter((a) => !deleted.includes(a.id)));
-    setAssetCategories((prev) => {
-      const next = new Map(prev);
-      deleted.forEach((id) => { next.delete(id); loadedAssetIds.current.delete(id); });
-      return next;
-    });
+    setTotalAssets((n) => Math.max(0, n - deleted.length));
     if (selectedAsset && deleted.includes(selectedAsset.id)) setSelectedAsset(null);
     setSelectedAssetIds(new Set([...failed, ...ids.filter((id) => lockedIds.has(id))]));
     setBulkDeleteProgress(null);
     setShowBulkDeleteConfirm(false);
     refreshUsage();
     if (skipped > 0 || failed.length > 0) {
-      const count = skipped + failed.length;
-      alert(t("bulkDeleteSkipped", { count }));
+      alert(t("bulkDeleteSkipped", { count: skipped + failed.length }));
     }
   }, [token, selectedAssetIds, lockedIds, selectedAsset, refreshUsage, t]);
 
@@ -515,7 +497,6 @@ function BrowsePageInner() {
     if (!token) return;
     const ids = [...selectedAssetIds];
 
-    // Single asset — use a plain anchor link (same as AssetDetails)
     if (ids.length === 1) {
       const a = document.createElement("a");
       a.href = downloadUrl(ids[0]);
@@ -524,12 +505,12 @@ function BrowsePageInner() {
       return;
     }
 
-    // Multiple assets — fetch and zip
     setBulkDownloadProgress({ done: 0, total: ids.length });
     const zip = new JSZip();
     const usedNames = new Map<string, number>();
 
     for (let i = 0; i < ids.length; i++) {
+      // asset may be undefined for cross-page selections — filename falls back to UUID
       const asset = assets.find((a) => a.id === ids[i]);
       try {
         const res = await fetch(downloadUrl(ids[i]), {
@@ -537,8 +518,6 @@ function BrowsePageInner() {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
-        // Prefer the asset's stored MIME type; the download response often sends
-        // application/octet-stream which would produce a useless ".octet-stream" extension.
         const mimeType = asset?.asset_type || res.headers.get("content-type") || "";
         const subtype = mimeType.split("/")[1]?.split(";")[0]?.split("+")[0] ?? "bin";
         const extNorm: Record<string, string> = { jpeg: "jpg", "octet-stream": "bin", plain: "txt" };
@@ -547,11 +526,8 @@ function BrowsePageInner() {
         const candidate = `${baseName}.${ext}`;
         const count = (usedNames.get(candidate) ?? 0) + 1;
         usedNames.set(candidate, count);
-        const fileName = count === 1 ? candidate : `${baseName} (${count}).${ext}`;
-        zip.file(fileName, blob);
-      } catch {
-        // skip failed assets silently — they'll be absent from the ZIP
-      }
+        zip.file(count === 1 ? candidate : `${baseName} (${count}).${ext}`, blob);
+      } catch {}
       setBulkDownloadProgress({ done: i + 1, total: ids.length });
     }
 
@@ -565,59 +541,29 @@ function BrowsePageInner() {
     setBulkDownloadProgress(null);
   }, [token, selectedAssetIds, assets]);
 
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  const handleCategoriesChanged = useCallback(
-    (cats: api.Category[]) => {
-      if (!selectedAsset) return;
-      setAssetCategories((prev) => {
-        const next = new Map(prev);
-        next.set(selectedAsset.id, cats.map((c) => c.id));
-        return next;
-      });
-      setSelectedAsset((prev) => (prev ? { ...prev, categories: cats } : null));
-    },
-    [selectedAsset]
-  );
+  // ── Upload complete ───────────────────────────────────────────────────────────
 
   const handleUploadComplete = useCallback(
-    async (uploaded: api.Asset[], assignedCategoryId?: string) => {
-      setAssets((prev) => [...uploaded.reverse(), ...prev]);
+    async (uploaded: api.Asset[], _assignedCategoryId?: string) => {
       const first = uploaded[0];
       if (first && token) {
         try {
-          const detail = await api.getAsset(first.id, token);
-          setSelectedAsset(detail);
-          for (const asset of uploaded) loadedAssetIds.current.add(asset.id);
-          setAssetCategories((prev) => {
-            const next = new Map(prev);
-            next.set(first.id, detail.categories.map((c) => c.id));
-            // Seed the remaining uploaded assets with the assigned category so
-            // they appear in the correct category filter before the background
-            // loader picks them up.
-            if (assignedCategoryId) {
-              for (const asset of uploaded.slice(1)) {
-                next.set(asset.id, [assignedCategoryId]);
-              }
-            }
-            return next;
-          });
+          setSelectedAsset(await api.getAsset(first.id, token));
         } catch {
           setSelectedAsset({ ...first, categories: [] });
         }
       }
       setShowUpload(false);
       refreshUsage();
+      loadData(true);
     },
-    [token, refreshUsage]
+    [token, refreshUsage, loadData]
   );
+
+  // ─────────────────────────────────────────────────────────────────────────────
 
   if (isLoading) return null;
 
-  // Only show categories the user owns, or that are globally accessible,
-  // or that have no creator set (legacy data created before access control was added).
-  // Check owner_id (UUID) as the authoritative ownership field alongside creator (username)
-  // so that categories whose creator field is stale or missing are never incorrectly hidden.
   const visibleCategories = categories.filter(
     (c) =>
       !c.creator ||
@@ -635,6 +581,9 @@ function BrowsePageInner() {
     usage !== null &&
     usage.category_limit !== null &&
     usage.category_count >= usage.category_limit;
+
+  const isIdle = selectedCategoryId === undefined && !searchQuery;
+  const hasFilter = typeof selectedCategoryId === "string" || !!debouncedSearch;
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -712,16 +661,18 @@ function BrowsePageInner() {
         )}
 
         <div className="flex-1 overflow-y-auto p-2">
-          {loadingAssets ? (
+          {loadingAssets && assets.length === 0 ? (
             <p className="text-xs text-slate-400 px-2 py-1">{t("loading")}</p>
           ) : (
             <CategoryTree
               categories={visibleCategories}
               selectedId={selectedCategoryId}
-              onSelect={(id) => { setDeepLinkAssetId(null); setSelectedCategoryId(id); }}
+              onSelect={(id) => { setSelectedCategoryId(id); }}
               draggingAssetId={draggingAssetId}
               draggingAssetCategoryIds={
-                draggingAssetId ? (assetCategories.get(draggingAssetId) ?? []) : []
+                draggingAssetId
+                  ? (assets.find((a) => a.id === draggingAssetId)?.categories.map((c) => c.id) ?? [])
+                  : []
               }
               onCategoryDrop={handleCategoryDrop}
               onAddSubcategory={openCatForm}
@@ -747,7 +698,7 @@ function BrowsePageInner() {
               type="search"
               placeholder={t("searchPlaceholder")}
               value={searchQuery}
-              onChange={(e) => { setDeepLinkAssetId(null); setSearchQuery(e.target.value); }}
+              onChange={(e) => { setSearchQuery(e.target.value); }}
               className="w-full rounded-lg border border-slate-300 pl-8 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -827,16 +778,21 @@ function BrowsePageInner() {
               {t("loadError")}
             </button>
           </div>
-        ) : loadingAssets ? (
+        ) : loadingAssets && assets.length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
             {t("loadingAssets")}
           </div>
         ) : (
           <AssetGrid
-            assets={deepLinkAssetId ? assets.filter((a) => a.id === deepLinkAssetId) : assets}
-            assetCategories={assetCategories}
-            selectedCategoryId={selectedCategoryId}
-            searchQuery={searchQuery}
+            assets={assets}
+            total={totalAssets}
+            page={page}
+            perPage={perPage}
+            sortField={sortField}
+            sortDir={sortDir}
+            myAssetsOnly={myAssetsOnly}
+            isIdle={isIdle}
+            hasFilter={hasFilter}
             selectedAssetId={selectedAsset?.id ?? null}
             lockedIds={lockedIds}
             username={user?.username}
@@ -847,6 +803,10 @@ function BrowsePageInner() {
             onDragEnd={handleDragEnd}
             onAssetCreated={handleAssetCreated}
             onAssetUpdated={handleAssetUpdated}
+            onPageChange={setPage}
+            onPageSizeChange={setPerPage}
+            onSortChange={(field, dir) => { setSortField(field); setSortDir(dir); }}
+            onMyAssetsToggle={() => setMyAssetsOnly((v) => !v)}
             selectedAssetIds={selectedAssetIds}
             onToggleSelect={handleToggleSelect}
             onRangeSelect={handleRangeSelect}
@@ -969,13 +929,17 @@ function BrowsePageInner() {
           onClose={() => setShowUpload(false)}
           onZipResult={(result) => {
             setCategories((prev) => [...prev, ...result.categories]);
-            setAssetCategories((prev) => {
-              const next = new Map(prev);
-              for (const [assetId, catIds] of Object.entries(result.asset_category_ids)) {
-                next.set(assetId, catIds);
-              }
-              return next;
-            });
+            // Inline category data for newly uploaded zip assets
+            setAssets((prev) =>
+              prev.map((a) => {
+                const newCatIds = result.asset_category_ids[a.id];
+                if (!newCatIds) return a;
+                const newCats = newCatIds
+                  .map((cid) => result.categories.find((c) => c.id === cid))
+                  .filter((c): c is api.Category => !!c);
+                return { ...a, categories: [...a.categories, ...newCats] };
+              })
+            );
           }}
         />
       )}

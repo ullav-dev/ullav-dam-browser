@@ -1,41 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import type { Asset } from "@/lib/dam-api";
+import { useState, useRef } from "react";
+import type { Asset, AssetWithCategories } from "@/lib/dam-api";
 import { thumbnailUrl } from "@/lib/dam-api";
 import { useTranslations } from "next-intl";
 import ImageEditorModal from "@/components/ImageEditorModal";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
-const DEFAULT_PAGE_SIZE = 20;
 
-type SortField = "name" | "asset_type" | "created_at" | "size";
-type SortDir = "asc" | "desc";
-
-
-function sortAssets(assets: Asset[], field: SortField, dir: SortDir): Asset[] {
-  const mul = dir === "asc" ? 1 : -1;
-  return [...assets].sort((a, b) => {
-    let cmp = 0;
-    if (field === "name") {
-      cmp = a.name.localeCompare(b.name);
-    } else if (field === "asset_type") {
-      cmp = a.asset_type.localeCompare(b.asset_type);
-    } else if (field === "created_at") {
-      cmp = a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
-    } else if (field === "size") {
-      cmp = a.size - b.size;
-    }
-    return cmp * mul;
-  });
-}
+export type SortField = "name" | "asset_type" | "created_at" | "size";
+export type SortDir = "asc" | "desc";
 
 function totalPages(count: number, size: number) {
   return Math.max(1, Math.ceil(count / size));
-}
-
-function pageSlice<T>(items: T[], page: number, size: number): T[] {
-  return items.slice((page - 1) * size, page * size);
 }
 
 function formatSize(bytes: number): string {
@@ -47,7 +24,6 @@ function formatSize(bytes: number): string {
 
 export function typeInfo(raw: string): { label: string; cls: string } {
   const t = raw.toLowerCase();
-  // Handles both full MIME types (e.g. "image/png") and legacy short names
   if (t.startsWith("image/") || t === "image") {
     const sub = t.includes("/") ? t.split("/")[1].split("+")[0].toUpperCase() : "IMAGE";
     return { label: sub, cls: "bg-blue-100 text-blue-700" };
@@ -72,7 +48,6 @@ export function typeInfo(raw: string): { label: string; cls: string } {
     return { label: "KEYNOTE", cls: "bg-blue-100 text-blue-700" };
   if (t.includes("zip") || t.includes("archive") || t === "archive")
     return { label: "ZIP", cls: "bg-slate-100 text-slate-600" };
-  // Fall back: show the subtype portion of the MIME (e.g. "octet-stream" → "FILE")
   const sub = t.includes("/") ? t.split("/")[1].split("+")[0] : t;
   return { label: sub === "octet-stream" ? "FILE" : sub.toUpperCase(), cls: "bg-slate-100 text-slate-600" };
 }
@@ -90,10 +65,6 @@ function ThumbnailImage({ id, name, assetType, updatedAt }: { id: string; name: 
   const [imgState, setImgState] = useState<"loading" | "ok" | "error">("loading");
   const { label, cls } = typeInfo(assetType);
   const src = `${thumbnailUrl(id)}?v=${encodeURIComponent(updatedAt)}`;
-
-  useEffect(() => {
-    setImgState("loading");
-  }, [updatedAt]);
 
   return (
     <>
@@ -134,20 +105,32 @@ function IconEditImage() {
 }
 
 interface Props {
-  assets: Asset[];
-  assetCategories: Map<string, string[]>;
-  selectedCategoryId: string | null | undefined;
-  searchQuery: string;
+  // Server-driven data — the grid is a pure render layer
+  assets: AssetWithCategories[];
+  total: number;
+  page: number;
+  perPage: number;
+  sortField: SortField;
+  sortDir: SortDir;
+  myAssetsOnly: boolean;
+  /** true when no category is selected and no search is active → show "select a category" prompt */
+  isIdle: boolean;
+  /** true when a filter is active (category or search) — controls noResults vs noAssets wording */
+  hasFilter: boolean;
   selectedAssetId: string | null;
   lockedIds: Set<string>;
   username?: string;
   userId?: string;
   token?: string;
-  onSelect: (asset: Asset) => void;
+  onSelect: (asset: AssetWithCategories) => void;
   onDragStart: (assetId: string) => void;
   onDragEnd: () => void;
   onAssetCreated?: (asset: Asset, categoryIds: string[]) => void;
   onAssetUpdated?: (asset: Asset) => void;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  onSortChange: (field: SortField, dir: SortDir) => void;
+  onMyAssetsToggle: () => void;
   // Multi-select
   selectedAssetIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
@@ -157,9 +140,14 @@ interface Props {
 
 export default function AssetGrid({
   assets,
-  assetCategories,
-  selectedCategoryId,
-  searchQuery,
+  total,
+  page,
+  perPage,
+  sortField,
+  sortDir,
+  myAssetsOnly,
+  isIdle,
+  hasFilter,
   selectedAssetId,
   lockedIds,
   username,
@@ -170,6 +158,10 @@ export default function AssetGrid({
   onDragEnd,
   onAssetCreated,
   onAssetUpdated,
+  onPageChange,
+  onPageSizeChange,
+  onSortChange,
+  onMyAssetsToggle,
   selectedAssetIds,
   onToggleSelect,
   onRangeSelect,
@@ -177,12 +169,6 @@ export default function AssetGrid({
 }: Props) {
   const t = useTranslations("assetGrid");
   const [editingAsset, setEditingAsset] = useState<{ asset: Asset; categoryIds: string[] } | null>(null);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [page, setPage] = useState(1);
-  const [sortField, setSortField] = useState<SortField>("created_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [myAssetsOnly, setMyAssetsOnly] = useState(false);
-  // Tracks the last asset clicked via checkbox for shift-click range selection
   const lastCheckedId = useRef<string | null>(null);
 
   const SORT_OPTIONS: { field: SortField; label: string }[] = [
@@ -192,58 +178,24 @@ export default function AssetGrid({
     { field: "size",       label: t("sortSize") },
   ];
 
-  // Reset to page 1 when filters or sort changes
-  useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir, myAssetsOnly]);
-
-  const filtered = useMemo(() => assets.filter((asset) => {
-    // undefined = nothing selected; only show results when a search is active
-    if (selectedCategoryId === undefined && !searchQuery) return false;
-    // Hide private assets owned by other users
-    if (asset.is_private && asset.creator !== username) return false;
-    if (myAssetsOnly && username && asset.creator !== username) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matches =
-        asset.name.toLowerCase().includes(q) ||
-        (asset.caption ?? "").toLowerCase().includes(q) ||
-        (asset.keywords ?? "").toLowerCase().includes(q) ||
-        (asset.creator ?? "").toLowerCase().includes(q) ||
-        (asset.description ?? "").toLowerCase().includes(q);
-      if (!matches) return false;
-    }
-    if (selectedCategoryId) {
-      const cats = assetCategories.get(asset.id);
-      if (cats === undefined) return true; // not loaded yet — show optimistically
-      return cats.includes(selectedCategoryId);
-    }
-    return true;
-  }), [assets, assetCategories, searchQuery, selectedCategoryId, myAssetsOnly, username]);
-
-  const sorted = useMemo(() => sortAssets(filtered, sortField, sortDir), [filtered, sortField, sortDir]);
-
-  const numPages = totalPages(sorted.length, pageSize);
-  const safePage = Math.min(page, numPages);
-  const paged = pageSlice(sorted, safePage, pageSize);
-
   function handleSortField(field: SortField) {
     if (field === sortField) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      onSortChange(field, sortDir === "asc" ? "desc" : "asc");
     } else {
-      setSortField(field);
-      setSortDir("asc");
+      onSortChange(field, "asc");
     }
   }
 
-  function handleCheckboxClick(e: React.MouseEvent, asset: Asset) {
+  function handleCheckboxClick(e: React.MouseEvent, asset: AssetWithCategories) {
     e.stopPropagation();
     if (!onToggleSelect) return;
 
     if (e.shiftKey && lastCheckedId.current && onRangeSelect) {
-      const lastIdx = paged.findIndex((a) => a.id === lastCheckedId.current);
-      const thisIdx = paged.findIndex((a) => a.id === asset.id);
+      const lastIdx = assets.findIndex((a) => a.id === lastCheckedId.current);
+      const thisIdx = assets.findIndex((a) => a.id === asset.id);
       if (lastIdx !== -1 && thisIdx !== -1) {
         const [lo, hi] = lastIdx < thisIdx ? [lastIdx, thisIdx] : [thisIdx, lastIdx];
-        onRangeSelect(paged.slice(lo, hi + 1).map((a) => a.id));
+        onRangeSelect(assets.slice(lo, hi + 1).map((a) => a.id));
         lastCheckedId.current = asset.id;
         return;
       }
@@ -253,10 +205,11 @@ export default function AssetGrid({
     lastCheckedId.current = asset.id;
   }
 
-  const allPageSelected = paged.length > 0 && paged.every((a) => selectedAssetIds?.has(a.id));
-  const somePageSelected = !allPageSelected && paged.some((a) => selectedAssetIds?.has(a.id));
+  const numPages = totalPages(total, perPage);
+  const allPageSelected = assets.length > 0 && assets.every((a) => selectedAssetIds?.has(a.id));
+  const somePageSelected = !allPageSelected && assets.some((a) => selectedAssetIds?.has(a.id));
 
-  if (selectedCategoryId === undefined && !searchQuery) {
+  if (isIdle) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
         {t("emptyPrompt")}
@@ -264,17 +217,16 @@ export default function AssetGrid({
     );
   }
 
-  if (filtered.length === 0) {
+  if (total === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-        {searchQuery || selectedCategoryId ? t("noResults") : t("noAssets")}
+        {hasFilter ? t("noResults") : t("noAssets")}
       </div>
     );
   }
 
-  // Build page number list with ellipsis gaps (same as clann-webapp)
   const pageNumbers = Array.from({ length: numPages }, (_, i) => i + 1)
-    .filter((n) => n === 1 || n === numPages || Math.abs(n - safePage) <= 1)
+    .filter((n) => n === 1 || n === numPages || Math.abs(n - page) <= 1)
     .reduce<(number | "…")[]>((acc, n, idx, arr) => {
       if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("…");
       acc.push(n);
@@ -285,7 +237,6 @@ export default function AssetGrid({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sort bar */}
       <div className="shrink-0 px-4 py-1.5 border-b border-slate-100 bg-white flex items-center gap-1.5">
-        {/* Select-all on page — only shown when multi-select is wired up */}
         {onToggleSelect && onSelectAll && (
           <>
             <input
@@ -293,7 +244,7 @@ export default function AssetGrid({
               title={t("selectAllOnPage")}
               checked={allPageSelected}
               ref={(el) => { if (el) el.indeterminate = somePageSelected; }}
-              onChange={() => onSelectAll(paged.map((a) => a.id))}
+              onChange={() => onSelectAll(assets.map((a) => a.id))}
               className="rounded border-slate-300 text-blue-600 cursor-pointer"
             />
             <span className="w-px h-3 bg-slate-200 mx-0.5" />
@@ -323,7 +274,7 @@ export default function AssetGrid({
           <>
             <span className="w-px h-3 bg-slate-200 mx-0.5" />
             <button
-              onClick={() => setMyAssetsOnly((v) => !v)}
+              onClick={onMyAssetsToggle}
               className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
                 myAssetsOnly
                   ? "bg-emerald-600 text-white border-emerald-600"
@@ -339,7 +290,7 @@ export default function AssetGrid({
       {/* Asset grid */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-          {paged.map((asset) => {
+          {assets.map((asset) => {
             const isChecked = selectedAssetIds?.has(asset.id) ?? false;
             return (
               <div
@@ -373,14 +324,13 @@ export default function AssetGrid({
                       title={t("editImage")}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setEditingAsset({ asset, categoryIds: assetCategories.get(asset.id) ?? [] });
+                        setEditingAsset({ asset, categoryIds: asset.categories.map((c) => c.id) });
                       }}
                       className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 bg-white/90 hover:bg-white text-blue-700 rounded-lg p-1 shadow transition-opacity"
                     >
                       <IconEditImage />
                     </button>
                   )}
-                  {/* Selection checkbox — top-right, shown on hover or when selected */}
                   {onToggleSelect && (
                     <button
                       type="button"
@@ -448,26 +398,24 @@ export default function AssetGrid({
       {/* Pagination bar */}
       {numPages > 1 && (
         <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2 flex items-center justify-between gap-3">
-          {/* Page size selector */}
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
             <span>{t("paginationShow")}</span>
             <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
+              value={perPage}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
               className="rounded border border-slate-300 px-1.5 py-0.5 text-xs focus:border-blue-500 focus:outline-none bg-white"
             >
               {PAGE_SIZE_OPTIONS.map((n) => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
-            <span>{t("paginationPerPage", { count: sorted.length })}</span>
+            <span>{t("paginationPerPage", { count: total })}</span>
           </div>
 
-          {/* Page controls */}
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage === 1}
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {t("paginationPrev")}
@@ -479,9 +427,9 @@ export default function AssetGrid({
               ) : (
                 <button
                   key={item}
-                  onClick={() => setPage(item)}
+                  onClick={() => onPageChange(item)}
                   className={`min-w-[28px] px-2 py-1 rounded text-xs border transition-colors ${
-                    item === safePage
+                    item === page
                       ? "bg-blue-700 text-white border-blue-700 font-medium"
                       : "text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
@@ -492,8 +440,8 @@ export default function AssetGrid({
             )}
 
             <button
-              onClick={() => setPage((p) => Math.min(numPages, p + 1))}
-              disabled={safePage === numPages}
+              onClick={() => onPageChange(Math.min(numPages, page + 1))}
+              disabled={page === numPages}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {t("paginationNext")}

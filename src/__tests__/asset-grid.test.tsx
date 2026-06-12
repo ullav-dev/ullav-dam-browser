@@ -1,20 +1,22 @@
 /**
  * Tests for AssetGrid — covers:
- *  • visibility filtering (private assets from other users hidden)
- *  • search filtering (name / caption / keywords / creator / description)
- *  • category filtering (via assetCategories map; optimistic display)
- *  • my-assets filter
- *  • sorting (name, size, type, created_at)
- *  • pagination (page-slice, page controls)
+ *  • empty / idle state rendering
+ *  • sort button interactions (fires onSortChange)
+ *  • My Assets toggle (fires onMyAssetsToggle)
+ *  • pagination controls (fires onPageChange / onPageSizeChange)
  *  • typeInfo badge labels
  *  • formatSize display
+ *
+ * Filtering, sorting order, and visibility are now server-side.
+ * The grid is a controlled render layer — it renders what it receives.
  */
 
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Asset } from "@/lib/dam-api";
-import AssetGrid from "@/components/AssetGrid";
+import type { AssetWithCategories } from "@/lib/dam-api";
+import AssetGrid, { typeInfo } from "@/components/AssetGrid";
+import type { SortField, SortDir } from "@/components/AssetGrid";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -27,7 +29,7 @@ jest.mock("@/components/ImageEditorModal", () => () => null);
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 let idSeq = 0;
-function makeAsset(overrides: Partial<Asset> = {}): Asset {
+function makeAsset(overrides: Partial<AssetWithCategories> = {}): AssetWithCategories {
   const id = `asset-${++idSeq}`;
   return {
     id,
@@ -40,6 +42,7 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
     caption: null,
     keywords: null,
     creator: "alice",
+    owner_id: "owner-1",
     copyright_notice: null,
     available: true,
     available_until: null,
@@ -47,16 +50,24 @@ function makeAsset(overrides: Partial<Asset> = {}): Asset {
     public_read: true,
     public_download: true,
     public_write: false,
+    team_id: null,
+    custom_fields: null,
     created_at: `2024-01-0${idSeq}T00:00:00Z`,
     updated_at: `2024-01-0${idSeq}T00:00:00Z`,
+    categories: [],
     ...overrides,
   };
 }
 
 const DEFAULT_PROPS = {
-  assetCategories: new Map<string, string[]>(),
-  selectedCategoryId: null as string | null | undefined,
-  searchQuery: "",
+  total: 0,
+  page: 1,
+  perPage: 20,
+  sortField: "created_at" as SortField,
+  sortDir: "desc" as SortDir,
+  myAssetsOnly: false,
+  isIdle: false,
+  hasFilter: false,
   selectedAssetId: null,
   lockedIds: new Set<string>(),
   username: "alice",
@@ -66,204 +77,131 @@ const DEFAULT_PROPS = {
   onDragEnd: jest.fn(),
   onAssetCreated: jest.fn(),
   onAssetUpdated: jest.fn(),
+  onPageChange: jest.fn(),
+  onPageSizeChange: jest.fn(),
+  onSortChange: jest.fn(),
+  onMyAssetsToggle: jest.fn(),
 };
 
-function renderGrid(assets: Asset[], props: Partial<typeof DEFAULT_PROPS> = {}) {
-  return render(
-    <AssetGrid assets={assets} {...DEFAULT_PROPS} {...props} />,
-  );
+function renderGrid(assets: AssetWithCategories[], props: Partial<typeof DEFAULT_PROPS> = {}) {
+  const merged = { ...DEFAULT_PROPS, ...props, total: props.total ?? assets.length };
+  return render(<AssetGrid assets={assets} {...merged} />);
 }
 
-// ── Empty / initial state ─────────────────────────────────────────────────────
+// ── Empty / idle state ────────────────────────────────────────────────────────
 
 describe("empty state", () => {
-  it("shows empty prompt when selectedCategoryId is undefined and no search", () => {
-    renderGrid([], { selectedCategoryId: undefined, searchQuery: "" });
+  it("shows empty prompt when isIdle is true", () => {
+    renderGrid([], { isIdle: true });
     expect(screen.getByText("emptyPrompt")).toBeInTheDocument();
   });
 
-  it("shows noResults when category is selected but no assets match", () => {
-    renderGrid([], { selectedCategoryId: "cat-1" });
+  it("shows noResults when filter is active but total is 0", () => {
+    renderGrid([], { isIdle: false, hasFilter: true, total: 0 });
     expect(screen.getByText("noResults")).toBeInTheDocument();
   });
 
-  it("shows noAssets when All Assets (null) is selected with no assets", () => {
-    renderGrid([], { selectedCategoryId: null });
+  it("shows noAssets when no filter active and total is 0", () => {
+    renderGrid([], { isIdle: false, hasFilter: false, total: 0 });
     expect(screen.getByText("noAssets")).toBeInTheDocument();
   });
-});
 
-// ── Visibility filtering ──────────────────────────────────────────────────────
-
-describe("visibility filtering", () => {
-  it("shows public assets from other users", () => {
-    const asset = makeAsset({ name: "Public Bob", creator: "bob", is_private: false });
-    renderGrid([asset], { selectedCategoryId: null });
-    expect(screen.getByText("Public Bob")).toBeInTheDocument();
-  });
-
-  it("hides private assets from other users", () => {
-    const asset = makeAsset({ name: "Secret Bob", creator: "bob", is_private: true });
-    renderGrid([asset], { selectedCategoryId: null });
-    expect(screen.queryByText("Secret Bob")).not.toBeInTheDocument();
-  });
-
-  it("shows own private assets", () => {
-    const asset = makeAsset({ name: "My Draft", creator: "alice", is_private: true });
-    renderGrid([asset], { selectedCategoryId: null, username: "alice" });
-    expect(screen.getByText("My Draft")).toBeInTheDocument();
+  it("renders asset cards when assets are provided", () => {
+    renderGrid([makeAsset({ name: "My Photo" })]);
+    expect(screen.getByText("My Photo")).toBeInTheDocument();
   });
 });
 
-// ── Search filtering ──────────────────────────────────────────────────────────
+// ── Sort interactions ─────────────────────────────────────────────────────────
 
-describe("search filtering", () => {
-  const assets = [
-    makeAsset({ name: "Mountain Photo", caption: null, keywords: null, creator: "alice", description: null }),
-    makeAsset({ name: "Beach Photo", caption: "sunset view", keywords: null, creator: "alice", description: null }),
-    makeAsset({ name: "City Skyline", caption: null, keywords: "urban architecture", creator: "bob", description: null }),
-    makeAsset({ name: "Forest Trail", caption: null, keywords: null, creator: "alice", description: "hiking path" }),
-  ];
-
-  it("filters by name (case-insensitive)", () => {
-    renderGrid(assets, { selectedCategoryId: undefined, searchQuery: "mountain" });
-    expect(screen.getByText("Mountain Photo")).toBeInTheDocument();
-    expect(screen.queryByText("Beach Photo")).not.toBeInTheDocument();
+describe("sort interactions", () => {
+  it("calls onSortChange with new field and asc on first click", async () => {
+    const onSortChange = jest.fn();
+    renderGrid([makeAsset()], { onSortChange });
+    await userEvent.click(screen.getByText("sortName"));
+    expect(onSortChange).toHaveBeenCalledWith("name", "asc");
   });
 
-  it("filters by caption", () => {
-    renderGrid(assets, { selectedCategoryId: undefined, searchQuery: "sunset" });
-    expect(screen.getByText("Beach Photo")).toBeInTheDocument();
-    expect(screen.queryByText("Mountain Photo")).not.toBeInTheDocument();
+  it("calls onSortChange toggling direction when same field clicked", async () => {
+    const onSortChange = jest.fn();
+    renderGrid([makeAsset()], { sortField: "name", sortDir: "asc", onSortChange });
+    await userEvent.click(screen.getByText("sortName"));
+    expect(onSortChange).toHaveBeenCalledWith("name", "desc");
   });
 
-  it("filters by keywords", () => {
-    renderGrid(assets, { selectedCategoryId: undefined, searchQuery: "urban" });
-    expect(screen.getByText("City Skyline")).toBeInTheDocument();
+  it("calls onSortChange with desc when active desc field is clicked", async () => {
+    const onSortChange = jest.fn();
+    renderGrid([makeAsset()], { sortField: "name", sortDir: "desc", onSortChange });
+    await userEvent.click(screen.getByText("sortName"));
+    expect(onSortChange).toHaveBeenCalledWith("name", "asc");
   });
 
-  it("filters by creator", () => {
-    renderGrid(assets, { selectedCategoryId: undefined, searchQuery: "bob" });
-    expect(screen.getByText("City Skyline")).toBeInTheDocument();
-    expect(screen.queryByText("Mountain Photo")).not.toBeInTheDocument();
-  });
-
-  it("filters by description", () => {
-    renderGrid(assets, { selectedCategoryId: undefined, searchQuery: "hiking" });
-    expect(screen.getByText("Forest Trail")).toBeInTheDocument();
-    expect(screen.queryByText("Mountain Photo")).not.toBeInTheDocument();
-  });
-
-  it("shows all public assets matching the query regardless of category selection", () => {
-    renderGrid(assets, { selectedCategoryId: undefined, searchQuery: "photo" });
-    expect(screen.getByText("Mountain Photo")).toBeInTheDocument();
-    expect(screen.getByText("Beach Photo")).toBeInTheDocument();
-    expect(screen.queryByText("City Skyline")).not.toBeInTheDocument();
+  it("shows active sort indicator on the current sort field", () => {
+    renderGrid([makeAsset()], { sortField: "size", sortDir: "asc" });
+    // Active button has the sort arrow
+    expect(screen.getByText("▲")).toBeInTheDocument();
   });
 });
 
-// ── Category filtering ────────────────────────────────────────────────────────
+// ── My Assets toggle ──────────────────────────────────────────────────────────
 
-describe("category filtering", () => {
-  it("shows only assets in the selected category", () => {
-    const a1 = makeAsset({ name: "In Cat" });
-    const a2 = makeAsset({ name: "Not In Cat" });
-    const assetCategories = new Map([
-      [a1.id, ["cat-1"]],
-      [a2.id, ["cat-2"]],
-    ]);
-    renderGrid([a1, a2], { selectedCategoryId: "cat-1", assetCategories });
-    expect(screen.getByText("In Cat")).toBeInTheDocument();
-    expect(screen.queryByText("Not In Cat")).not.toBeInTheDocument();
-  });
-
-  it("shows asset optimistically when categories not yet loaded", () => {
-    const asset = makeAsset({ name: "Optimistic Asset" });
-    // assetCategories has no entry for this asset → show it
-    renderGrid([asset], { selectedCategoryId: "cat-1", assetCategories: new Map() });
-    expect(screen.getByText("Optimistic Asset")).toBeInTheDocument();
-  });
-
-  it("shows all assets when selectedCategoryId is null", () => {
-    const a1 = makeAsset({ name: "First" });
-    const a2 = makeAsset({ name: "Second" });
-    renderGrid([a1, a2], { selectedCategoryId: null });
-    expect(screen.getByText("First")).toBeInTheDocument();
-    expect(screen.getByText("Second")).toBeInTheDocument();
-  });
-});
-
-// ── My Assets filter ──────────────────────────────────────────────────────────
-
-describe("My Assets filter", () => {
-  it("filters to only the current user's assets when toggled", async () => {
-    const mine = makeAsset({ name: "My Asset", creator: "alice" });
-    const theirs = makeAsset({ name: "Their Asset", creator: "bob", is_private: false });
-    renderGrid([mine, theirs], { selectedCategoryId: null, username: "alice" });
-
-    expect(screen.getByText("My Asset")).toBeInTheDocument();
-    expect(screen.getByText("Their Asset")).toBeInTheDocument();
-
+describe("My Assets toggle", () => {
+  it("calls onMyAssetsToggle when clicked", async () => {
+    const onMyAssetsToggle = jest.fn();
+    renderGrid([makeAsset()], { onMyAssetsToggle });
     await userEvent.click(screen.getByText("myAssets"));
-
-    expect(screen.getByText("My Asset")).toBeInTheDocument();
-    expect(screen.queryByText("Their Asset")).not.toBeInTheDocument();
+    expect(onMyAssetsToggle).toHaveBeenCalledTimes(1);
   });
 
-  it("shows My Assets toggle only when username is provided", () => {
-    renderGrid([makeAsset()], { selectedCategoryId: null, username: undefined });
+  it("does not show My Assets toggle when username is not provided", () => {
+    renderGrid([makeAsset()], { username: undefined });
     expect(screen.queryByText("myAssets")).not.toBeInTheDocument();
   });
+
+  it("renders toggle with active styling when myAssetsOnly is true", () => {
+    renderGrid([makeAsset()], { myAssetsOnly: true });
+    const btn = screen.getByText("myAssets");
+    expect(btn.className).toContain("bg-emerald-600");
+  });
 });
 
-// ── Sorting ───────────────────────────────────────────────────────────────────
+// ── Pagination controls ───────────────────────────────────────────────────────
 
-function getCardNames(): string[] {
-  // Asset names are rendered as truncated text in each card's <p>
-  return screen.getAllByRole("paragraph").map((el) => el.textContent ?? "");
-}
-
-describe("sorting", () => {
-  const assets = [
-    makeAsset({ name: "Zebra", size: 3000, asset_type: "image/png", created_at: "2024-01-03T00:00:00Z" }),
-    makeAsset({ name: "Apple", size: 1000, asset_type: "application/pdf", created_at: "2024-01-01T00:00:00Z" }),
-    makeAsset({ name: "Mango", size: 2000, asset_type: "image/jpeg", created_at: "2024-01-02T00:00:00Z" }),
-  ];
-
-  it("sorts by name ascending on first click", async () => {
-    renderGrid(assets, { selectedCategoryId: null });
-    await userEvent.click(screen.getByText("sortName"));
-    const names = getCardNames();
-    expect(names).toEqual(["Apple", "Mango", "Zebra"]);
+describe("pagination controls", () => {
+  it("shows pagination bar when total exceeds perPage", () => {
+    renderGrid(Array.from({ length: 20 }, () => makeAsset()), { total: 25, perPage: 20 });
+    expect(screen.getByText("paginationNext")).toBeInTheDocument();
   });
 
-  it("sorts by name descending on second click (toggle)", async () => {
-    renderGrid(assets, { selectedCategoryId: null });
-    await userEvent.click(screen.getByText("sortName"));
-    await userEvent.click(screen.getByText("sortName"));
-    const names = getCardNames();
-    expect(names).toEqual(["Zebra", "Mango", "Apple"]);
+  it("does not show pagination bar when all assets fit on one page", () => {
+    renderGrid(Array.from({ length: 5 }, () => makeAsset()), { total: 5, perPage: 20 });
+    expect(screen.queryByText("paginationNext")).not.toBeInTheDocument();
   });
 
-  it("sorts by size ascending", async () => {
-    renderGrid(assets, { selectedCategoryId: null });
-    await userEvent.click(screen.getByText("sortSize"));
-    const names = getCardNames();
-    expect(names).toEqual(["Apple", "Mango", "Zebra"]);
+  it("calls onPageChange(2) when Next is clicked", async () => {
+    const onPageChange = jest.fn();
+    renderGrid(Array.from({ length: 20 }, () => makeAsset()), { total: 25, perPage: 20, page: 1, onPageChange });
+    await userEvent.click(screen.getByText("paginationNext"));
+    expect(onPageChange).toHaveBeenCalledWith(2);
   });
 
-  it("sorts by type ascending", async () => {
-    renderGrid(assets, { selectedCategoryId: null });
-    await userEvent.click(screen.getByText("sortType"));
-    const names = getCardNames();
-    // application/pdf < image/jpeg < image/png alphabetically
-    expect(names).toEqual(["Apple", "Mango", "Zebra"]);
+  it("calls onPageChange(1) when Prev is clicked on page 2", async () => {
+    const onPageChange = jest.fn();
+    renderGrid(Array.from({ length: 5 }, () => makeAsset()), { total: 25, perPage: 20, page: 2, onPageChange });
+    await userEvent.click(screen.getByText("paginationPrev"));
+    expect(onPageChange).toHaveBeenCalledWith(1);
   });
 
-  it("default sort is created_at descending (newest first)", () => {
-    renderGrid(assets, { selectedCategoryId: null });
-    const names = getCardNames();
-    expect(names).toEqual(["Zebra", "Mango", "Apple"]);
+  it("disables Prev button on page 1", () => {
+    renderGrid(Array.from({ length: 20 }, () => makeAsset()), { total: 25, perPage: 20, page: 1 });
+    expect(screen.getByText("paginationPrev")).toBeDisabled();
+  });
+
+  it("calls onPageSizeChange when page size selector changes", async () => {
+    const onPageSizeChange = jest.fn();
+    renderGrid(Array.from({ length: 20 }, () => makeAsset()), { total: 25, perPage: 20, onPageSizeChange });
+    await userEvent.selectOptions(screen.getByRole("combobox"), "10");
+    expect(onPageSizeChange).toHaveBeenCalledWith(10);
   });
 });
 
@@ -272,8 +210,7 @@ describe("sorting", () => {
 describe("typeInfo badge labels", () => {
   function badgeFor(asset_type: string): string | null {
     const asset = makeAsset({ name: "badge-test", asset_type });
-    const { container } = renderGrid([asset], { selectedCategoryId: null });
-    // Badges are <span> elements rendered inside the card
+    const { container } = renderGrid([asset]);
     const spans = container.querySelectorAll("span.rounded");
     for (const span of spans) {
       const text = span.textContent;
@@ -303,12 +240,10 @@ describe("typeInfo badge labels", () => {
   });
 
   it("renders XLS badge for Excel MIME", () => {
-    // vnd.ms-excel contains "excel" and does not contain "document"
     expect(badgeFor("application/vnd.ms-excel")).toBe("XLS");
   });
 
   it("renders PPT badge for PowerPoint MIME", () => {
-    // vnd.ms-powerpoint contains "powerpoint" and does not contain "document"
     expect(badgeFor("application/vnd.ms-powerpoint")).toBe("PPT");
   });
 
@@ -331,6 +266,11 @@ describe("typeInfo badge labels", () => {
   it("renders FILE badge for application/octet-stream", () => {
     expect(badgeFor("application/octet-stream")).toBe("FILE");
   });
+
+  // typeInfo is also directly testable since it's exported
+  it("typeInfo returns correct label for image/png", () => {
+    expect(typeInfo("image/png").label).toBe("PNG");
+  });
 });
 
 // ── formatSize display ────────────────────────────────────────────────────────
@@ -338,8 +278,7 @@ describe("typeInfo badge labels", () => {
 describe("formatSize display", () => {
   function sizeText(size: number): string | undefined {
     const asset = makeAsset({ name: "size-test", size });
-    const { container } = renderGrid([asset], { selectedCategoryId: null });
-    // The size is the last text in each card's bottom row
+    const { container } = renderGrid([asset]);
     const sizeSpans = container.querySelectorAll("span.text-slate-400.shrink-0");
     return sizeSpans[0]?.textContent ?? undefined;
   }
@@ -358,45 +297,5 @@ describe("formatSize display", () => {
 
   it("shows MB for values 1 MB and above", () => {
     expect(sizeText(2 * 1024 * 1024)).toBe("2.0 MB");
-  });
-});
-
-// ── Pagination ────────────────────────────────────────────────────────────────
-
-describe("pagination", () => {
-  it("shows only the default page size (20) assets initially", () => {
-    const assets = Array.from({ length: 25 }, () => makeAsset());
-    renderGrid(assets, { selectedCategoryId: null });
-    // 20 asset names should appear (each card has a <p> with the name)
-    expect(screen.getAllByRole("paragraph")).toHaveLength(20);
-  });
-
-  it("shows Next button when there are multiple pages", () => {
-    const assets = Array.from({ length: 25 }, () => makeAsset());
-    renderGrid(assets, { selectedCategoryId: null });
-    expect(screen.getByText("paginationNext")).toBeInTheDocument();
-  });
-
-  it("navigates to page 2 on Next click", async () => {
-    // Default sort is created_at descending — oldest 5 assets land on page 2.
-    // Give the first 5 explicitly old dates so they sort to the end.
-    const assets = Array.from({ length: 25 }, (_, i) =>
-      makeAsset({
-        name: i < 5 ? `OldAsset-${i}` : `NewAsset-${i}`,
-        created_at: `2024-01-${String(i + 1).padStart(2, "0")}T00:00:00Z`,
-      }),
-    );
-    renderGrid(assets, { selectedCategoryId: null });
-
-    await userEvent.click(screen.getByText("paginationNext"));
-
-    expect(screen.getByText("OldAsset-0")).toBeInTheDocument();
-    expect(screen.getByText("OldAsset-4")).toBeInTheDocument();
-  });
-
-  it("does not show pagination bar when all assets fit on one page", () => {
-    const assets = Array.from({ length: 5 }, () => makeAsset());
-    renderGrid(assets, { selectedCategoryId: null });
-    expect(screen.queryByText("paginationNext")).not.toBeInTheDocument();
   });
 });
