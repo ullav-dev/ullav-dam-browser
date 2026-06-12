@@ -2,52 +2,46 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createDamClient } from "./api";
-import type { Asset, Category, PickedAsset } from "./api";
+import type { Asset, AssetWithCategories, Category, PickedAsset } from "./api";
 import PickerTree from "./PickerTree";
 import PickerGrid from "./PickerGrid";
 
+type SortField = "name" | "asset_type" | "created_at" | "size";
+type SortDir = "asc" | "desc";
+
 export interface DamPickerProps {
-  /**
-   * Base URL for the DAM API as seen from the browser, e.g. "/api/dam".
-   * The host app should proxy this prefix to the ullav-dam-server.
-   */
   apiBase: string;
-  /** Bearer token from ullav-user-management. */
   token: string;
-  /** Logged-in username — used to show the user's own categories plus global ones. */
   username?: string;
-  /** Called when the user clicks an asset. */
   onSelect: (asset: PickedAsset) => void;
-  /**
-   * Optional: called when the user starts dragging an asset.
-   * The dataTransfer is already populated with application/json,
-   * text/plain, and text/uri-list before this fires.
-   */
   onDragStart?: (asset: PickedAsset, e: React.DragEvent) => void;
-  /** Optional predicate to restrict which assets are shown, e.g. `a => a.asset_type.startsWith("image/")` */
   filter?: (asset: Asset) => boolean;
 }
 
 export default function DamPicker({ apiBase, token, username, onSelect, onDragStart, filter }: DamPickerProps) {
   const client = useMemo(() => createDamClient(apiBase, token), [apiBase, token]);
 
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [assetCategories, setAssetCategories] = useState<Map<string, string[]>>(new Map());
+  // ── Server-driven state ───────────────────────────────────────────────────────
+  const [assets, setAssets] = useState<AssetWithCategories[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(20);
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
-
-  const loadedAssetIds = useRef(new Set<string>());
-  const visibleAssets = useMemo(() => (filter ? assets.filter(filter) : assets), [assets, filter]);
 
   // ── Resizable category panel ──────────────────────────────────────────────────
   const TREE_MIN = 120;
   const TREE_MAX = 400;
-  const TREE_DEFAULT = 208; // w-52 = 13rem = 208px
+  const TREE_DEFAULT = 208;
   const [treeWidth, setTreeWidth] = useState(TREE_DEFAULT);
   const dragging = useRef(false);
   const dragStartX = useRef(0);
@@ -73,91 +67,78 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
     window.addEventListener("mouseup", onMouseUp);
   }, [treeWidth]);
 
-  const [categories, setCategories] = useState<Category[]>([]);
   const visibleCategories = useMemo(
     () => categories.filter((c) => !c.creator || c.creator === username || c.access_level === "Global"),
     [categories, username]
   );
 
-  // ── Data load (initial + refresh) ────────────────────────────────────────────
+  // ── Search debounce ───────────────────────────────────────────────────────────
 
   useEffect(() => {
-    let cancelled = false;
-    if (refreshKey === 0) {
-      setLoading(true);
-    } else {
-      setRefreshing(true);
-      loadedAssetIds.current = new Set();
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // ── Reset to page 1 on filter/sort change ─────────────────────────────────────
+
+  useEffect(() => { setPage(1); }, [selectedCategoryId, debouncedSearch, sortField, sortDir]);
+
+  // ── Load categories once ──────────────────────────────────────────────────────
+
+  useEffect(() => {
+    client.listCategories().then(setCategories).catch(() => {});
+  }, [client]);
+
+  // ── Fetch asset page ──────────────────────────────────────────────────────────
+
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const idle = selectedCategoryId === undefined && !debouncedSearch;
+    if (idle) {
+      setAssets([]);
+      setTotal(0);
+      setLoading(false);
+      return;
     }
+
+    fetchAbortRef.current?.abort();
+    fetchAbortRef.current = new AbortController();
+
+    if (page === 1) setLoading(true);
+    else setRefreshing(true);
     setError(null);
 
-    Promise.all([client.listAssets(), client.listCategories()])
-      .then(([a, c]) => {
-        if (cancelled) return;
-        setAssets(a);
-        setAssetCategories(new Map());
-        setCategories(c);
+    client
+      .listAssets({
+        categoryId: typeof selectedCategoryId === "string" ? selectedCategoryId : undefined,
+        q: debouncedSearch || undefined,
+        sortField,
+        sortDir,
+        page,
+        perPage,
+      })
+      .then((data) => {
+        setAssets(data.items);
+        setTotal(data.total);
         setLoading(false);
         setRefreshing(false);
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (err instanceof Error && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Failed to load assets.");
         setLoading(false);
         setRefreshing(false);
       });
 
-    return () => { cancelled = true; };
-  }, [client, refreshKey]);
+    return () => { fetchAbortRef.current?.abort(); };
+  }, [client, selectedCategoryId, debouncedSearch, sortField, sortDir, page, perPage]);
 
-  // ── Background lazy-load asset→category mappings ─────────────────────────────
-
-  useEffect(() => {
-    if (assets.length === 0) return;
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-    async function loadCats(retryCount = 0): Promise<void> {
-      const toLoad = assets.filter((a) => !loadedAssetIds.current.has(a.id));
-      if (toLoad.length === 0 || cancelled) return;
-
-      for (let i = 0; i < toLoad.length; i += 5) {
-        if (cancelled) return;
-        const chunk = toLoad.slice(i, i + 5);
-        await Promise.all(
-          chunk.map(async (asset) => {
-            if (loadedAssetIds.current.has(asset.id)) return;
-            try {
-              const full = await client.getAsset(asset.id);
-              if (cancelled) return;
-              loadedAssetIds.current.add(asset.id);
-              const catIds = full.categories.map((c) => c.id);
-              setAssetCategories((prev) => {
-                const next = new Map(prev);
-                next.set(asset.id, catIds);
-                return next;
-              });
-            } catch {
-              // Not marked as loaded — will retry below (up to 2 more times)
-            }
-          })
-        );
-      }
-
-      // Retry failed assets after a delay (up to 2 retries total)
-      if (!cancelled && retryCount < 2 && assets.some((a) => !loadedAssetIds.current.has(a.id))) {
-        retryTimer = setTimeout(() => { if (!cancelled) loadCats(retryCount + 1); }, 3000);
-      }
-    }
-
-    loadCats();
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-    };
-  }, [assets, client]);
-
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // ── Apply optional host-side filter (e.g. images-only) ───────────────────────
+  const visibleAssets = useMemo(
+    () => (filter ? assets.filter(filter) : assets),
+    [assets, filter]
+  );
 
   const toPickedAsset = useCallback(
     (asset: Asset): PickedAsset => ({
@@ -176,9 +157,9 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
     onSelect(picked);
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────────
 
-  if (loading) {
+  if (loading && assets.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-slate-400 text-sm">
         Loading assets…
@@ -223,7 +204,7 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
           />
           <button
             type="button"
-            onClick={() => setRefreshKey((k) => k + 1)}
+            onClick={() => setPage((p) => p)} // force re-fetch via identity bump
             disabled={refreshing}
             title="Refresh"
             className="shrink-0 p-1.5 rounded-lg border border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 disabled:opacity-40 transition-colors bg-white"
@@ -242,14 +223,20 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
 
         <PickerGrid
           assets={visibleAssets}
-          assetCategories={assetCategories}
-          selectedCategoryId={selectedCategoryId}
-          searchQuery={searchQuery}
+          total={filter ? visibleAssets.length : total}
+          page={page}
+          perPage={perPage}
+          sortField={sortField}
+          sortDir={sortDir}
+          isIdle={selectedCategoryId === undefined && !searchQuery}
+          hasFilter={typeof selectedCategoryId === "string" || !!debouncedSearch}
           selectedAssetId={selectedAssetId}
           getThumbnailUrl={client.thumbnailUrl}
           toPickedAsset={toPickedAsset}
           onSelect={handleSelect}
           onDragStart={onDragStart}
+          onPageChange={setPage}
+          onSortChange={(field, dir) => { setSortField(field); setSortDir(dir); }}
         />
       </div>
     </div>

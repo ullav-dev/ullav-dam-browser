@@ -45,6 +45,22 @@ export interface PickedAsset {
   thumbnailUrl: string;
 }
 
+export interface AssetListParams {
+  categoryId?: string;
+  q?: string;
+  sortField?: string;
+  sortDir?: string;
+  page?: number;
+  perPage?: number;
+}
+
+export interface AssetPage {
+  items: AssetWithCategories[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
 export function createDamClient(base: string, token: string) {
   async function get<T>(path: string): Promise<T> {
     const res = await fetch(`${base}${path}`, {
@@ -62,9 +78,18 @@ export function createDamClient(base: string, token: string) {
   }
 
   return {
-    listAssets: (): Promise<Asset[]> => get("/assets"),
+    listAssets: (params: AssetListParams = {}): Promise<AssetPage> => {
+      const qs = new URLSearchParams();
+      if (params.categoryId) qs.set("category_id", params.categoryId);
+      if (params.q) qs.set("q", params.q);
+      if (params.sortField) qs.set("sort_field", params.sortField);
+      if (params.sortDir) qs.set("sort_dir", params.sortDir);
+      if (params.page && params.page > 1) qs.set("page", String(params.page));
+      if (params.perPage && params.perPage !== 20) qs.set("per_page", String(params.perPage));
+      const suffix = qs.toString() ? `?${qs}` : "";
+      return get(`/assets${suffix}`);
+    },
     listCategories: (): Promise<Category[]> => get("/categories"),
-    getAsset: (id: string): Promise<AssetWithCategories> => get(`/assets/${id}`),
     thumbnailUrl: (id: string): string => `${base}/assets/${id}/thumbnail`,
     assetUrl: (id: string): string => `${base}/assets/${id}`,
   };
