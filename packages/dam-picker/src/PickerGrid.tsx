@@ -1,11 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import type { CSSProperties } from "react";
-import type { Asset, PickedAsset } from "./api";
-
-const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
-const DEFAULT_PAGE_SIZE = 20;
+import type { Asset, AssetWithCategories, PickedAsset } from "./api";
 
 type SortField = "name" | "asset_type" | "created_at" | "size";
 type SortDir = "asc" | "desc";
@@ -17,24 +14,8 @@ const SORT_OPTIONS: { field: SortField; label: string }[] = [
   { field: "size",       label: "Size" },
 ];
 
-function sortAssets(assets: Asset[], field: SortField, dir: SortDir): Asset[] {
-  const mul = dir === "asc" ? 1 : -1;
-  return [...assets].sort((a, b) => {
-    let cmp = 0;
-    if (field === "name") cmp = a.name.localeCompare(b.name);
-    else if (field === "asset_type") cmp = a.asset_type.localeCompare(b.asset_type);
-    else if (field === "created_at") cmp = a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
-    else if (field === "size") cmp = a.size - b.size;
-    return cmp * mul;
-  });
-}
-
 function totalPages(count: number, size: number) {
   return Math.max(1, Math.ceil(count / size));
-}
-
-function pageSlice<T>(items: T[], page: number, size: number): T[] {
-  return items.slice((page - 1) * size, page * size);
 }
 
 function formatSize(bytes: number): string {
@@ -75,19 +56,12 @@ function typeInfo(raw: string): { label: string; cls: string } {
 }
 
 function ThumbnailImage({
-  id,
-  name,
-  assetType,
-  getThumbnailUrl,
+  id, name, assetType, getThumbnailUrl,
 }: {
-  id: string;
-  name: string;
-  assetType: string;
-  getThumbnailUrl: (id: string) => string;
+  id: string; name: string; assetType: string; getThumbnailUrl: (id: string) => string;
 }) {
   const [imgState, setImgState] = useState<"loading" | "ok" | "error">("loading");
   const { label, cls } = typeInfo(assetType);
-
   return (
     <>
       <img
@@ -107,72 +81,42 @@ function ThumbnailImage({
 }
 
 interface Props {
-  assets: Asset[];
-  assetCategories: Map<string, string[]>;
-  selectedCategoryId: string | null | undefined;
-  searchQuery: string;
+  assets: AssetWithCategories[];
+  total: number;
+  page: number;
+  perPage: number;
+  sortField: SortField;
+  sortDir: SortDir;
+  isIdle: boolean;
+  hasFilter: boolean;
   selectedAssetId: string | null;
   getThumbnailUrl: (id: string) => string;
   toPickedAsset: (asset: Asset) => PickedAsset;
   onSelect: (asset: PickedAsset) => void;
   onDragStart?: (asset: PickedAsset, e: React.DragEvent) => void;
+  onPageChange: (page: number) => void;
+  onSortChange: (field: SortField, dir: SortDir) => void;
 }
 
 export default function PickerGrid({
-  assets,
-  assetCategories,
-  selectedCategoryId,
-  searchQuery,
-  selectedAssetId,
-  getThumbnailUrl,
-  toPickedAsset,
-  onSelect,
-  onDragStart,
+  assets, total, page, perPage, sortField, sortDir,
+  isIdle, hasFilter, selectedAssetId,
+  getThumbnailUrl, toPickedAsset, onSelect, onDragStart,
+  onPageChange, onSortChange,
 }: Props) {
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [page, setPage] = useState(1);
-  const [sortField, setSortField] = useState<SortField>("created_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [hoverPreview, setHoverPreview] = useState<{ id: string; rect: DOMRect } | null>(null);
 
-  useEffect(() => { setPage(1); }, [searchQuery, selectedCategoryId, pageSize, sortField, sortDir]);
-
-  const filtered = useMemo(() => assets.filter((asset) => {
-    if (selectedCategoryId === undefined && !searchQuery) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matches =
-        asset.name.toLowerCase().includes(q) ||
-        (asset.caption ?? "").toLowerCase().includes(q) ||
-        (asset.keywords ?? "").toLowerCase().includes(q) ||
-        (asset.creator ?? "").toLowerCase().includes(q) ||
-        (asset.description ?? "").toLowerCase().includes(q);
-      if (!matches) return false;
-    }
-    if (selectedCategoryId) {
-      const cats = assetCategories.get(asset.id);
-      if (cats === undefined) return true; // not loaded yet — show optimistically
-      return cats.includes(selectedCategoryId);
-    }
-    return true;
-  }), [assets, assetCategories, searchQuery, selectedCategoryId]);
-
-  const sorted = useMemo(() => sortAssets(filtered, sortField, sortDir), [filtered, sortField, sortDir]);
-
-  const numPages = totalPages(sorted.length, pageSize);
-  const safePage = Math.min(page, numPages);
-  const paged = pageSlice(sorted, safePage, pageSize);
+  const numPages = totalPages(total, perPage);
 
   function handleSortField(field: SortField) {
     if (field === sortField) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      onSortChange(field, sortDir === "asc" ? "desc" : "asc");
     } else {
-      setSortField(field);
-      setSortDir("asc");
+      onSortChange(field, "asc");
     }
   }
 
-  if (selectedCategoryId === undefined && !searchQuery) {
+  if (isIdle) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
         Select a category or search to browse assets.
@@ -180,16 +124,16 @@ export default function PickerGrid({
     );
   }
 
-  if (filtered.length === 0) {
+  if (total === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
-        {searchQuery || selectedCategoryId ? "No assets match the current filter." : "No assets yet."}
+        {hasFilter ? "No assets match the current filter." : "No assets yet."}
       </div>
     );
   }
 
   const pageNumbers = Array.from({ length: numPages }, (_, i) => i + 1)
-    .filter((n) => n === 1 || n === numPages || Math.abs(n - safePage) <= 1)
+    .filter((n) => n === 1 || n === numPages || Math.abs(n - page) <= 1)
     .reduce<(number | "…")[]>((acc, n, idx, arr) => {
       if (idx > 0 && n - (arr[idx - 1] as number) > 1) acc.push("…");
       acc.push(n);
@@ -224,7 +168,7 @@ export default function PickerGrid({
       {/* Asset grid */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
-          {paged.map((asset) => {
+          {assets.map((asset) => {
             const picked = toPickedAsset(asset);
             return (
               <div
@@ -235,7 +179,6 @@ export default function PickerGrid({
                 onMouseLeave={() => setHoverPreview(null)}
                 onDragStart={(e) => {
                   setHoverPreview(null);
-                  // Use the loaded thumbnail img as the drag ghost
                   const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
                   if (img && img.complete && img.naturalWidth > 0) {
                     e.dataTransfer.setDragImage(img, img.offsetWidth / 2, img.offsetHeight / 2);
@@ -282,7 +225,7 @@ export default function PickerGrid({
         </div>
       </div>
 
-      {/* Hover preview — fixed to viewport so it escapes overflow:hidden containers */}
+      {/* Hover preview */}
       {hoverPreview && (() => {
         const PREVIEW = 200;
         const { rect } = hoverPreview;
@@ -300,25 +243,15 @@ export default function PickerGrid({
       {/* Pagination bar */}
       {numPages > 1 && (
         <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-2 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span>Show</span>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="rounded border border-slate-300 px-1.5 py-0.5 text-xs focus:border-blue-500 focus:outline-none bg-white"
-            >
-              {PAGE_SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-            <span>per page · {sorted.length} total</span>
-          </div>
+          <span className="text-xs text-slate-500">
+            {total} total
+          </span>
 
           <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={safePage === 1}
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               ‹
@@ -331,9 +264,9 @@ export default function PickerGrid({
                 <button
                   type="button"
                   key={item}
-                  onClick={() => setPage(item)}
+                  onClick={() => onPageChange(item)}
                   className={`min-w-[28px] px-2 py-1 rounded text-xs border transition-colors ${
-                    item === safePage
+                    item === page
                       ? "bg-blue-700 text-white border-blue-700 font-medium"
                       : "text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
@@ -345,8 +278,8 @@ export default function PickerGrid({
 
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(numPages, p + 1))}
-              disabled={safePage === numPages}
+              onClick={() => onPageChange(Math.min(numPages, page + 1))}
+              disabled={page === numPages}
               className="px-2 py-1 rounded text-xs text-slate-600 border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               ›

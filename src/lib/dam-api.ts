@@ -83,8 +83,35 @@ function bearerHeaders(token: string, extra?: Record<string, string>) {
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 
-export const listAssets = (token: string): Promise<Asset[]> =>
-  apiRequest("/assets", { headers: bearerHeaders(token) });
+export interface AssetListParams {
+  categoryId?: string;
+  q?: string;
+  myAssets?: boolean;
+  sortField?: string;
+  sortDir?: string;
+  page?: number;
+  perPage?: number;
+}
+
+export interface AssetPage {
+  items: AssetWithCategories[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export const listAssets = (token: string, params: AssetListParams = {}): Promise<AssetPage> => {
+  const qs = new URLSearchParams();
+  if (params.categoryId) qs.set("category_id", params.categoryId);
+  if (params.q) qs.set("q", params.q);
+  if (params.myAssets) qs.set("my_assets", "true");
+  if (params.sortField) qs.set("sort_field", params.sortField);
+  if (params.sortDir) qs.set("sort_dir", params.sortDir);
+  if (params.page && params.page > 1) qs.set("page", String(params.page));
+  if (params.perPage && params.perPage !== 20) qs.set("per_page", String(params.perPage));
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return apiRequest(`/assets${suffix}`, { headers: bearerHeaders(token) });
+};
 
 export const getAsset = (id: string, token: string): Promise<AssetWithCategories> =>
   apiRequest(`/assets/${id}`, { headers: bearerHeaders(token) });
