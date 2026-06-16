@@ -1,6 +1,6 @@
 {
   "name": "ullav-dam-browser",
-  "version": "26.1.1",
+  "version": "26.2.0",
   "private": true,
   "workspaces": [
     "packages/*"
