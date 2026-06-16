@@ -568,6 +568,19 @@
       "clearTitle": "An roghnú a ghlanadh",
       "clearBody": "Cliceáil Glan an roghnú sa bharra gorm chun gach rud a dhíroghnú ar an toirt. Is féidir leat sócmhainní aonair a dhíroghnú freisin trí chliceáil ar a ticbhosca arís."
     },
+    "iiif": {
+      "title": "Comhroinnt IIIF",
+      "overviewTitle": "Cad é IIIF?",
+      "overviewBody": "Is caighdeán oscailte é IIIF (International Image Interoperability Framework) chun íomhánna agus meiteashonraí a chomhroinnt. Is féidir URL Manifiest nó Bailiúcháin IIIF a oscailt in aon fhéachadóir comhoiriúnach — mar Universal Viewer nó Mirador — chun do shócmhainní a thaispeáint le meiteashonraí iomlána, gan chuntas Comad a bheith ag teastáil.",
+      "manifestTitle": "URL Manifiest a chóipeáil",
+      "manifestBody": "Oscail aon sócmhainn phoiblí (caithfidh Príobháideach a bheith dícheadaithe) sa phainéal sonraí. Sa bharra gníomhaíochta ag bun, cliceáil ar dheilbhín nasc IIIF. Cóipeáiltear an URL manifiest go dtí an ghearrthaisce. Greamaigh isteach in Universal Viewer nó Mirador é nó roinn é le duine ar bith a bhfuil féachadóir IIIF aige.",
+      "collectionTitle": "URL Bailiúcháin a chóipeáil",
+      "collectionBody": "Sa chrann catagóirí ar chlé, scrollaigh os cionn aon chatagóir neamhphríobháideach. Feictear cnaipe cóipeála ⊞ in aice leis na cnaipí eagarthóireachta agus scriostha. Cliceáil air chun URL Bailiúcháin IIIF a chóipeáil — áiríonn sé gach sócmhainn phoiblí sa chatagóir sin agus nasc le haon fho-bhailiúcháin.",
+      "viewerTitle": "Oscailt i bhféachadóir",
+      "viewerBody": "Greamaigh an URL cóipeáilte isteach i réimse manifiest Universal Viewer (universalviewer.io) nó Mirador (projectmirador.org). Faigheann an féachadóir an manifiest go díreach ó fhreastalaí Comad — fanann do shócmhainní stóráilte i gComad agus léann an féachadóir iad i bhfíoraimsir.",
+      "visibilityTitle": "Infheictheacht agus rochtain",
+      "visibilityBody": "Níl URLanna IIIF ar fáil ach do bhfuil poiblí. Seolann sócmhainní príobháideacha agus catagóirí príobháideacha 404 chuig féachadóirí seachtracha — ní féidir iad a liostú ná a aimsiú. Chun sócmhainn a chomhroinnt trí IIIF, oscail sa phainéal sonraí í, dícheadaigh Príobháideach, agus cinntigh go bhfuil rochtain Léigh cumasaithe."
+    },
     "locking": {
       "title": "Glasáil & Scriosadh",
       "lockTitle": "Sócmhainn a ghlasáil",

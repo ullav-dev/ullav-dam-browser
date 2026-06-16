@@ -568,6 +568,19 @@
       "clearTitle": "Auswahl aufheben",
       "clearBody": "Klicken Sie Auswahl aufheben in der blauen Leiste, um alles auf einmal abzuwählen. Sie können auch einzelne Assets durch erneutes Klicken auf deren Kontrollkästchen abwählen."
     },
+    "iiif": {
+      "title": "IIIF-Freigabe",
+      "overviewTitle": "Was ist IIIF?",
+      "overviewBody": "IIIF (International Image Interoperability Framework) ist ein offener Standard zur Weitergabe von Bildern und Metadaten. Eine IIIF-Manifest- oder Sammlungs-URL kann in jedem kompatiblen Viewer geöffnet werden — z. B. Universal Viewer oder Mirador — und zeigt Ihre Assets mit vollständigen Metadaten an, ohne dass ein Comad-Konto erforderlich ist.",
+      "manifestTitle": "Manifest-URL kopieren",
+      "manifestBody": "Öffnen Sie ein öffentliches Asset (Privat muss deaktiviert sein) im Detailbereich. Klicken Sie in der Aktionsleiste unten auf das IIIF-Verknüpfungssymbol. Die Manifest-URL wird in die Zwischenablage kopiert. Fügen Sie sie in Universal Viewer oder Mirador ein oder teilen Sie sie mit jemandem, der einen IIIF-Viewer hat.",
+      "collectionTitle": "Sammlungs-URL kopieren",
+      "collectionBody": "Fahren Sie in der Kategorienstruktur links über eine nicht private Kategorie. Ein ⊞-Kopiersymbol erscheint neben den Bearbeiten- und Löschen-Schaltflächen. Klicken Sie darauf, um die IIIF-Sammlungs-URL zu kopieren — sie enthält alle öffentlichen Assets in dieser Kategorie und verweist auf alle Untersammlungen.",
+      "viewerTitle": "In einem Viewer öffnen",
+      "viewerBody": "Fügen Sie die kopierte URL in das Manifest-Feld von Universal Viewer (universalviewer.io) oder Mirador (projectmirador.org) ein. Der Viewer ruft das Manifest direkt vom Comad-Server ab — Ihre Assets bleiben in Comad gespeichert und werden in Echtzeit geladen.",
+      "visibilityTitle": "Sichtbarkeit und Zugriff",
+      "visibilityBody": "IIIF-URLs sind nur für öffentliche Inhalte verfügbar. Private Assets und private Kategorien geben externen Viewern einen 404 zurück — sie können nicht aufgelistet oder gefunden werden. Um ein Asset über IIIF zu teilen, öffnen Sie es im Detailbereich, deaktivieren Sie Privat und stellen Sie sicher, dass Lesezugriff aktiviert ist."
+    },
     "locking": {
       "title": "Sperren & Löschen",
       "lockTitle": "Ein Asset sperren",

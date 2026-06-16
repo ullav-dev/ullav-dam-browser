@@ -22,6 +22,7 @@ A Next.js 16 web frontend for the Ullav Digital Asset Management system.
 - **File replacement** — replace the underlying file of an existing asset while keeping its metadata and category assignments; thumbnail updates automatically
 - **Image editor** — crop and rotate JPEG/PNG/WebP assets in a full-screen editor; save as a new asset (with a prompted name, pre-filled as `originalName_edited`) or replace the current file in place
 - **Privacy controls** — assets can be private (owner-only) or public; the grid only shows other users' assets when `is_private` is false
+- **IIIF sharing** — public assets expose a copy-to-clipboard IIIF Manifest URL (IIIF Presentation API 3.0) in the asset details action bar; non-private categories expose a IIIF Collection URL in the category tree on hover; both URLs load directly in Universal Viewer, Mirador, or any IIIF-compatible viewer
 - **Idle session timeout** — automatic logout after configurable inactivity period (default 1 hour); 60 s warning modal with countdown and Stay Logged In / Log Out Now options
 - **Multi-file upload** with shared metadata; if a category is selected in the browser when the upload dialog opens, all uploaded files are automatically assigned to it
 - **ZIP import** with three modes: upload ZIP only, upload ZIP and expand contents, or expand contents only; creator attributed to uploading user on all extracted assets
@@ -305,3 +306,6 @@ The `ullav-dam-server` must have:
 - **LibreOffice** at `SOFFICE_PATH` — required for Office document thumbnails (docx, xlsx, pptx, etc.)
 - **Thumbnail cache invalidation** on file replacement — `upload_asset` handler must call `state.thumbnail_cache.write().await.remove(&id)` after a successful file upload so the next thumbnail request regenerates from the new file
 - **Category JOIN in `get_asset`** — the `SELECT` in `handlers/assets.rs` for the category JOIN must include `c.creator, c.access_level`; omitting them causes `Category::from` to panic → ECONNRESET on every `GET /assets/:id`
+- **Migration 012** (`width` and `height` columns on `assets`) registered in `db.rs` — required for IIIF manifests to include canvas dimensions
+- **`PUBLIC_BASE_URL` env var** — must be set to the externally reachable API URL (e.g. `https://comad-tip.stage.ullav.setanta.dev`) so IIIF manifest `id` fields resolve correctly for external viewers; defaults to `http://localhost:8080`
+- **IIIF routes registered** — `GET /iiif/manifest/:id` and `GET /iiif/collection/:id` must be present; both are unauthenticated and return `Access-Control-Allow-Origin: *`

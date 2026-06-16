@@ -568,6 +568,19 @@
       "clearTitle": "Clearing the selection",
       "clearBody": "Click Clear selection in the blue bar to deselect everything at once. You can also deselect individual assets by clicking their checkbox again, or change pages — the selection is preserved across pages."
     },
+    "iiif": {
+      "title": "IIIF Sharing",
+      "overviewTitle": "What is IIIF?",
+      "overviewBody": "IIIF (International Image Interoperability Framework) is an open standard for sharing images and metadata. A IIIF Manifest or Collection URL can be opened in any compatible viewer — such as Universal Viewer or Mirador — to display your assets with full metadata, without requiring a Comad account.",
+      "manifestTitle": "Copying a Manifest URL",
+      "manifestBody": "Open any public asset (Private must be unchecked) in the details panel. In the action bar at the bottom, click the IIIF link icon. The manifest URL is copied to your clipboard. Paste it into Universal Viewer, Mirador, or share it with anyone who has a IIIF viewer.",
+      "collectionTitle": "Copying a Collection URL",
+      "collectionBody": "In the category tree on the left, hover over any non-Private category. A ⊞ copy button appears next to the edit and delete buttons. Click it to copy the IIIF Collection URL — it includes all public assets in that category and links to any sub-collections.",
+      "viewerTitle": "Opening in a viewer",
+      "viewerBody": "Paste the copied URL into the manifest field of Universal Viewer (universalviewer.io) or Mirador (projectmirador.org). The viewer fetches the manifest directly from the Comad server — your assets remain stored in Comad and the viewer reads them in real time.",
+      "visibilityTitle": "Visibility and access",
+      "visibilityBody": "IIIF URLs are only available for public content. Private assets and Private categories return a 404 to external viewers — they cannot be enumerated or discovered. To share an asset via IIIF, open it in the details panel, uncheck Private, and ensure Read access is enabled."
+    },
     "locking": {
       "title": "Locking & Deleting",
       "lockTitle": "Locking an asset",
