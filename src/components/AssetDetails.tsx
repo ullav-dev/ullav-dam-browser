@@ -493,8 +493,10 @@ export default function AssetDetails({
       }
 
       // Cookie lets the /api/iiif/image/[...params] route handler inject the
-      // Bearer token for info.json + tile requests.
-      document.cookie = `iiif_access_token=${token}; path=/; SameSite=Lax`;
+      // Bearer token for info.json + tile requests. Scoped to the IIIF image
+      // path only; Secure on HTTPS; expires after 1 h (matches tile cache TTL).
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `iiif_access_token=${token}; path=/api/iiif/image; SameSite=Strict; Max-Age=3600${secure}`;
 
       const blob = new Blob([manifestStr], { type: "application/ld+json" });
       const blobUrl = URL.createObjectURL(blob);
@@ -511,7 +513,7 @@ export default function AssetDetails({
     }
     setViewerManifestUrl(null);
     setViewerOpen(false);
-    document.cookie = "iiif_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "iiif_access_token=; path=/api/iiif/image; Max-Age=0; SameSite=Strict";
   }
 
   async function handleAddCategory(categoryId: string) {
