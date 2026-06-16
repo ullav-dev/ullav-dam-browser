@@ -375,6 +375,7 @@
     "metaCreated": "Erstellt:",
     "metaUpdated": "Aktualisiert:",
     "metaUrlLabel": "Download-URL",
+    "metaIiifUrlLabel": "IIIF-Manifest-URL",
     "actionDownload": "Herunterladen",
     "actionReplace": "Ersetzen",
     "actionReplaceTitle": "Datei ersetzen",
@@ -388,7 +389,7 @@
     "actionRefreshThumbnailTitle": "Vorschaubild neu generieren",
     "refreshingThumbnail": "Wird aktualisiert…",
     "errorRefreshThumbnail": "Vorschaubild konnte nicht aktualisiert werden.",
-    "actionIiifManifest": "IIIF",
+    "actionIiifManifest": "IIIF kopieren",
     "actionIiifManifestTitle": "IIIF-Manifest-URL kopieren (für Universal Viewer, Mirador u. a.)",
     "iiifCopied": "Kopiert!",
     "actionIiifView": "Viewer öffnen",
@@ -689,5 +690,9 @@
     "decline": "Ablehnen",
     "viewTeam": "Team anzeigen",
     "goHome": "Zur Übersicht"
+  },
+  "teamSelector": {
+    "switchTeam": "Team wechseln",
+    "selectTeam": "Team auswählen"
   }
 }

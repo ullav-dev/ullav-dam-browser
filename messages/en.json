@@ -375,6 +375,7 @@
     "metaCreated": "Created:",
     "metaUpdated": "Updated:",
     "metaUrlLabel": "Download URL",
+    "metaIiifUrlLabel": "IIIF Manifest URL",
     "actionDownload": "Download",
     "actionReplace": "Replace",
     "actionReplaceTitle": "Replace file",
@@ -388,7 +389,7 @@
     "actionRefreshThumbnailTitle": "Regenerate thumbnail",
     "refreshingThumbnail": "Refreshing…",
     "errorRefreshThumbnail": "Thumbnail refresh failed.",
-    "actionIiifManifest": "IIIF",
+    "actionIiifManifest": "Copy IIIF",
     "actionIiifManifestTitle": "Copy IIIF Manifest URL (for use in Universal Viewer, Mirador, etc.)",
     "iiifCopied": "Copied!",
     "actionIiifView": "Open Viewer",
@@ -689,5 +690,9 @@
     "decline": "Decline",
     "viewTeam": "View Team",
     "goHome": "Go to Browse"
+  },
+  "teamSelector": {
+    "switchTeam": "Switch team",
+    "selectTeam": "Select team"
   }
 }

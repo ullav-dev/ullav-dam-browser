@@ -14,6 +14,7 @@ import {
   getAssetMetadata,
   listCustomFieldSchemas,
   fetchIiifManifestId,
+  fetchIiifManifestJson,
 } from "@/lib/dam-api";
 import { useTeam } from "@/contexts/TeamContext";
 import { IiifViewerModal } from "@/components/IiifViewerModal";
@@ -271,6 +272,9 @@ export default function AssetDetails({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerManifestUrl, setViewerManifestUrl] = useState<string | null>(null);
 
+  // IIIF manifest URL for display in the metadata section
+  const [iiifDisplayUrl, setIiifDisplayUrl] = useState<string | null>(null);
+
   // Reset form and fetch metadata when the selected asset changes
   useEffect(() => {
     setName(asset.name);
@@ -308,10 +312,16 @@ export default function AssetDetails({
     setThumbFailed(false);
     setThumbVersion(null);
     setActiveTab("details");
+    setIiifDisplayUrl(null);
     setMetadata("loading");
     getAssetMetadata(asset.id, token)
       .then(setMetadata)
       .catch(() => setMetadata(null));
+    if (!asset.is_private) {
+      fetchIiifManifestId(asset.id)
+        .then(setIiifDisplayUrl)
+        .catch(() => {});
+    }
   }, [asset.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load schemas when team changes
@@ -470,12 +480,38 @@ export default function AssetDetails({
 
   async function handleOpenViewer() {
     try {
-      const url = await fetchIiifManifestId(asset.id);
-      setViewerManifestUrl(url);
+      const manifest = await fetchIiifManifestJson(asset.id, token) as Record<string, unknown>;
+
+      // Rewrite all absolute server URLs to go through the Next.js proxy so that
+      // image tile requests can carry auth (for private assets).
+      const manifestId = typeof manifest.id === "string" ? manifest.id : "";
+      const serverBase = manifestId.replace(/\/iiif\/manifest\/[^/]+$/, "");
+      const origin = window.location.origin;
+      let manifestStr = JSON.stringify(manifest);
+      if (serverBase) {
+        manifestStr = manifestStr.split(serverBase).join(`${origin}/api`);
+      }
+
+      // Cookie lets the /api/iiif/image/[...params] route handler inject the
+      // Bearer token for info.json + tile requests.
+      document.cookie = `iiif_access_token=${token}; path=/; SameSite=Lax`;
+
+      const blob = new Blob([manifestStr], { type: "application/ld+json" });
+      const blobUrl = URL.createObjectURL(blob);
+      setViewerManifestUrl(blobUrl);
       setViewerOpen(true);
     } catch {
       // ignore — if manifest fetch fails the viewer simply won't open
     }
+  }
+
+  function handleCloseViewer() {
+    if (viewerManifestUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(viewerManifestUrl);
+    }
+    setViewerManifestUrl(null);
+    setViewerOpen(false);
+    document.cookie = "iiif_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
   }
 
   async function handleAddCategory(categoryId: string) {
@@ -1012,6 +1048,12 @@ export default function AssetDetails({
               {typeof window !== "undefined" ? window.location.origin : ""}{`/api/assets/${asset.id}`}
             </p>
           </div>
+          {iiifDisplayUrl && (
+            <div className="space-y-0.5">
+              <p className="uppercase tracking-wide font-medium">{t("metaIiifUrlLabel")}</p>
+              <p className="break-all select-all font-mono text-slate-500">{iiifDisplayUrl}</p>
+            </div>
+          )}
         </div>
 
         </>}
@@ -1064,7 +1106,7 @@ export default function AssetDetails({
           {!isPrivate && (
             <>
               <div className="w-px bg-slate-200 my-1" />
-              {/* IIIF manifest URL copy */}
+              {/* IIIF manifest URL copy — public assets only */}
               <button
                 onClick={handleCopyIiifManifest}
                 disabled={iiifCopying}
@@ -1080,20 +1122,21 @@ export default function AssetDetails({
                   {iiifCopied ? t("iiifCopied") : t("actionIiifManifest")}
                 </span>
               </button>
-              {/* IIIF deep-zoom viewer — only for raster images */}
-              {asset.asset_type.startsWith("image/") && asset.asset_type !== "image/svg+xml" && (
-                <>
-                  <div className="w-px bg-slate-200 my-1" />
-                  <button
-                    onClick={handleOpenViewer}
-                    title={t("actionIiifViewTitle")}
-                    className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 transition-colors"
-                  >
-                    <IconOpenViewer />
-                    <span className="text-[10px] font-medium">{t("actionIiifView")}</span>
-                  </button>
-                </>
-              )}
+            </>
+          )}
+
+          {/* IIIF deep-zoom viewer — all raster images (public and private) */}
+          {asset.asset_type.startsWith("image/") && asset.asset_type !== "image/svg+xml" && (
+            <>
+              <div className="w-px bg-slate-200 my-1" />
+              <button
+                onClick={handleOpenViewer}
+                title={t("actionIiifViewTitle")}
+                className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 transition-colors"
+              >
+                <IconOpenViewer />
+                <span className="text-[10px] font-medium">{t("actionIiifView")}</span>
+              </button>
             </>
           )}
 
@@ -1167,7 +1210,7 @@ export default function AssetDetails({
         <IiifViewerModal
           manifestUrl={viewerManifestUrl}
           assetName={asset.name}
-          onClose={() => setViewerOpen(false)}
+          onClose={handleCloseViewer}
         />
       )}
     </div>

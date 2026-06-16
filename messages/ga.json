@@ -375,6 +375,7 @@
     "metaCreated": "Cruthaithe:",
     "metaUpdated": "Nuashonraithe:",
     "metaUrlLabel": "URL Íoslódála",
+    "metaIiifUrlLabel": "URL Manifiest IIIF",
     "actionDownload": "Íoslódáil",
     "actionReplace": "Ionadaigh",
     "actionReplaceTitle": "Ionadaigh comhad",
@@ -388,7 +389,7 @@
     "actionRefreshThumbnailTitle": "Mionsamhail a athghiniúint",
     "refreshingThumbnail": "Á athnuachan…",
     "errorRefreshThumbnail": "Theip ar athnuachan mionsamhla.",
-    "actionIiifManifest": "IIIF",
+    "actionIiifManifest": "Cóipeáil IIIF",
     "actionIiifManifestTitle": "URL Manifiest IIIF a chóipeáil (le haghaidh Universal Viewer, Mirador, etc.)",
     "iiifCopied": "Cóipeáilte!",
     "actionIiifView": "Oscail Breathnóir",
@@ -689,5 +690,9 @@
     "decline": "Diúltaigh",
     "viewTeam": "Féach ar an bhFoireann",
     "goHome": "Téigh go Brabhsáil"
+  },
+  "teamSelector": {
+    "switchTeam": "Athraigh foireann",
+    "selectTeam": "Roghnaigh foireann"
   }
 }

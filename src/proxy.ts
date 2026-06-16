@@ -8,6 +8,12 @@ const intlMiddleware = createMiddleware(routing);
 function route(request: NextRequest): NextResponse {
   const { pathname, search } = request.nextUrl;
 
+  // IIIF image requests go to the Next.js route handler, which injects auth and
+  // rewrites info.json ids — don't rewrite them to the DAM server here.
+  if (pathname.startsWith("/api/iiif/image/")) {
+    return NextResponse.next();
+  }
+
   // Proxy /api/* → ullav-dam-server (strips /api prefix)
   if (pathname.startsWith("/api/")) {
     const apiUrl = process.env.API_URL ?? "http://localhost:8080";
