@@ -391,6 +391,9 @@
     "actionIiifManifest": "IIIF",
     "actionIiifManifestTitle": "Copy IIIF Manifest URL (for use in Universal Viewer, Mirador, etc.)",
     "iiifCopied": "Copied!",
+    "actionIiifView": "Open Viewer",
+    "actionIiifViewTitle": "Open in Universal Viewer (IIIF deep zoom)",
+    "iiifViewerClose": "Close",
     "actionDelete": "Delete",
     "actionDeleteTitle": "Delete asset",
     "actionDeleteLockedTitle": "Unlock the asset before deleting",
@@ -577,7 +580,7 @@
       "collectionTitle": "Copying a Collection URL",
       "collectionBody": "In the category tree on the left, hover over any non-Private category. A ⊞ copy button appears next to the edit and delete buttons. Click it to copy the IIIF Collection URL — it includes all public assets in that category and links to any sub-collections.",
       "viewerTitle": "Opening in a viewer",
-      "viewerBody": "Paste the copied URL into the manifest field of Universal Viewer (universalviewer.io) or Mirador (projectmirador.org). The viewer fetches the manifest directly from the Comad server — your assets remain stored in Comad and the viewer reads them in real time.",
+      "viewerBody": "For public image assets, click 'Open Viewer' in the action bar to open Universal Viewer directly inside Comad — no copy-paste needed. You can also copy the manifest URL and paste it into any compatible IIIF viewer such as Mirador (projectmirador.org). The viewer fetches the manifest directly from the Comad server; deep zoom is available for raster images.",
       "visibilityTitle": "Visibility and access",
       "visibilityBody": "IIIF URLs are only available for public content. Private assets and Private categories return a 404 to external viewers — they cannot be enumerated or discovered. To share an asset via IIIF, open it in the details panel, uncheck Private, and ensure Read access is enabled."
     },

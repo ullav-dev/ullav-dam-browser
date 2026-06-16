@@ -16,6 +16,7 @@ import {
   fetchIiifManifestId,
 } from "@/lib/dam-api";
 import { useTeam } from "@/contexts/TeamContext";
+import { IiifViewerModal } from "@/components/IiifViewerModal";
 
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -94,6 +95,17 @@ function IconIiif() {
       strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+  );
+}
+
+function IconOpenViewer() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
     </svg>
   );
 }
@@ -254,6 +266,10 @@ export default function AssetDetails({
   // IIIF manifest copy state
   const [iiifCopying, setIiifCopying] = useState(false);
   const [iiifCopied, setIiifCopied] = useState(false);
+
+  // IIIF viewer modal state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerManifestUrl, setViewerManifestUrl] = useState<string | null>(null);
 
   // Reset form and fetch metadata when the selected asset changes
   useEffect(() => {
@@ -449,6 +465,16 @@ export default function AssetDetails({
       // ignore — clipboard write failures are non-critical
     } finally {
       setIiifCopying(false);
+    }
+  }
+
+  async function handleOpenViewer() {
+    try {
+      const url = await fetchIiifManifestId(asset.id);
+      setViewerManifestUrl(url);
+      setViewerOpen(true);
+    } catch {
+      // ignore — if manifest fetch fails the viewer simply won't open
     }
   }
 
@@ -1054,6 +1080,20 @@ export default function AssetDetails({
                   {iiifCopied ? t("iiifCopied") : t("actionIiifManifest")}
                 </span>
               </button>
+              {/* IIIF deep-zoom viewer — only for raster images */}
+              {asset.asset_type.startsWith("image/") && asset.asset_type !== "image/svg+xml" && (
+                <>
+                  <div className="w-px bg-slate-200 my-1" />
+                  <button
+                    onClick={handleOpenViewer}
+                    title={t("actionIiifViewTitle")}
+                    className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 transition-colors"
+                  >
+                    <IconOpenViewer />
+                    <span className="text-[10px] font-medium">{t("actionIiifView")}</span>
+                  </button>
+                </>
+              )}
             </>
           )}
 
@@ -1121,6 +1161,14 @@ export default function AssetDetails({
           </button>
 
         </div>
+      )}
+
+      {viewerOpen && viewerManifestUrl && (
+        <IiifViewerModal
+          manifestUrl={viewerManifestUrl}
+          assetName={asset.name}
+          onClose={() => setViewerOpen(false)}
+        />
       )}
     </div>
   );

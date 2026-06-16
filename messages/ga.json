@@ -391,6 +391,9 @@
     "actionIiifManifest": "IIIF",
     "actionIiifManifestTitle": "URL Manifiest IIIF a chóipeáil (le haghaidh Universal Viewer, Mirador, etc.)",
     "iiifCopied": "Cóipeáilte!",
+    "actionIiifView": "Oscail Breathnóir",
+    "actionIiifViewTitle": "Oscail in Universal Viewer (zúmáil dhomhain IIIF)",
+    "iiifViewerClose": "Dún",
     "actionDelete": "Scrios",
     "actionDeleteTitle": "Scrios an tsócmhainn",
     "actionDeleteLockedTitle": "Díghlasáil an tsócmhainn roimh scriosta",
@@ -577,7 +580,7 @@
       "collectionTitle": "URL Bailiúcháin a chóipeáil",
       "collectionBody": "Sa chrann catagóirí ar chlé, scrollaigh os cionn aon chatagóir neamhphríobháideach. Feictear cnaipe cóipeála ⊞ in aice leis na cnaipí eagarthóireachta agus scriostha. Cliceáil air chun URL Bailiúcháin IIIF a chóipeáil — áiríonn sé gach sócmhainn phoiblí sa chatagóir sin agus nasc le haon fho-bhailiúcháin.",
       "viewerTitle": "Oscailt i bhféachadóir",
-      "viewerBody": "Greamaigh an URL cóipeáilte isteach i réimse manifiest Universal Viewer (universalviewer.io) nó Mirador (projectmirador.org). Faigheann an féachadóir an manifiest go díreach ó fhreastalaí Comad — fanann do shócmhainní stóráilte i gComad agus léann an féachadóir iad i bhfíoraimsir.",
+      "viewerBody": "Le haghaidh sócmhainní íomhá poiblí, cliceáil 'Oscail Breathnóir' sa bharra gníomhaíochta chun Universal Viewer a oscailt go díreach i gComad — níl gá le cóipeáil agus greamú. Is féidir leat an URL manifiest a chóipeáil freisin agus é a ghreamú isteach in aon fhéachadóir IIIF comhoiriúnach ar nós Mirador. Tá zúmáil dhomhain ar fáil do sócmhainní raster íomhá.",
       "visibilityTitle": "Infheictheacht agus rochtain",
       "visibilityBody": "Níl URLanna IIIF ar fáil ach do bhfuil poiblí. Seolann sócmhainní príobháideacha agus catagóirí príobháideacha 404 chuig féachadóirí seachtracha — ní féidir iad a liostú ná a aimsiú. Chun sócmhainn a chomhroinnt trí IIIF, oscail sa phainéal sonraí í, dícheadaigh Príobháideach, agus cinntigh go bhfuil rochtain Léigh cumasaithe."
     },
