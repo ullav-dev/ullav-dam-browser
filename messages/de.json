@@ -294,7 +294,8 @@
     "dropAlreadyTopLevel": "Bereits auf Hauptebene",
     "addSubcategoryTitle": "Unterkategorie unter \"{name}\" hinzufügen",
     "editCategoryTitle": "Kategorie bearbeiten",
-    "deleteCategoryTitle": "Kategorie löschen"
+    "deleteCategoryTitle": "Kategorie löschen",
+    "copyIiifCollectionTitle": "IIIF-Sammlungs-URL kopieren"
   },
   "assetGrid": {
     "sortLabel": "Sortieren:",
@@ -387,6 +388,9 @@
     "actionRefreshThumbnailTitle": "Vorschaubild neu generieren",
     "refreshingThumbnail": "Wird aktualisiert…",
     "errorRefreshThumbnail": "Vorschaubild konnte nicht aktualisiert werden.",
+    "actionIiifManifest": "IIIF",
+    "actionIiifManifestTitle": "IIIF-Manifest-URL kopieren (für Universal Viewer, Mirador u. a.)",
+    "iiifCopied": "Kopiert!",
     "actionDelete": "Löschen",
     "actionDeleteTitle": "Asset löschen",
     "actionDeleteLockedTitle": "Asset vor dem Löschen entsperren",

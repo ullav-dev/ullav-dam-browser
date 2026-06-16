@@ -294,7 +294,8 @@
     "dropAlreadyTopLevel": "Barrleibhéal cheana",
     "addSubcategoryTitle": "Fo-chatagóir a chur faoi \"{name}\"",
     "editCategoryTitle": "Catagóir a chur in eagar",
-    "deleteCategoryTitle": "Catagóir a scriosadh"
+    "deleteCategoryTitle": "Catagóir a scriosadh",
+    "copyIiifCollectionTitle": "URL Bailiúchán IIIF a chóipeáil"
   },
   "assetGrid": {
     "sortLabel": "Sórtáil:",
@@ -387,6 +388,9 @@
     "actionRefreshThumbnailTitle": "Mionsamhail a athghiniúint",
     "refreshingThumbnail": "Á athnuachan…",
     "errorRefreshThumbnail": "Theip ar athnuachan mionsamhla.",
+    "actionIiifManifest": "IIIF",
+    "actionIiifManifestTitle": "URL Manifiest IIIF a chóipeáil (le haghaidh Universal Viewer, Mirador, etc.)",
+    "iiifCopied": "Cóipeáilte!",
     "actionDelete": "Scrios",
     "actionDeleteTitle": "Scrios an tsócmhainn",
     "actionDeleteLockedTitle": "Díghlasáil an tsócmhainn roimh scriosta",

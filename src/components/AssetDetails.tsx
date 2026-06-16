@@ -13,6 +13,7 @@ import {
   refreshThumbnail,
   getAssetMetadata,
   listCustomFieldSchemas,
+  fetchIiifManifestId,
 } from "@/lib/dam-api";
 import { useTeam } from "@/contexts/TeamContext";
 
@@ -83,6 +84,16 @@ function IconRefresh() {
       strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
       <polyline points="23 4 23 10 17 10"/>
       <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </svg>
+  );
+}
+
+function IconIiif() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
     </svg>
   );
 }
@@ -239,6 +250,10 @@ export default function AssetDetails({
 
   // Replace file input ref
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
+
+  // IIIF manifest copy state
+  const [iiifCopying, setIiifCopying] = useState(false);
+  const [iiifCopied, setIiifCopied] = useState(false);
 
   // Reset form and fetch metadata when the selected asset changes
   useEffect(() => {
@@ -420,6 +435,20 @@ export default function AssetDetails({
       setSaveError(err instanceof Error ? err.message : t("errorRefreshThumbnail"));
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function handleCopyIiifManifest() {
+    setIiifCopying(true);
+    try {
+      const url = await fetchIiifManifestId(asset.id);
+      await navigator.clipboard.writeText(url);
+      setIiifCopied(true);
+      setTimeout(() => setIiifCopied(false), 2000);
+    } catch {
+      // ignore — clipboard write failures are non-critical
+    } finally {
+      setIiifCopying(false);
     }
   }
 
@@ -1005,6 +1034,28 @@ export default function AssetDetails({
             <IconDownload />
             <span className="text-[10px] font-medium">{t("actionDownload")}</span>
           </a>
+
+          {!isPrivate && (
+            <>
+              <div className="w-px bg-slate-200 my-1" />
+              {/* IIIF manifest URL copy */}
+              <button
+                onClick={handleCopyIiifManifest}
+                disabled={iiifCopying}
+                title={t("actionIiifManifestTitle")}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors ${
+                  iiifCopied
+                    ? "text-green-600 bg-green-50"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-blue-700 disabled:opacity-50"
+                }`}
+              >
+                <IconIiif />
+                <span className="text-[10px] font-medium">
+                  {iiifCopied ? t("iiifCopied") : t("actionIiifManifest")}
+                </span>
+              </button>
+            </>
+          )}
 
           <div className="w-px bg-slate-200 my-1" />
 

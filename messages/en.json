@@ -294,7 +294,8 @@
     "dropAlreadyTopLevel": "Already top-level",
     "addSubcategoryTitle": "Add sub-category under \"{name}\"",
     "editCategoryTitle": "Edit category",
-    "deleteCategoryTitle": "Delete category"
+    "deleteCategoryTitle": "Delete category",
+    "copyIiifCollectionTitle": "Copy IIIF Collection URL"
   },
   "assetGrid": {
     "sortLabel": "Sort:",
@@ -387,6 +388,9 @@
     "actionRefreshThumbnailTitle": "Regenerate thumbnail",
     "refreshingThumbnail": "Refreshing…",
     "errorRefreshThumbnail": "Thumbnail refresh failed.",
+    "actionIiifManifest": "IIIF",
+    "actionIiifManifestTitle": "Copy IIIF Manifest URL (for use in Universal Viewer, Mirador, etc.)",
+    "iiifCopied": "Copied!",
     "actionDelete": "Delete",
     "actionDeleteTitle": "Delete asset",
     "actionDeleteLockedTitle": "Unlock the asset before deleting",

@@ -182,6 +182,17 @@ export const uploadFile = (id: string, file: File, token: string): Promise<Asset
 export const thumbnailUrl = (id: string): string => `/api/assets/${id}/thumbnail`;
 export const downloadUrl = (id: string): string => `/api/assets/${id}/download`;
 
+// ── IIIF ──────────────────────────────────────────────────────────────────────
+
+/** Fetches the IIIF Manifest for a public asset and returns its canonical `id` URL.
+ *  The `id` is the fully-qualified public API URL — safe to share with external viewers. */
+export const fetchIiifManifestId = (id: string): Promise<string> =>
+  apiRequest<{ id: string }>(`/iiif/manifest/${id}`, { method: "GET" }).then((d) => d.id);
+
+/** Fetches the IIIF Collection for a non-private category and returns its canonical `id` URL. */
+export const fetchIiifCollectionId = (id: string): Promise<string> =>
+  apiRequest<{ id: string }>(`/iiif/collection/${id}`, { method: "GET" }).then((d) => d.id);
+
 export const refreshThumbnail = (id: string, token: string): Promise<void> =>
   apiRequest(`/assets/${id}/thumbnail`, { method: "DELETE", headers: bearerHeaders(token) })
     .then(() => undefined);

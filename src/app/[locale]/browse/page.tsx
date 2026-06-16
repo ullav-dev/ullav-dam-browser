@@ -12,7 +12,7 @@ import UploadModal from "@/components/UploadModal";
 import ResizeHandle from "@/components/ResizeHandle";
 import UsageWidget from "@/components/UsageWidget";
 import * as api from "@/lib/dam-api";
-import { createCategory, updateCategory, deleteCategory, downloadUrl } from "@/lib/dam-api";
+import { createCategory, updateCategory, deleteCategory, downloadUrl, fetchIiifCollectionId } from "@/lib/dam-api";
 import { getDescendantIds } from "@/components/CategoryTree";
 import { useTranslations } from "next-intl";
 import JSZip from "jszip";
@@ -251,6 +251,15 @@ function BrowsePageInner() {
     },
     [token]
   );
+
+  const handleCopyIiifCollection = useCallback(async (id: string) => {
+    try {
+      const url = await fetchIiifCollectionId(id);
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // ignore — clipboard write failures are non-critical
+    }
+  }, []);
 
   const handleCategoryDrop = useCallback(
     async (assetId: string, categoryId: string) => {
@@ -681,6 +690,7 @@ function BrowsePageInner() {
               userId={user?.id}
               onEditCategory={openEditCatForm}
               onDeleteCategory={handleRequestDeleteCat}
+              onCopyIiifCollection={handleCopyIiifCollection}
             />
           )}
         </div>
