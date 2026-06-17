@@ -81,6 +81,7 @@ function TreeNodeItem({
   userId,
   onEditCategory,
   onDeleteCategory,
+  onCopyIiifCollection,
   depth = 0,
 }: {
   node: TreeNode;
@@ -93,6 +94,7 @@ function TreeNodeItem({
   userId?: string;
   onEditCategory?: (id: string) => void;
   onDeleteCategory?: (id: string) => void;
+  onCopyIiifCollection?: (id: string) => void;
   depth?: number;
 }) {
 
@@ -311,6 +313,18 @@ function TreeNodeItem({
             )}
           </>
         )}
+
+        {/* IIIF collection URL copy — visible on hover for non-Private categories */}
+        {!isAssetDragging && !isCatMoving && onCopyIiifCollection && hovered && node.access_level !== "Private" && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onCopyIiifCollection(node.id); }}
+            title={t("copyIiifCollectionTitle")}
+            className="shrink-0 w-4 h-4 flex items-center justify-center rounded text-slate-400 hover:text-blue-600 hover:bg-blue-100 text-xs leading-none transition-colors"
+          >
+            ⊞
+          </button>
+        )}
       </div>
 
       {hasChildren && expanded && (
@@ -328,6 +342,7 @@ function TreeNodeItem({
               userId={userId}
               onEditCategory={onEditCategory}
               onDeleteCategory={onDeleteCategory}
+              onCopyIiifCollection={onCopyIiifCollection}
               depth={depth + 1}
             />
           ))}
@@ -358,6 +373,8 @@ interface Props {
   userId?: string;
   onEditCategory?: (id: string) => void;
   onDeleteCategory?: (id: string) => void;
+  // IIIF collection URL copy (only shown for non-Private categories)
+  onCopyIiifCollection?: (id: string) => void;
 }
 
 export default function CategoryTree({
@@ -374,6 +391,7 @@ export default function CategoryTree({
   userId,
   onEditCategory,
   onDeleteCategory,
+  onCopyIiifCollection,
 }: Props) {
   const t = useTranslations("categoryTree");
   const tree = buildTree(categories);
@@ -495,6 +513,7 @@ export default function CategoryTree({
           userId={userId}
           onEditCategory={onEditCategory}
           onDeleteCategory={onDeleteCategory}
+          onCopyIiifCollection={onCopyIiifCollection}
           depth={0}
         />
       ))}

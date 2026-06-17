@@ -294,7 +294,8 @@
     "dropAlreadyTopLevel": "Bereits auf Hauptebene",
     "addSubcategoryTitle": "Unterkategorie unter \"{name}\" hinzufügen",
     "editCategoryTitle": "Kategorie bearbeiten",
-    "deleteCategoryTitle": "Kategorie löschen"
+    "deleteCategoryTitle": "Kategorie löschen",
+    "copyIiifCollectionTitle": "IIIF-Sammlungs-URL kopieren"
   },
   "assetGrid": {
     "sortLabel": "Sortieren:",
@@ -374,6 +375,7 @@
     "metaCreated": "Erstellt:",
     "metaUpdated": "Aktualisiert:",
     "metaUrlLabel": "Download-URL",
+    "metaIiifUrlLabel": "IIIF-Manifest-URL",
     "actionDownload": "Herunterladen",
     "actionReplace": "Ersetzen",
     "actionReplaceTitle": "Datei ersetzen",
@@ -387,6 +389,12 @@
     "actionRefreshThumbnailTitle": "Vorschaubild neu generieren",
     "refreshingThumbnail": "Wird aktualisiert…",
     "errorRefreshThumbnail": "Vorschaubild konnte nicht aktualisiert werden.",
+    "actionIiifManifest": "IIIF kopieren",
+    "actionIiifManifestTitle": "IIIF-Manifest-URL kopieren (für Universal Viewer, Mirador u. a.)",
+    "iiifCopied": "Kopiert!",
+    "actionIiifView": "Viewer öffnen",
+    "actionIiifViewTitle": "Im Universal Viewer öffnen (IIIF Deep Zoom)",
+    "iiifViewerClose": "Schließen",
     "actionDelete": "Löschen",
     "actionDeleteTitle": "Asset löschen",
     "actionDeleteLockedTitle": "Asset vor dem Löschen entsperren",
@@ -564,6 +572,19 @@
       "clearTitle": "Auswahl aufheben",
       "clearBody": "Klicken Sie Auswahl aufheben in der blauen Leiste, um alles auf einmal abzuwählen. Sie können auch einzelne Assets durch erneutes Klicken auf deren Kontrollkästchen abwählen."
     },
+    "iiif": {
+      "title": "IIIF-Freigabe",
+      "overviewTitle": "Was ist IIIF?",
+      "overviewBody": "IIIF (International Image Interoperability Framework) ist ein offener Standard zur Weitergabe von Bildern und Metadaten. Eine IIIF-Manifest- oder Sammlungs-URL kann in jedem kompatiblen Viewer geöffnet werden — z. B. Universal Viewer oder Mirador — und zeigt Ihre Assets mit vollständigen Metadaten an, ohne dass ein Comad-Konto erforderlich ist.",
+      "manifestTitle": "Manifest-URL kopieren",
+      "manifestBody": "Öffnen Sie ein öffentliches Asset (Privat muss deaktiviert sein) im Detailbereich. Klicken Sie in der Aktionsleiste unten auf das IIIF-Verknüpfungssymbol. Die Manifest-URL wird in die Zwischenablage kopiert. Fügen Sie sie in Universal Viewer oder Mirador ein oder teilen Sie sie mit jemandem, der einen IIIF-Viewer hat.",
+      "collectionTitle": "Sammlungs-URL kopieren",
+      "collectionBody": "Fahren Sie in der Kategorienstruktur links über eine nicht private Kategorie. Ein ⊞-Kopiersymbol erscheint neben den Bearbeiten- und Löschen-Schaltflächen. Klicken Sie darauf, um die IIIF-Sammlungs-URL zu kopieren — sie enthält alle öffentlichen Assets in dieser Kategorie und verweist auf alle Untersammlungen.",
+      "viewerTitle": "In einem Viewer öffnen",
+      "viewerBody": "Klicken Sie für öffentliche Bild-Assets auf 'Viewer öffnen' in der Aktionsleiste, um Universal Viewer direkt in Comad zu öffnen — kein Kopieren und Einfügen erforderlich. Sie können die Manifest-URL auch kopieren und in einen kompatiblen IIIF-Viewer wie Mirador (projectmirador.org) einfügen. Deep Zoom ist für Rasterbild-Assets verfügbar.",
+      "visibilityTitle": "Sichtbarkeit und Zugriff",
+      "visibilityBody": "IIIF-URLs sind nur für öffentliche Inhalte verfügbar. Private Assets und private Kategorien geben externen Viewern einen 404 zurück — sie können nicht aufgelistet oder gefunden werden. Um ein Asset über IIIF zu teilen, öffnen Sie es im Detailbereich, deaktivieren Sie Privat und stellen Sie sicher, dass Lesezugriff aktiviert ist."
+    },
     "locking": {
       "title": "Sperren & Löschen",
       "lockTitle": "Ein Asset sperren",
@@ -669,5 +690,9 @@
     "decline": "Ablehnen",
     "viewTeam": "Team anzeigen",
     "goHome": "Zur Übersicht"
+  },
+  "teamSelector": {
+    "switchTeam": "Team wechseln",
+    "selectTeam": "Team auswählen"
   }
 }

@@ -13,8 +13,11 @@ import {
   refreshThumbnail,
   getAssetMetadata,
   listCustomFieldSchemas,
+  fetchIiifManifestId,
+  fetchIiifManifestJson,
 } from "@/lib/dam-api";
 import { useTeam } from "@/contexts/TeamContext";
+import { IiifViewerModal } from "@/components/IiifViewerModal";
 
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -83,6 +86,27 @@ function IconRefresh() {
       strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
       <polyline points="23 4 23 10 17 10"/>
       <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </svg>
+  );
+}
+
+function IconIiif() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+  );
+}
+
+function IconOpenViewer() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
     </svg>
   );
 }
@@ -240,6 +264,17 @@ export default function AssetDetails({
   // Replace file input ref
   const replaceFileInputRef = useRef<HTMLInputElement>(null);
 
+  // IIIF manifest copy state
+  const [iiifCopying, setIiifCopying] = useState(false);
+  const [iiifCopied, setIiifCopied] = useState(false);
+
+  // IIIF viewer modal state
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerManifestUrl, setViewerManifestUrl] = useState<string | null>(null);
+
+  // IIIF manifest URL for display in the metadata section
+  const [iiifDisplayUrl, setIiifDisplayUrl] = useState<string | null>(null);
+
   // Reset form and fetch metadata when the selected asset changes
   useEffect(() => {
     setName(asset.name);
@@ -277,10 +312,16 @@ export default function AssetDetails({
     setThumbFailed(false);
     setThumbVersion(null);
     setActiveTab("details");
+    setIiifDisplayUrl(null);
     setMetadata("loading");
     getAssetMetadata(asset.id, token)
       .then(setMetadata)
       .catch(() => setMetadata(null));
+    if (!asset.is_private) {
+      fetchIiifManifestId(asset.id)
+        .then(setIiifDisplayUrl)
+        .catch(() => {});
+    }
   }, [asset.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load schemas when team changes
@@ -421,6 +462,58 @@ export default function AssetDetails({
     } finally {
       setRefreshing(false);
     }
+  }
+
+  async function handleCopyIiifManifest() {
+    setIiifCopying(true);
+    try {
+      const url = await fetchIiifManifestId(asset.id);
+      await navigator.clipboard.writeText(url);
+      setIiifCopied(true);
+      setTimeout(() => setIiifCopied(false), 2000);
+    } catch {
+      // ignore — clipboard write failures are non-critical
+    } finally {
+      setIiifCopying(false);
+    }
+  }
+
+  async function handleOpenViewer() {
+    try {
+      const manifest = await fetchIiifManifestJson(asset.id, token) as Record<string, unknown>;
+
+      // Rewrite all absolute server URLs to go through the Next.js proxy so that
+      // image tile requests can carry auth (for private assets).
+      const manifestId = typeof manifest.id === "string" ? manifest.id : "";
+      const serverBase = manifestId.replace(/\/iiif\/manifest\/[^/]+$/, "");
+      const origin = window.location.origin;
+      let manifestStr = JSON.stringify(manifest);
+      if (serverBase) {
+        manifestStr = manifestStr.split(serverBase).join(`${origin}/api`);
+      }
+
+      // Cookie lets the /api/iiif/image/[...params] route handler inject the
+      // Bearer token for info.json + tile requests. Scoped to the IIIF image
+      // path only; Secure on HTTPS; expires after 1 h (matches tile cache TTL).
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `iiif_access_token=${token}; path=/api/iiif/image; SameSite=Strict; Max-Age=3600${secure}`;
+
+      const blob = new Blob([manifestStr], { type: "application/ld+json" });
+      const blobUrl = URL.createObjectURL(blob);
+      setViewerManifestUrl(blobUrl);
+      setViewerOpen(true);
+    } catch {
+      // ignore — if manifest fetch fails the viewer simply won't open
+    }
+  }
+
+  function handleCloseViewer() {
+    if (viewerManifestUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(viewerManifestUrl);
+    }
+    setViewerManifestUrl(null);
+    setViewerOpen(false);
+    document.cookie = "iiif_access_token=; path=/api/iiif/image; Max-Age=0; SameSite=Strict";
   }
 
   async function handleAddCategory(categoryId: string) {
@@ -957,6 +1050,12 @@ export default function AssetDetails({
               {typeof window !== "undefined" ? window.location.origin : ""}{`/api/assets/${asset.id}`}
             </p>
           </div>
+          {iiifDisplayUrl && (
+            <div className="space-y-0.5">
+              <p className="uppercase tracking-wide font-medium">{t("metaIiifUrlLabel")}</p>
+              <p className="break-all select-all font-mono text-slate-500">{iiifDisplayUrl}</p>
+            </div>
+          )}
         </div>
 
         </>}
@@ -1005,6 +1104,43 @@ export default function AssetDetails({
             <IconDownload />
             <span className="text-[10px] font-medium">{t("actionDownload")}</span>
           </a>
+
+          {!isPrivate && (
+            <>
+              <div className="w-px bg-slate-200 my-1" />
+              {/* IIIF manifest URL copy — public assets only */}
+              <button
+                onClick={handleCopyIiifManifest}
+                disabled={iiifCopying}
+                title={t("actionIiifManifestTitle")}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors ${
+                  iiifCopied
+                    ? "text-green-600 bg-green-50"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-blue-700 disabled:opacity-50"
+                }`}
+              >
+                <IconIiif />
+                <span className="text-[10px] font-medium">
+                  {iiifCopied ? t("iiifCopied") : t("actionIiifManifest")}
+                </span>
+              </button>
+            </>
+          )}
+
+          {/* IIIF deep-zoom viewer — all raster images (public and private) */}
+          {asset.asset_type.startsWith("image/") && asset.asset_type !== "image/svg+xml" && (
+            <>
+              <div className="w-px bg-slate-200 my-1" />
+              <button
+                onClick={handleOpenViewer}
+                title={t("actionIiifViewTitle")}
+                className="flex-1 flex flex-col items-center justify-center gap-1 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-blue-700 transition-colors"
+              >
+                <IconOpenViewer />
+                <span className="text-[10px] font-medium">{t("actionIiifView")}</span>
+              </button>
+            </>
+          )}
 
           <div className="w-px bg-slate-200 my-1" />
 
@@ -1070,6 +1206,14 @@ export default function AssetDetails({
           </button>
 
         </div>
+      )}
+
+      {viewerOpen && viewerManifestUrl && (
+        <IiifViewerModal
+          manifestUrl={viewerManifestUrl}
+          assetName={asset.name}
+          onClose={handleCloseViewer}
+        />
       )}
     </div>
   );

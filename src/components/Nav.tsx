@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import AboutModal from "@/components/AboutModal";
 import UserAvatar, { userDisplayName } from "@/components/UserAvatar";
+import TeamSelector from "@/components/TeamSelector";
 
 export default function Nav() {
   const pathname = usePathname();
@@ -69,6 +70,8 @@ export default function Nav() {
                   <Link href="/team" className={navLink("/team")}>
                     {t("team")}
                   </Link>
+
+                  <TeamSelector />
 
                   {/* User dropdown */}
                   <div className="relative pl-3 border-l border-slate-200" ref={dropdownRef}>

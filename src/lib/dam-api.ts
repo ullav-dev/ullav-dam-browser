@@ -68,7 +68,8 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...init });
   if (res.status === 204) return undefined as T;
   const contentType = res.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
+  const isJson = contentType.includes("application/json") || contentType.includes("application/ld+json");
+  if (!isJson) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return undefined as T;
   }
@@ -181,6 +182,21 @@ export const uploadFile = (id: string, file: File, token: string): Promise<Asset
 
 export const thumbnailUrl = (id: string): string => `/api/assets/${id}/thumbnail`;
 export const downloadUrl = (id: string): string => `/api/assets/${id}/download`;
+
+// ── IIIF ──────────────────────────────────────────────────────────────────────
+
+/** Fetches the IIIF Manifest for a public asset and returns its canonical `id` URL.
+ *  The `id` is the fully-qualified public API URL — safe to share with external viewers. */
+export const fetchIiifManifestId = (id: string): Promise<string> =>
+  apiRequest<{ id: string }>(`/iiif/manifest/${id}`, { method: "GET" }).then((d) => d.id);
+
+/** Fetches the full IIIF Manifest JSON (works for both public and private assets). */
+export const fetchIiifManifestJson = (id: string, token: string): Promise<unknown> =>
+  apiRequest<unknown>(`/iiif/manifest/${id}`, { headers: bearerHeaders(token) });
+
+/** Fetches the IIIF Collection for a non-private category and returns its canonical `id` URL. */
+export const fetchIiifCollectionId = (id: string): Promise<string> =>
+  apiRequest<{ id: string }>(`/iiif/collection/${id}`, { method: "GET" }).then((d) => d.id);
 
 export const refreshThumbnail = (id: string, token: string): Promise<void> =>
   apiRequest(`/assets/${id}/thumbnail`, { method: "DELETE", headers: bearerHeaders(token) })

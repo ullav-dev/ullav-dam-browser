@@ -19,8 +19,12 @@ import {
 } from "@/lib/teams-api";
 import { useAuth } from "./AuthContext";
 
+const ACTIVE_TEAM_KEY = "dam_active_team_id";
+
 interface TeamState {
   teams: TeamSummary[];
+  activeTeam: TeamSummary | null;
+  setActiveTeam: (team: TeamSummary | null) => void;
   isLoading: boolean;
   reload: () => Promise<void>;
   createTeam: (payload: CreateTeamPayload) => Promise<Team>;
@@ -31,6 +35,8 @@ interface TeamState {
 
 const TeamContext = createContext<TeamState>({
   teams: [],
+  activeTeam: null,
+  setActiveTeam: () => {},
   isLoading: false,
   reload: async () => {},
   createTeam: async () => { throw new Error("TeamProvider not mounted"); },
@@ -42,13 +48,32 @@ const TeamContext = createContext<TeamState>({
 export function TeamProvider({ children }: { children: React.ReactNode }) {
   const { token, user, refresh } = useAuth();
   const [teams, setTeams] = useState<TeamSummary[]>([]);
+  const [activeTeam, setActiveTeamState] = useState<TeamSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const setActiveTeam = useCallback((team: TeamSummary | null) => {
+    setActiveTeamState(team);
+    try {
+      if (team) localStorage.setItem(ACTIVE_TEAM_KEY, team.id);
+      else localStorage.removeItem(ACTIVE_TEAM_KEY);
+    } catch { /* ignore */ }
+  }, []);
 
   const reload = useCallback(async () => {
     if (!token || !user) return;
     setIsLoading(true);
     try {
-      setTeams(await getMyTeams(token));
+      const myTeams = await getMyTeams(token);
+      setTeams(myTeams);
+      // Restore persisted active team, validating it's still in the list.
+      try {
+        const savedId = localStorage.getItem(ACTIVE_TEAM_KEY);
+        if (savedId) {
+          const match = myTeams.find((t) => t.id === savedId);
+          setActiveTeamState(match ?? null);
+          if (!match) localStorage.removeItem(ACTIVE_TEAM_KEY);
+        }
+      } catch { /* ignore */ }
     } finally {
       setIsLoading(false);
     }
@@ -56,9 +81,10 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (token && user) {
-      reload();
+      reload().catch((err) => console.error("[TeamContext] reload failed:", err));
     } else {
       setTeams([]);
+      setActiveTeamState(null);
     }
   }, [token, user, reload]);
 
@@ -94,7 +120,7 @@ export function TeamProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <TeamContext.Provider value={{ teams, isLoading, reload, createTeam, updateTeam, deleteTeam, getTeamDetail }}>
+    <TeamContext.Provider value={{ teams, activeTeam, setActiveTeam, isLoading, reload, createTeam, updateTeam, deleteTeam, getTeamDetail }}>
       {children}
     </TeamContext.Provider>
   );

@@ -104,6 +104,18 @@ export default async function HelpPage() {
       ],
     },
     {
+      id: "iiif",
+      icon: "🔗",
+      title: t("iiif.title"),
+      cards: [
+        { title: t("iiif.overviewTitle"), body: t("iiif.overviewBody") },
+        { title: t("iiif.manifestTitle"), body: t("iiif.manifestBody") },
+        { title: t("iiif.collectionTitle"), body: t("iiif.collectionBody") },
+        { title: t("iiif.viewerTitle"), body: t("iiif.viewerBody") },
+        { title: t("iiif.visibilityTitle"), body: t("iiif.visibilityBody") },
+      ],
+    },
+    {
       id: "locking",
       icon: "🗑️",
       title: t("locking.title"),
