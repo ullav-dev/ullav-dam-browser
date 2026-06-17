@@ -12,6 +12,7 @@
 /.next/
 /out/
 
+memory
 # production
 /build
 
