@@ -12,7 +12,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # NEXT_PUBLIC_* vars are read server-side at runtime via process.env,
 # so no build args are required; the standalone server reads them on startup.
-RUN node node_modules/next/dist/bin/next build
+RUN node node_modules/next/dist/bin/next build --webpack
 
 # Stage 3: Production runner
 FROM node:22-alpine AS runner
