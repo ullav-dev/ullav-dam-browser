@@ -204,7 +204,7 @@ export default function AssetDetails({
   const { teams } = useTeam();
 
   // Tab state
-  type Tab = "details" | "exif" | "iptc" | "xmp";
+  type Tab = "details" | "exif" | "iptc" | "xmp" | "ocr";
   const [activeTab, setActiveTab] = useState<Tab>("details");
   const [metadata, setMetadata] = useState<AssetMetadata | null | "loading">("loading");
 
@@ -590,11 +590,13 @@ export default function AssetDetails({
         const hasExif = metadata !== "loading" && metadata?.exif != null;
         const hasIptc = metadata !== "loading" && metadata?.iptc != null;
         const hasXmp  = metadata !== "loading" && metadata?.xmp  != null;
+        const hasOcr  = !!asset.ocr_text;
         const tabs: { id: Tab; label: string; enabled: boolean }[] = [
           { id: "details", label: t("tabDetails"), enabled: true },
           { id: "exif",    label: t("tabExif"),    enabled: hasExif },
           { id: "iptc",    label: t("tabIptc"),    enabled: hasIptc },
           { id: "xmp",     label: t("tabXmp"),     enabled: hasXmp  },
+          { id: "ocr",     label: t("tabOcr"),     enabled: hasOcr  },
         ];
         return (
           <div className="flex border-b border-slate-200 shrink-0 bg-white">
@@ -613,7 +615,7 @@ export default function AssetDetails({
                 }`}
               >
                 {tab.label}
-                {metadata === "loading" && tab.id !== "details" && (
+                {metadata === "loading" && tab.id !== "details" && tab.id !== "ocr" && (
                   <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
                 )}
               </button>
@@ -625,8 +627,21 @@ export default function AssetDetails({
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
+        {/* ── OCR tab ── */}
+        {activeTab === "ocr" && (
+          <div className="space-y-2">
+            {asset.ocr_text ? (
+              <p className="text-sm text-slate-700 whitespace-pre-wrap font-mono select-text">
+                {asset.ocr_text}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400">{t("ocrNone")}</p>
+            )}
+          </div>
+        )}
+
         {/* ── Metadata tabs (EXIF / IPTC / XMP) ── */}
-        {activeTab !== "details" && (() => {
+        {activeTab !== "details" && activeTab !== "ocr" && (() => {
           const section = activeTab === "exif" ? metadata !== "loading" && metadata?.exif
             : activeTab === "iptc" ? metadata !== "loading" && metadata?.iptc
             : metadata !== "loading" && metadata?.xmp;

@@ -27,6 +27,7 @@ export interface Asset {
   public_write: boolean;
   team_id: string | null;
   custom_fields: Record<string, unknown> | null;
+  ocr_text: string | null;
   created_at: string;
   updated_at: string;
 }

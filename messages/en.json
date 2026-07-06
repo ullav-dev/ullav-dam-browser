@@ -411,6 +411,8 @@
     "tabExif": "EXIF",
     "tabIptc": "IPTC",
     "tabXmp": "XMP",
+    "tabOcr": "OCR",
+    "ocrNone": "No OCR text stored for this asset.",
     "metadataLoading": "Loading metadata…",
     "metadataNone": "No metadata available for this section.",
     "metadataNoNormalized": "No recognised fields. Enable 'Show raw' to view embedded data.",

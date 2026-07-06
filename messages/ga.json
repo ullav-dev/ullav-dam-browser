@@ -411,6 +411,8 @@
     "tabExif": "EXIF",
     "tabIptc": "IPTC",
     "tabXmp": "XMP",
+    "tabOcr": "OCR",
+    "ocrNone": "Níl aon téacs OCR stóráilte don sócmhainn seo.",
     "metadataLoading": "Meiteashonraí á lódáil…",
     "metadataNone": "Níl aon mheiteashonraí ar fáil don chuid seo.",
     "metadataNoNormalized": "Níl aon réimsí aitheanta. Cumasaigh 'Taispeáin amhshonraí' chun sonraí leabaithe a fheiceáil.",
