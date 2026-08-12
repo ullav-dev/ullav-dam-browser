@@ -173,6 +173,30 @@ export function getTackTeamIds(token: string | null): string[] {
     .map(([id]) => id);
 }
 
+/** True if the JWT's `roles` claim includes `admin` (org-wide admin, not a team role). */
+export function isAdmin(token: string | null): boolean {
+  if (!token) return false;
+  const payload = decodePayload(token);
+  if (!payload) return false;
+  return ((payload.roles ?? []) as string[]).includes("admin");
+}
+
+export interface ResolvedUser {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+/** Resolve a batch of user ids to their public username/avatar/display-name
+ *  fields (used for Notes author resolution). Ids with no matching row are
+ *  simply omitted from the result. */
+export const resolveUsers = (token: string, ids: string[]): Promise<ResolvedUser[]> =>
+  authRequest(`/users/resolve?ids=${ids.map(encodeURIComponent).join(",")}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
 export const login = (email: string, password: string): Promise<LoginResponse> =>
   authRequest("/auth/login", {
     method: "POST",

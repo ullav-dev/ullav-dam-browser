@@ -8,6 +8,7 @@ import CategoryTree from "@/components/CategoryTree";
 import AssetGrid from "@/components/AssetGrid";
 import type { SortField, SortDir } from "@/components/AssetGrid";
 import AssetDetails from "@/components/AssetDetails";
+import CategoryDetailsModal from "@/components/CategoryDetailsModal";
 import UploadModal from "@/components/UploadModal";
 import ResizeHandle from "@/components/ResizeHandle";
 import UsageWidget from "@/components/UsageWidget";
@@ -118,9 +119,8 @@ function BrowsePageInner() {
     });
   }, []);
 
-  // Category form
+  // Category form (create-only -- see openCategoryDetails below for editing)
   const [showCatForm, setShowCatForm] = useState(false);
-  const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState("");
   const [newCatParentId, setNewCatParentId] = useState<string>("");
   const [newCatAccessLevel, setNewCatAccessLevel] = useState<string>("Private");
@@ -128,7 +128,6 @@ function BrowsePageInner() {
   const [catError, setCatError] = useState<string | null>(null);
 
   const openCatForm = useCallback((parentId: string | null = null) => {
-    setEditingCatId(null);
     setNewCatName("");
     setNewCatParentId(parentId ?? "");
     setNewCatAccessLevel("Private");
@@ -136,16 +135,14 @@ function BrowsePageInner() {
     setShowCatForm(true);
   }, []);
 
-  const openEditCatForm = useCallback((catId: string) => {
-    const cat = categories.find((c) => c.id === catId);
-    if (!cat) return;
-    setEditingCatId(catId);
-    setNewCatName(cat.name);
-    setNewCatParentId(cat.parent_id ?? "");
-    setNewCatAccessLevel(cat.access_level ?? "Private");
-    setCatError(null);
-    setShowCatForm(true);
-  }, [categories]);
+  // Editing a category opens the full CategoryDetailsModal (name/description/
+  // parent/access level + Notes tab) rather than the inline sidebar form,
+  // which stays create-only -- there's no entity to attach notes to until a
+  // category actually exists.
+  const [viewingCategoryId, setViewingCategoryId] = useState<string | null>(null);
+  const openCategoryDetails = useCallback((catId: string) => {
+    setViewingCategoryId(catId);
+  }, []);
 
   const handleSaveCategory = useCallback(
     async (e: React.FormEvent) => {
@@ -154,23 +151,13 @@ function BrowsePageInner() {
       setSavingCat(true);
       setCatError(null);
       try {
-        if (editingCatId) {
-          const updated = await updateCategory(
-            editingCatId,
-            { name: newCatName.trim(), parent_id: newCatParentId || null, access_level: newCatAccessLevel },
-            token
-          );
-          setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-        } else {
-          const created = await createCategory(
-            { name: newCatName.trim(), parent_id: newCatParentId || null, creator: user?.username ?? null, access_level: newCatAccessLevel },
-            token
-          );
-          setCategories((prev) => [...prev, created]);
-          api.getUsage(token).then(setUsage).catch(() => {});
-        }
+        const created = await createCategory(
+          { name: newCatName.trim(), parent_id: newCatParentId || null, creator: user?.username ?? null, access_level: newCatAccessLevel },
+          token
+        );
+        setCategories((prev) => [...prev, created]);
+        api.getUsage(token).then(setUsage).catch(() => {});
         setShowCatForm(false);
-        setEditingCatId(null);
         setNewCatName("");
         setNewCatParentId("");
         setNewCatAccessLevel("Private");
@@ -180,7 +167,7 @@ function BrowsePageInner() {
         setSavingCat(false);
       }
     },
-    [token, editingCatId, newCatName, newCatParentId, newCatAccessLevel, user?.username]
+    [token, newCatName, newCatParentId, newCatAccessLevel, user?.username]
   );
 
   // Category delete
@@ -617,9 +604,6 @@ function BrowsePageInner() {
             onSubmit={handleSaveCategory}
             className="p-2 border-b border-slate-200 bg-white space-y-2 shrink-0"
           >
-            {editingCatId && (
-              <p className="text-xs font-semibold text-slate-500">{t("categoryEditHeading")}</p>
-            )}
             <input
               autoFocus
               value={newCatName}
@@ -635,7 +619,6 @@ function BrowsePageInner() {
             >
               <option value="">{t("categoryParentNone")}</option>
               {visibleCategories
-                .filter((c) => c.id !== editingCatId && !getDescendantIds(editingCatId ?? "", categories).has(c.id))
                 .map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -656,11 +639,11 @@ function BrowsePageInner() {
                 disabled={savingCat || !newCatName.trim()}
                 className="flex-1 bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-xs font-medium py-1 rounded transition-colors"
               >
-                {savingCat ? t("categorySaving") : editingCatId ? t("categorySave") : t("categoryCreate")}
+                {savingCat ? t("categorySaving") : t("categoryCreate")}
               </button>
               <button
                 type="button"
-                onClick={() => { setShowCatForm(false); setEditingCatId(null); }}
+                onClick={() => setShowCatForm(false)}
                 className="flex-1 border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-medium py-1 rounded transition-colors"
               >
                 {t("categoryCancel")}
@@ -688,7 +671,7 @@ function BrowsePageInner() {
               atCategoryLimit={atCategoryLimit}
               onMoveCategory={handleMoveCategory}
               userId={user?.id}
-              onEditCategory={openEditCatForm}
+              onEditCategory={openCategoryDetails}
               onDeleteCategory={handleRequestDeleteCat}
               onCopyIiifCollection={handleCopyIiifCollection}
             />
@@ -851,6 +834,23 @@ function BrowsePageInner() {
           </div>
         )}
       </aside>
+
+      {viewingCategoryId && (() => {
+        const cat = categories.find((c) => c.id === viewingCategoryId);
+        if (!cat || !token) return null;
+        return (
+          <CategoryDetailsModal
+            category={cat}
+            categories={visibleCategories}
+            token={token}
+            onClose={() => setViewingCategoryId(null)}
+            onUpdated={(updated) => {
+              setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+              setViewingCategoryId(null);
+            }}
+          />
+        );
+      })()}
 
       {deletingCatId && (() => {
         const cat = categories.find((c) => c.id === deletingCatId);
