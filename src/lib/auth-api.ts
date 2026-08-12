@@ -139,6 +139,40 @@ export function canCreateTeam(token: string | null): boolean {
   return !!(comad && isActiveStatus(comad.status) && (comad.tier === "team" || comad.tier === "enterprise"));
 }
 
+// ── Team-level product access ─────────────────────────────────────────────────
+// Separate from the subscription-based DAM gating above: Notes (tack-notes)
+// access is gated per-team via the `tack` product slug, same as every other
+// first-party Ullav app, not tied to a Comad subscription tier.
+
+export interface TeamClaim {
+  name: string;
+  role: string;
+  team_roles: string[];
+  product_roles: Record<string, string>;
+  products: string[];
+}
+
+export function getTeamClaims(token: string | null): Record<string, TeamClaim> {
+  if (!token) return {};
+  const payload = decodePayload(token);
+  if (!payload) return {};
+  return (payload.teams ?? {}) as Record<string, TeamClaim>;
+}
+
+/** Tack access: `tack` product, gating the tack-notes-backed notes panel. */
+export function hasTackAccess(token: string | null): boolean {
+  const teams = getTeamClaims(token);
+  return Object.values(teams).some((t) => (t.products ?? []).includes("tack"));
+}
+
+/** Returns IDs of teams that grant Tack access. */
+export function getTackTeamIds(token: string | null): string[] {
+  const teams = getTeamClaims(token);
+  return Object.entries(teams)
+    .filter(([, t]) => (t.products ?? []).includes("tack"))
+    .map(([id]) => id);
+}
+
 export const login = (email: string, password: string): Promise<LoginResponse> =>
   authRequest("/auth/login", {
     method: "POST",

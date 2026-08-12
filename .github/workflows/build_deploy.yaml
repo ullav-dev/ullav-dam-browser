@@ -16,6 +16,8 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PAT_CLASSIC }}
       - name: Run tests
         run: npm test
 
@@ -81,3 +83,4 @@ jobs:
             emailjs_service_id=${{ secrets.EMAILJS_SERVICE_ID }}
             emailjs_template_id=${{ secrets.EMAILJS_TEMPLATE_ID }}
             emailjs_public_key=${{ secrets.EMAILJS_PUBLIC_KEY }}
+            npm_token=${{ secrets.PAT_CLASSIC }}
