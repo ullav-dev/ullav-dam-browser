@@ -188,7 +188,7 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
 
       {/* Resize handle */}
       <div
-        className="shrink-0 w-1.5 cursor-col-resize bg-slate-200 hover:bg-blue-400 transition-colors"
+        className="shrink-0 w-1.5 cursor-col-resize bg-slate-200 hover:bg-[var(--tdam-400,#60a5fa)] transition-colors"
         onMouseDown={onResizeMouseDown}
       />
 
@@ -200,14 +200,14 @@ export default function DamPicker({ apiBase, token, username, onSelect, onDragSt
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assets…"
-            className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:border-[var(--tdam-500,#3b82f6)] focus:outline-none focus:ring-1 focus:ring-[var(--tdam-500,#3b82f6)]"
           />
           <button
             type="button"
             onClick={() => setPage((p) => p)} // force re-fetch via identity bump
             disabled={refreshing}
             title="Refresh"
-            className="shrink-0 p-1.5 rounded-lg border border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-400 disabled:opacity-40 transition-colors bg-white"
+            className="shrink-0 p-1.5 rounded-lg border border-slate-300 text-slate-500 hover:text-[var(--tdam-600,#2563eb)] hover:border-[var(--tdam-400,#60a5fa)] disabled:opacity-40 transition-colors bg-white"
           >
             <svg
               className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}

@@ -154,8 +154,8 @@ export default function PickerGrid({
               onClick={() => handleSortField(field)}
               className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors ${
                 active
-                  ? "bg-blue-700 text-white border-blue-700"
-                  : "text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                  ? "bg-[var(--tdam-700,#1d4ed8)] text-white border-[var(--tdam-700,#1d4ed8)]"
+                  : "text-slate-500 border-slate-200 hover:border-[var(--tdam-300,#93c5fd)] hover:text-[var(--tdam-600,#2563eb)]"
               }`}
             >
               {label}
@@ -191,8 +191,8 @@ export default function PickerGrid({
                 }}
                 className={`cursor-grab active:cursor-grabbing rounded-xl border overflow-hidden transition-all hover:shadow-md ${
                   selectedAssetId === asset.id
-                    ? "border-blue-500 ring-2 ring-blue-200 shadow-md"
-                    : "border-slate-200 hover:border-blue-300"
+                    ? "border-[var(--tdam-500,#3b82f6)] ring-2 ring-[var(--tdam-200,#bfdbfe)] shadow-md"
+                    : "border-slate-200 hover:border-[var(--tdam-300,#93c5fd)]"
                 }`}
               >
                 <div className="aspect-square bg-slate-100 relative overflow-hidden">
@@ -267,7 +267,7 @@ export default function PickerGrid({
                   onClick={() => onPageChange(item)}
                   className={`min-w-[28px] px-2 py-1 rounded text-xs border transition-colors ${
                     item === page
-                      ? "bg-blue-700 text-white border-blue-700 font-medium"
+                      ? "bg-[var(--tdam-700,#1d4ed8)] text-white border-[var(--tdam-700,#1d4ed8)] font-medium"
                       : "text-slate-600 border-slate-200 hover:bg-slate-50"
                   }`}
                 >
