@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
-    "@ullav-dev/tack-notes": "^0.6.0",
+    "@ullav-dev/tack-notes": "*",
     "jszip": "^3.10.1",
     "next": "16.1.6",
     "next-intl": "^4.9.0",
