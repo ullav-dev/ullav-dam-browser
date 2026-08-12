@@ -18,6 +18,8 @@ import {
 } from "@/lib/dam-api";
 import { useTeam } from "@/contexts/TeamContext";
 import { IiifViewerModal } from "@/components/IiifViewerModal";
+import { hasTackAccess } from "@/lib/auth-api";
+import NotesPanel from "@/components/notes/NotesPanel";
 
 const inputCls =
   "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm w-full focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -204,7 +206,7 @@ export default function AssetDetails({
   const { teams } = useTeam();
 
   // Tab state
-  type Tab = "details" | "exif" | "iptc" | "xmp" | "ocr";
+  type Tab = "details" | "exif" | "iptc" | "xmp" | "ocr" | "notes";
   const [activeTab, setActiveTab] = useState<Tab>("details");
   const [metadata, setMetadata] = useState<AssetMetadata | null | "loading">("loading");
 
@@ -597,6 +599,7 @@ export default function AssetDetails({
           { id: "iptc",    label: t("tabIptc"),    enabled: hasIptc },
           { id: "xmp",     label: t("tabXmp"),     enabled: hasXmp  },
           { id: "ocr",     label: t("tabOcr"),     enabled: hasOcr  },
+          { id: "notes",   label: t("tabNotes"),   enabled: hasTackAccess(token) },
         ];
         return (
           <div className="flex border-b border-slate-200 shrink-0 bg-white">
@@ -615,7 +618,7 @@ export default function AssetDetails({
                 }`}
               >
                 {tab.label}
-                {metadata === "loading" && tab.id !== "details" && tab.id !== "ocr" && (
+                {metadata === "loading" && tab.id !== "details" && tab.id !== "ocr" && tab.id !== "notes" && (
                   <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-slate-300 animate-pulse" />
                 )}
               </button>
@@ -640,8 +643,13 @@ export default function AssetDetails({
           </div>
         )}
 
+        {/* ── Notes tab ── */}
+        {activeTab === "notes" && (
+          <NotesPanel entityType="asset" entityId={asset.id} />
+        )}
+
         {/* ── Metadata tabs (EXIF / IPTC / XMP) ── */}
-        {activeTab !== "details" && activeTab !== "ocr" && (() => {
+        {activeTab !== "details" && activeTab !== "ocr" && activeTab !== "notes" && (() => {
           const section = activeTab === "exif" ? metadata !== "loading" && metadata?.exif
             : activeTab === "iptc" ? metadata !== "loading" && metadata?.iptc
             : metadata !== "loading" && metadata?.xmp;
