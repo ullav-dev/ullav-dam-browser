@@ -44,7 +44,7 @@ function TreeNodeItem({
   const isSelected = selectedId === node.id;
 
   const rowCls = isSelected
-    ? "bg-blue-100 text-blue-800 font-medium"
+    ? "bg-[var(--tdam-100,#dbeafe)] text-[var(--tdam-800,#1e40af)] font-medium"
     : "text-slate-700 hover:bg-slate-100";
 
   return (
@@ -102,7 +102,7 @@ export default function PickerTree({ categories, selectedId, onSelect }: Props) 
       <div
         className={`flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer text-xs transition-colors ${
           selectedId === null
-            ? "bg-blue-100 text-blue-800 font-medium"
+            ? "bg-[var(--tdam-100,#dbeafe)] text-[var(--tdam-800,#1e40af)] font-medium"
             : "text-slate-700 hover:bg-slate-100"  // undefined = nothing selected — no highlight
         }`}
         onClick={() => onSelect(null)}
