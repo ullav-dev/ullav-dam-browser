@@ -41,6 +41,7 @@ function makeAsset(overrides: Partial<AssetWithCategories> = {}): AssetWithCateg
     bucket: "bucket",
     caption: null,
     keywords: null,
+    ocr_text: null,
     creator: "alice",
     owner_id: "owner-1",
     copyright_notice: null,
